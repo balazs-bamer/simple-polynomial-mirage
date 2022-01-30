@@ -24,7 +24,7 @@ Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempAmbient, 
   }
   mTempProfile = std::move(std::make_unique<PolynomApprox>(csTempProfileHeights.data(), temperatures.data(), csTempProfilePointCount, csTempProfileDegreeMinus, csTempProfileDegreePlus));
 
-std::cout << "temp error: " << mTempProfile->getRrmsError() << '\n';
+std::cout << "temp error: " << mTempProfile->getRrmsError() << "\ntemp coeff: ";
 for(int i = 0; i < mTempProfile->size(); ++i)
   std::cout << mTempProfile->operator[](i) << ' ';
 std::cout << '\n';
@@ -43,11 +43,11 @@ void Angle2apparentMirrorDepth::initReflection() {
   for(uint32_t i = 0u; i < csInclinationProfilePointCount; ++i) {
     inclinations.push_back(inclination);
     depths.push_back(getReflectionDepth(inclination).value());
-std::cout << inclination * 180.0 / cgPi << ' ' << depths.back() << '\n';
+std::cout << "incl: " << inclination * 180.0 / cgPi << "  depth: " << depths.back() << '\n';
     inclination += increment;
   }
   mInclinationProfile = std::move(std::make_unique<PolynomApprox>(inclinations, depths, csInclinationProfileDegreeMinus, csInclinationProfileDegreePlus));
-std::cout << "incl error: " << mInclinationProfile->getRrmsError() << '\n';
+std::cout << "incl error: " << mInclinationProfile->getRrmsError() << "\nincl coeff: ";
 for(int i = 0; i < mInclinationProfile->size(); ++i)
   std::cout << mInclinationProfile->operator[](i) << ' ';
 std::cout << '\n';

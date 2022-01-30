@@ -48,7 +48,7 @@ PolynomApprox::PolynomApprox(double const* const aSamplesX, double const* const 
         fitA(i, j) = ::pow(normalize(aSamplesX[i]), static_cast<int32_t>(j) - static_cast<int32_t>(aDegreeMinus));
       }
     }
-    mCoefficients = fitA.colPivHouseholderQr().solve(fitB);
+    mCoefficients = (fitA.transpose() * fitA).completeOrthogonalDecomposition().pseudoInverse() * fitA.transpose() * fitB;
     auto diffs = 0.0f;
     auto desireds = 0.0f;
     for(uint32_t i = 0u; i < aSampleCount; ++i) {
