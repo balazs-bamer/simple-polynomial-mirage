@@ -1,5 +1,7 @@
 #include "mathUtil.h"
 
+#include <numeric>
+
 #include <iostream>
 
 
@@ -37,10 +39,13 @@ PolynomApprox::PolynomApprox(double const* const aSamplesX, double const* const 
   Eigen::MatrixXd fitA(aSampleCount, mCoeffCount);
   Eigen::VectorXd fitB = Eigen::VectorXd::Map(aSamplesY, aSampleCount);
 
-  if(aSampleCount >= mCoeffCount) {
+  if(aSampleCount >= mCoeffCount && mCoeffCount > 1u) {
+    mAverageX = std::accumulate(aSamplesX, aSamplesX + aSampleCount, 0.0) / aSampleCount;
+    auto [min, max] = std::minmax_element(aSamplesX, aSamplesX + aSampleCount);
+    mSpanFactorX = csDesiredSpanX / (max - min);
     for(uint32_t i = 0u; i < aSampleCount; ++i) {
       for(uint32_t j = 0u; j < mCoeffCount; ++j) {
-        fitA(i, j) = ::pow(aSamplesX[i], static_cast<int32_t>(j) - static_cast<int32_t>(aDegreeMinus));
+        fitA(i, j) = ::pow(normalize(aSamplesX[i]), static_cast<int32_t>(j) - static_cast<int32_t>(aDegreeMinus));
       }
     }
     mCoefficients = fitA.colPivHouseholderQr().solve(fitB);
@@ -48,7 +53,7 @@ PolynomApprox::PolynomApprox(double const* const aSamplesX, double const* const 
     auto desireds = 0.0f;
     for(uint32_t i = 0u; i < aSampleCount; ++i) {
       auto desired = aSamplesY[i];
-      auto diff = (desired - eval(aSamplesX[i]));
+      auto diff = desired - eval(aSamplesX[i]);
       diffs += diff * diff;
       desireds += desired * desired;
     }
@@ -63,12 +68,13 @@ PolynomApprox::PolynomApprox(double const* const aSamplesX, double const* const 
 }
 
 double PolynomApprox::eval(double const aX) const {
-  double result = mCoefficients(mCoeffCount - 1u) * aX;
+  auto x = normalize(aX);
+  double result = mCoefficients(mCoeffCount - 1u) * x;
   for(uint32_t i = mCoeffCount - 2u; i > 0u; --i) {
-    result = (result + mCoefficients(i)) * aX;
+    result = (result + mCoefficients(i)) * x;
   }
   result += mCoefficients(0);
-  return result / ::pow(aX, mDegreeMinus);
+  return result / ::pow(x, mDegreeMinus);
 }
 
 
