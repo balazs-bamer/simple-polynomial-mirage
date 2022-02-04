@@ -10,6 +10,11 @@ Angle2apparentMirrorDepth::Static::Static() {
   mStuff = std::move(std::make_unique<TempTempProfiles>());
   for(uint32_t i = 0u; i < csTempProfilePointCount; ++i) {
     mStuff->at(i) = std::move(std::make_unique<PolynomApprox>(csReferenceTempProfiles[0u].data(), csReferenceTempProfiles[i].data(), csTempProfileCount, 0u, csReferenceTempProfileDegree));
+/*std::cout << i << '\n';
+for(int j = 0; j < 3; ++j) {
+  std::cout << mStuff->at(i)->eval(csReferenceTempProfiles[0u][j]) << "   ";
+}
+std::cout << '\n';*/
   }
 }
 
@@ -21,13 +26,11 @@ Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempAmbient, 
 
   for(uint32_t i = 0u; i < csTempProfilePointCount; ++i) {
     temperatures[i] = tempTempProfiles.eval(i, mTempDiffSurface + csReferenceTempAmbient);
+std::cout << "temperatures[i] " << temperatures[i] << '\n';
   }
   mTempProfile = std::move(std::make_unique<PolynomApprox>(csTempProfileHeights.data(), temperatures.data(), csTempProfilePointCount, csTempProfileDegreeMinus, csTempProfileDegreePlus));
 
-std::cout << "temp error: " << mTempProfile->getRrmsError() << "\ntemp coeff: ";
-for(int i = 0; i < mTempProfile->size(); ++i)
-  std::cout << mTempProfile->operator[](i) << ' ';
-std::cout << '\n';
+std::cout << "temp error: " << mTempProfile->getRrmsError() << "\n";
 
   initReflection();
 }

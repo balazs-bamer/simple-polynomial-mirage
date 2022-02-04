@@ -9,13 +9,13 @@ double binarySearch(double const aLower, double const aUpper, double const aEpsi
 
 class PolynomApprox final {
 private:
-  static constexpr double csDesiredSpanX = 123.4;
-
   uint32_t const  mDegreeMinus;
   uint32_t const  mCoeffCount;
 
-  double          mAverageX;
-  double          mSpanFactorX;
+  double          mXmin;
+  double          mSpanOriginal;
+  double          mSpanFactor;
+  double          mSpanStart;
   Eigen::VectorXd mCoefficients;
   double          mRrmsError;    // https://stats.stackexchange.com/questions/413209/is-there-something-like-a-root-mean-square-relative-error-rmsre-or-what-is-t
 
@@ -31,7 +31,12 @@ public:
   double eval(double const aX) const;
 
 private:
-  double normalize(double const aX) const { return (aX - mAverageX) * mSpanFactorX; }
+  double normalize(double const aX) const { return mSpanStart + mSpanFactor * (aX - mXmin) / mSpanOriginal; }
+
+  // based on Table 1 of Condition number of Vandermonde matrix in least-squares polynomial fitting problems
+  static constexpr double getXspan(double const aDegree) { // Optimal for big sample counts
+    return 1.90313131 + aDegree * (-0.23114312 + aDegree * (0.02573205 - aDegree * 0.00098032));
+  }
 };
 
 #endif // MATHUTIL_H

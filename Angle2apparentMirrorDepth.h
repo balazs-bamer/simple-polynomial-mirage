@@ -18,15 +18,15 @@ private:
   static constexpr uint32_t csInclinationProfileDegreeMinus =   0u;
   static constexpr uint32_t csInclinationProfileDegreePlus  =   3u;
 
-  static constexpr double    csRelativeHumidityPercent      =  50.0f;
-  static constexpr double    csAtmosphericPressureKpa       = 101.0f;
-  static constexpr double    csReferenceTempAmbient         =  20.0f;
-  static constexpr double    csLayerDeltaTemp               =   0.05f;
-  static constexpr double    csInitialHeight                =   0.9f;  // Just a little bit over the regression range.
-  static constexpr double    csMinimalHeight                =   0.0005f;
-  static constexpr double    csAlmostVertical               =   0.01f;
-  static constexpr double    csAlmostHorizontal             =   (cgPi / 2.0f) * 0.999f;
-  static constexpr double    csEpsilon                      =   0.0001f;
+  static constexpr double    csRelativeHumidityPercent      =  50.0;
+  static constexpr double    csAtmosphericPressureKpa       = 101.0;
+  static constexpr double    csReferenceTempAmbient         =  20.0;
+  static constexpr double    csLayerDeltaTemp               =   0.05;
+  static constexpr double    csInitialHeight                =   0.9;  // Just a little bit over the regression range.
+  static constexpr double    csMinimalHeight                =   0.0005;
+  static constexpr double    csAlmostVertical               =   0.01;
+  static constexpr double    csAlmostHorizontal             =   (cgPi / 2.0) * 0.999;
+  static constexpr double    csEpsilon                      =   0.0001;
 
   using TempTempProfiles  = std::array<std::unique_ptr<PolynomApprox>, csTempProfilePointCount>;
 
@@ -40,8 +40,8 @@ private:
     double eval(uint32_t const aIndex, double const mInternalTemp) const { return mStuff->at(aIndex)->eval(mInternalTemp); }
   };
 
-  static constexpr std::array<double, csTempProfilePointCount> csTempProfileHeights = { csMinimalHeight, 0.01f, 0.03f, 0.13f, 0.55f, 0.89f }; // meters
-  static constexpr std::array<std::array<double, csTempProfileCount>, csTempProfilePointCount> csReferenceTempProfiles = {{
+  static constexpr std::array<double, csTempProfilePointCount> csTempProfileHeights = { csMinimalHeight, 0.01, 0.03, 0.13, 0.55, 0.89 }; // meters
+  static constexpr std::array<std::array<double, csTempProfileCount>, csTempProfilePointCount> csReferenceTempProfiles = {{ // Absolute temperature based on csReferenceTempAmbient.
     {{ 32.0f, 48.0f, 63.0f }},
     {{ 25.0f, 33.0f, 42.0f }},
     {{ 21.0f, 27.0f, 30.0f }},
