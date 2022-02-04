@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
   test({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0}, 1u, 2u, [](double const aX){ return aX; });
   test({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0}, 1u, 2u, [](double const aX){ return aX * aX; });
   test({0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7}, 2u, 1u, [](double const aX){ return 1.0 / aX; });
-  test({0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7}, 2u, 0u, [](double const aX){ return 1.0 / aX / aX; });
+  test({0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7}, 2u, 0u, [](double const aX){ return 1.0 / aX / aX + 3.0; });
   test({0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2}, 2u, 2u, [](double const aX){ return aX * aX+ 1.0 / aX / aX; });
   test({0.0005, 0.01, 0.03, 0.13, 0.55, 0.89}, 2u, 1u, [](double const aX){
     return aX < 0.008 ? 63 : (aX < 0.02 ? 42 : (aX < 0.06 ? 30 : (aX < 0.3 ? 25 : (aX < 0.8 ? 21 : 20))));
