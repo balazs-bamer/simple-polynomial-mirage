@@ -10,7 +10,7 @@
 class Angle2apparentMirrorDepth final {
 private:
   static constexpr uint32_t csReferenceTempProfileDegree    =   2u;
-  static constexpr uint32_t csTempProfileDegreeMinus        =   2u;
+  static constexpr uint32_t csTempProfileDegreeMinus        =   3u;
   static constexpr uint32_t csTempProfileDegreePlus         =   0u;  // 1 would be better, but then the height-temp function is not monotonous.
   static constexpr uint32_t csTempProfilePointCount         =   6u;
   static constexpr uint32_t csTempProfileCount              =   3u;

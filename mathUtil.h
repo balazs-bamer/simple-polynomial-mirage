@@ -9,8 +9,8 @@ double binarySearch(double const aLower, double const aUpper, double const aEpsi
 
 class PolynomApprox final {
 private:
-  uint32_t const  mDegreeMinus;
-  uint32_t const  mCoeffCount;
+  uint32_t const  mDegreeMinus;  // I wnt for Laurent-polynomial. Apparently the normal least squares algorithm can't cope with it.
+  uint32_t const  mCoeffCount;   // Further mathematical investigations needed.
 
   double          mXmin;
   double          mSpanOriginal;
