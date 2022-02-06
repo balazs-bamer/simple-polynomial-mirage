@@ -4,52 +4,68 @@
 #include <cmath>
 
 #include <iostream> // TODO remove
-
+#include <vector>
 
 Angle2apparentMirrorDepth::Static::Static() {
-  mStuff = std::move(std::make_unique<TempTempProfiles>());
-  for(uint32_t i = 0u; i < csTempProfilePointCount; ++i) {
-    mStuff->at(i) = std::move(std::make_unique<PolynomApprox>(csReferenceTempProfiles[0u].data(), csReferenceTempProfiles[i].data(), csTempProfileCount, 0u, csReferenceTempProfileDegree));
+  mHeightLimit = std::move(std::make_unique<PolynomApprox>(csTplate, csHeightLimit, csTempProfilePointCount, csTempProfileDegree));
+  mB           = std::move(std::make_unique<PolynomApprox>(csTplate, csB,           csTempProfilePointCount, csTempProfileDegree));
+  mDelta       = std::move(std::make_unique<PolynomApprox>(csTplate, csDelta,       csTempProfilePointCount, csTempProfileDegree));
 /*std::cout << i << '\n';
 for(int j = 0; j < 3; ++j) {
   std::cout << mStuff->at(i)->eval(csReferenceTempProfiles[0u][j]) << "   ";
 }
 std::cout << '\n';*/
-  }
 }
 
-Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempAmbient, double const aTempDiffSurface)
-  : mTempAmbient(aTempAmbient)
-  , mTempDiffSurface(std::max(0.0, aTempDiffSurface)) {
-  static Static tempTempProfiles;
-  std::array<double, csTempProfilePointCount> temperatures;
+Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempDiffSurface)
+  : mTempDiffSurface(std::max(0.0, aTempDiffSurface)) {
+  static Static tempCoeffProfiles;
 
-  for(uint32_t i = 0u; i < csTempProfilePointCount; ++i) {
-    temperatures[i] = tempTempProfiles.eval(i, mTempDiffSurface + csReferenceTempAmbient);
-std::cout << "temperatures[i] " << temperatures[i] << '\n';
-  }
-  mTempProfile = std::move(std::make_unique<PolynomApprox>(csTempProfileHeights.data(), temperatures.data(), csTempProfilePointCount, csTempProfileDegreeMinus, csTempProfileDegreePlus));
-
-std::cout << "temp error: " << mTempProfile->getRrmsError() << "\n";
-
+  mHeightLimit = tempCoeffProfiles.mHeightLimit->eval(csTempAmbient + mTempDiffSurface);
+  mB           = tempCoeffProfiles.mB->eval(csTempAmbient + mTempDiffSurface);
+  mDelta       = tempCoeffProfiles.mDelta->eval(csTempAmbient + mTempDiffSurface);
   initReflection();
+
+  std::cout << "Tplate = " << csTempAmbient + mTempDiffSurface;
+  std::cout << "\nheightLimit = " << mHeightLimit;
+  std::cout << "\nB = " << mB;
+  std::cout << "\ndelta = " << mDelta << '\n';
 }
+
+double Angle2apparentMirrorDepth::getTempAtHeight(double const aHeight) const {
+  auto height = 100.0 * aHeight;
+  auto delta = (height > mHeightLimit ? mDelta : csDeltaFallback);
+  return csTempAmbient * ::exp(mB * ::pow(height, 1.0 - delta));
+}
+
+std::vector<uint32_t> gIters;
 
 void Angle2apparentMirrorDepth::initReflection() {
   auto const minInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
     return getReflectionDepth(aInclination) ? -1.0f : 1.0f;
   }) + csEpsilon;
+gIters.clear();
   std::vector<double> inclinations;
   std::vector<double> depths;
   auto increment = (csAlmostHorizontal - minInclination) / (csInclinationProfilePointCount - 1u);
   auto inclination = minInclination;
+std::cout << "====================\n==================\n==================\nincl: ";
   for(uint32_t i = 0u; i < csInclinationProfilePointCount; ++i) {
     inclinations.push_back(inclination);
     depths.push_back(getReflectionDepth(inclination).value());
-std::cout << "incl: " << inclination * 180.0 / cgPi << "  depth: " << depths.back() << '\n';
+std::cout << inclination * 180.0 / cgPi << ", ";
     inclination += increment;
   }
-  mInclinationProfile = std::move(std::make_unique<PolynomApprox>(inclinations, depths, csInclinationProfileDegreeMinus, csInclinationProfileDegreePlus));
+std::cout << "\ndepth: ";
+for(auto d : depths) {
+std::cout << d << ", ";
+}
+std::cout << "\niter: ";
+for(auto d : gIters) {
+std::cout << d << ", ";
+}
+std::cout << "\n";
+  mInclinationProfile = std::move(std::make_unique<PolynomApprox>(inclinations, depths, csInclinationProfileDegree));
 std::cout << "incl error: " << mInclinationProfile->getRrmsError() << "\nincl coeff: ";
 for(int i = 0; i < mInclinationProfile->size(); ++i)
   std::cout << mInclinationProfile->operator[](i) << ' ';
@@ -64,7 +80,8 @@ std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const
   double sinInclination = sinInclination0;
   double horizDisp = 0.0f;
 
-//std::cout << currentHeight << "   " << currentTemp << " - " << sinInclination0 << '\n';
+uint32_t iter = 0u;
+//std::cout << "--------------- " << aInclination0 * 180.0/cgPi << " ---------------- " << iter << "   " << currentHeight << "   " << currentTemp << " - " << sinInclination0 << '\n';
   std::optional<double> result;
   while(currentHeight > csMinimalHeight * 2.0f) {
     auto nextTemp = currentTemp + csLayerDeltaTemp;
@@ -83,7 +100,10 @@ std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const
       currentHeight = nextHeight;
       currentRefractionIndex = nextRefractionIndex;
     }
-//std::cout << currentHeight << "   " << currentTemp << " - " << sinInclination << "   " << horizDisp << '\n';
+++iter;
+//std::cout << iter << "   " << currentHeight << "   " << currentTemp << " - " << sinInclination << "   " << horizDisp << "\n";
   }
+//std::cout << "\n";
+gIters.push_back(iter);
   return result;
 }

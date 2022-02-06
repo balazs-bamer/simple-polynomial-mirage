@@ -9,57 +9,51 @@
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
 class Angle2apparentMirrorDepth final {
 private:
-  static constexpr uint32_t csReferenceTempProfileDegree    =   2u;
-  static constexpr uint32_t csTempProfileDegreeMinus        =   2u;
-  static constexpr uint32_t csTempProfileDegreePlus         =   0u;  // 1 would be better, but then the height-temp function is not monotonous.
-  static constexpr uint32_t csTempProfilePointCount         =   6u;
-  static constexpr uint32_t csTempProfileCount              =   3u;
-  static constexpr uint32_t csInclinationProfilePointCount  =   6u;
-  static constexpr uint32_t csInclinationProfileDegreeMinus =   0u;
-  static constexpr uint32_t csInclinationProfileDegreePlus  =   3u;
+  static constexpr double   csTempAmbient                   = 297.5;                                        // Kelvin
+  static constexpr uint32_t csTempProfilePointCount         =   8u;
+  static constexpr uint32_t csTempProfileDegree             =   4u;
+  static constexpr double csTplate[csTempProfilePointCount]      = { 336.7, 331.7, 326.7, 321.7, 316.7, 311.7, 306.7, 301.7 };  // Kelvin
+  static constexpr double csHeightLimit[csTempProfilePointCount] = { 0.25,  0.25,  0.25,  0.3,   0.35,  0.35,  0.4,   0.4   };  // cm
+  static constexpr double csB[csTempProfilePointCount]           = { 0.048, 0.041, 0.035, 0.030, 0.024, 0.018, 0.012, 0.006 };
+  static constexpr double csDelta[csTempProfilePointCount]       = { 1.4,   1.4,   1.5,   1.5,   1.6,   1.6,   1.6,   1.6   };
+//  TempProfileConstantPoints csTheta0       = {{ 0.039, 0.035, 0.030, 0.025, 0.020, 0.015, 0.010, 0.005 }};
+//  TempProfileConstantPoints csHeight0      = {{ 0.123, 0.127, 0.129, 0.136, 0.143, 0.155, 0.173, 0.215 }};
+  static constexpr double   csDeltaFallback                 = 1.2;
 
-  static constexpr double    csRelativeHumidityPercent      =  50.0;
-  static constexpr double    csAtmosphericPressureKpa       = 101.0;
-  static constexpr double    csReferenceTempAmbient         =  20.0;
-  static constexpr double    csLayerDeltaTemp               =   0.05;
-  static constexpr double    csInitialHeight                =   0.9;  // Just a little bit over the regression range.
-  static constexpr double    csMinimalHeight                =   0.0005;
-  static constexpr double    csAlmostVertical               =   0.01;
-  static constexpr double    csAlmostHorizontal             =   (cgPi / 2.0) * 0.999;
-  static constexpr double    csEpsilon                      =   0.0001;
 
-  using TempTempProfiles  = std::array<std::unique_ptr<PolynomApprox>, csTempProfilePointCount>;
+  static constexpr uint32_t csInclinationProfilePointCount  = 197u;
+  static constexpr uint32_t csInclinationProfileDegree      =   3u;
 
-  class Static final {
-  private:
-    std::unique_ptr<TempTempProfiles> mStuff;
+  static constexpr double   csRelativeHumidityPercent       =  50.0;
+  static constexpr double   csAtmosphericPressureKpa        = 101.0;
+  static constexpr double   csLayerDeltaTemp                =   0.1;
+  static constexpr double   csInitialHeight                 =   1.0;
+  static constexpr double   csMinimalHeight                 =   0.0005;
+  static constexpr double   csAlmostVertical                =   0.01;
+  static constexpr double   csAlmostHorizontal              =   (cgPi / 2.0) * 0.999;
+  static constexpr double   csEpsilon                       =   0.0001;
 
-  public:
+  struct Static final {
+    std::unique_ptr<PolynomApprox> mHeightLimit;
+    std::unique_ptr<PolynomApprox> mB;
+    std::unique_ptr<PolynomApprox> mDelta;
+//    std::unique_ptr<PolynomApprox> mTheta0;
+//    std::unique_ptr<PolynomApprox> mHeight0;
+
     Static();
-
-    double eval(uint32_t const aIndex, double const mInternalTemp) const { return mStuff->at(aIndex)->eval(mInternalTemp); }
   };
 
-  static constexpr std::array<double, csTempProfilePointCount> csTempProfileHeights = { csMinimalHeight, 0.01, 0.03, 0.13, 0.55, 0.89 }; // meters
-  static constexpr std::array<std::array<double, csTempProfileCount>, csTempProfilePointCount> csReferenceTempProfiles = {{ // Absolute temperature based on csReferenceTempAmbient.
-    {{ 32.0f, 48.0f, 63.0f }},
-    {{ 25.0f, 33.0f, 42.0f }},
-    {{ 21.0f, 27.0f, 30.0f }},
-    {{ 20.5f, 23.0f, 25.0f }},
-    {{ 20.0f, 20.5f, 21.0f }},
-    {{ 20.0f, 20.0f, 20.0f }}
-  }};
-
-  double mTempAmbient;
   double mTempDiffSurface;
+  double mHeightLimit;
+  double mB;
+  double mDelta;
 
-  std::unique_ptr<PolynomApprox> mTempProfile;
   std::unique_ptr<PolynomApprox> mInclinationProfile;
 
 public:
-  Angle2apparentMirrorDepth(double const mTempAmbient, double const aTempDiffSurface);
+  Angle2apparentMirrorDepth(double const aTempDiffSurface);
 
-  double getTempAtHeight(double const aHeight)       const { return mTempProfile->eval(aHeight) - csReferenceTempAmbient + mTempAmbient; }
+  double getTempAtHeight(double const aHeight)       const;
   double getRefractionAtTemp(double const aTemp)     const { return 1.0f + 7.86e-4f * csAtmosphericPressureKpa / (273.15f + aTemp) - 1.5e-11f * csRelativeHumidityPercent * (aTemp * aTemp + 160); }
   double getRefractionAtHeight(double const aHeight) const { return getRefractionAtTemp(getTempAtHeight(aHeight)); }
 
