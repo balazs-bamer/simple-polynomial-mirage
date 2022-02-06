@@ -1,8 +1,6 @@
 #include "mathUtil.h"
 #include <numeric>
 
-#include <iostream> // TODO remove
-
 
 double signum(double const aValue) {
   return std::copysign(1.0f, aValue);
@@ -40,9 +38,7 @@ PolynomApprox::PolynomApprox(double const* const aSamplesX, double const* const 
     auto span = getXspan(mCoeffCount - 1u);
     mSpanFactor = span * 2.0;
     mSpanStart  = -span;
-std::cout << "X: ";
     for(uint32_t i = 0u; i < aSampleCount; ++i) {
-std::cout << aSamplesX[i] << ", ";
       for(uint32_t j = 0u; j < mCoeffCount; ++j) {
         fitA(i, j) = ::pow(normalize(aSamplesX[i]), j);
       }
@@ -50,17 +46,14 @@ std::cout << aSamplesX[i] << ", ";
     mCoefficients = (fitA.transpose() * fitA).inverse() * fitA.transpose() * fitB;
     auto diffs = 0.0f;
     auto desireds = 0.0f;
-std::cout << "\nY: ";
     for(uint32_t i = 0u; i < aSampleCount; ++i) {
       auto x = aSamplesX[i];
       auto desired = aSamplesY[i];
       auto y = eval(x);
-std::cout << y << ", ";
       auto diff = desired - y;
       diffs += diff * diff;
       desireds += desired * desired;
     }
-std::cout << "\n";
     mRrmsError = (desireds > 0.0f ? ::sqrt(diffs / desireds / aSampleCount) : 0.0f);
     }
   else {

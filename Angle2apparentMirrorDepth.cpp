@@ -38,6 +38,10 @@ double Angle2apparentMirrorDepth::getTempAtHeight(double const aHeight) const {
   return csTempAmbient * ::exp(mB * ::pow(height, 1.0 - delta));
 }
 
+double Angle2apparentMirrorDepth::getHeightAtTemp(double const aTemp) const {
+  return ::exp(::log(::log(aTemp / csTempAmbient) / mB) / (1.0 - mDelta));  // Here I neglect the difference between mDelta and csDeltaFallback, because this result will only be used indirectly.
+}
+
 std::vector<uint32_t> gIters;
 
 void Angle2apparentMirrorDepth::initReflection() {
@@ -80,14 +84,15 @@ std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const
   double sinInclination = sinInclination0;
   double horizDisp = 0.0f;
 
+  // TODO check reflection calculation
+  // TODO unit test for temp2height and inverse
+
 uint32_t iter = 0u;
 //std::cout << "--------------- " << aInclination0 * 180.0/cgPi << " ---------------- " << iter << "   " << currentHeight << "   " << currentTemp << " - " << sinInclination0 << '\n';
   std::optional<double> result;
-  while(currentHeight > csMinimalHeight * 2.0f) {
+  while(currentHeight > csMinimalHeight) {
     auto nextTemp = currentTemp + csLayerDeltaTemp;
-    auto nextHeight = binarySearch(csMinimalHeight, currentHeight, csEpsilon, [this, nextTemp](double const aHeight) {
-      return getTempAtHeight(aHeight) - nextTemp;
-    });
+    auto nextHeight = getHeightAtTemp(nextTemp);
     horizDisp += (currentHeight - nextHeight) * sinInclination / ::sqrt(1 - sinInclination * sinInclination);
     double nextRefractionIndex = getRefractionAtHeight(nextHeight);
     sinInclination *= currentRefractionIndex / nextRefractionIndex;

@@ -21,14 +21,14 @@ private:
   static constexpr double   csDeltaFallback                 = 1.2;
 
 
-  static constexpr uint32_t csInclinationProfilePointCount  = 197u;
-  static constexpr uint32_t csInclinationProfileDegree      =   3u;
+  static constexpr uint32_t csInclinationProfilePointCount  =  97u;
+  static constexpr uint32_t csInclinationProfileDegree      =   5u;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
   static constexpr double   csLayerDeltaTemp                =   0.1;
   static constexpr double   csInitialHeight                 =   1.0;
-  static constexpr double   csMinimalHeight                 =   0.0005;
+  static constexpr double   csMinimalHeight                 =   0.001;
   static constexpr double   csAlmostVertical                =   0.01;
   static constexpr double   csAlmostHorizontal              =   (cgPi / 2.0) * 0.999;
   static constexpr double   csEpsilon                       =   0.0001;
@@ -54,6 +54,7 @@ public:
   Angle2apparentMirrorDepth(double const aTempDiffSurface);
 
   double getTempAtHeight(double const aHeight)       const;
+  double getHeightAtTemp(double const aTemp)       const;
   double getRefractionAtTemp(double const aTemp)     const { return 1.0f + 7.86e-4f * csAtmosphericPressureKpa / (273.15f + aTemp) - 1.5e-11f * csRelativeHumidityPercent * (aTemp * aTemp + 160); }
   double getRefractionAtHeight(double const aHeight) const { return getRefractionAtTemp(getTempAtHeight(aHeight)); }
 
