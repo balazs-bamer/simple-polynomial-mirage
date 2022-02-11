@@ -24,7 +24,7 @@ private:
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
-  static constexpr double   csLayerDeltaTemp                =   0.001;
+  static constexpr double   csLayerDeltaTemp                =   0.01;
   static constexpr double   csInitialHeight                 =   1.0;
   static constexpr double   csMinimalHeight                 =   0.001;
   static constexpr double   csAlmostVertical                =   0.01;

@@ -95,13 +95,13 @@ y.push_back(currentHeight);
   while(currentHeight > csMinimalHeight) {
     double nextTemp = currentTemp + static_cast<long double>(csLayerDeltaTemp);
     double nextHeight = getHeightAtTemp(nextTemp);
-    horizDisp += static_cast<__float128>(currentHeight - nextHeight) * sinInclination / sqrtq(static_cast<__float128>(1.0) - sinInclination * sinInclination);  ////////////
+    horizDisp += static_cast<__float128>(currentHeight - nextHeight) * sinInclination / sqrtq(static_cast<__float128>(1.0) - sinInclination * sinInclination);
     __float128 nextRefractionIndex = getRefractionAtHeight(nextHeight);
     __float128 factor = currentRefractionIndex / nextRefractionIndex;
     sinInclination *= factor;
 x.push_back(horizDisp);
 y.push_back(nextHeight);
-    if(sinInclination >= static_cast<__float128>(1.0)) {
+    if(sinInclination >= static_cast<__float128>(1.0)) { // The problem here is how much sinInclanation is greater than 1. Optimal would be to have it just touch 1, so the last temperature step canát be uniform.
       auto r = csInitialHeight - horizDisp * ::sqrt(1.0 - sinInclination0 * sinInclination0) / sinInclination0;
       result = r;
       break;
@@ -117,7 +117,7 @@ y.push_back(nextHeight);
 //std::cout << "\n";
 if(result && gLog) {
 gIters.push_back(iter);
-int const degrees1m = aInclination0 * 180000000.0 / cgPi;
+/*int const degrees1m = aInclination0 * 180000000.0 / cgPi;
 double const tangentLength = 1000.0;
 std::cout << "x" << degrees1m << " = [";
 for(auto d : x) {
@@ -129,6 +129,6 @@ for(auto d : y) {
 }
   std::cout << "\nxt" << degrees1m << " = [" << -::sin(aInclination0) * tangentLength << ", " << ::sin(aInclination0) * tangentLength << "]\n";
   std::cout << "yt" << degrees1m << " = [" << csInitialHeight + ::cos(aInclination0) * tangentLength << ", " << csInitialHeight - ::cos(aInclination0) * tangentLength << "]\n";
-}
+*/}
   return result;
 }
