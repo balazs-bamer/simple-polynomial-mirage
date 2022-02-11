@@ -19,7 +19,7 @@ private:
   static constexpr double   csDeltaFallback                 = 1.2;
 
 
-  static constexpr uint32_t csInclinationProfilePointCount  =   7u;
+  static constexpr uint32_t csInclinationProfilePointCount  =  97u;
   static constexpr uint32_t csInclinationProfileDegree      =   5u;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
