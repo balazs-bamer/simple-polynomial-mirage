@@ -29,7 +29,7 @@ private:
   static constexpr double   csMinimalHeight                 =   0.001;
   static constexpr double   csAlmostVertical                =   0.01;
   static constexpr double   csAlmostHorizontal              =   (cgPi / 2.0) * 0.999;
-  static constexpr double   csEpsilon                       =   0.0001;
+  static constexpr double   csEpsilon                       =   0.00001;
 
   struct Static final {
     std::unique_ptr<PolynomApprox> mHeightLimit;

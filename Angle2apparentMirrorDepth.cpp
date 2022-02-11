@@ -45,7 +45,7 @@ bool                  gLog = false;
 
 void Angle2apparentMirrorDepth::initReflection() {
   auto const minInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
-    return getReflectionDepth(aInclination) ? -1.0f : 1.0f;
+    return getReflectionDepth(aInclination) ? -1.0 : 1.0;
   }) + csEpsilon;
 gIters.clear();
   std::vector<double> inclinations;
@@ -80,8 +80,8 @@ std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const
   double currentTemp = getTempAtHeight(currentHeight);
   __float128 currentRefractionIndex = getRefractionAtTemp(currentTemp);
   double sinInclination0 = ::sin(aInclination0);
-  __float128 sinInclination = sinInclination0;
-  __float128 horizDisp = 0.0f;
+  __float128 currentSinInclination = sinInclination0;
+  __float128 horizDisp = 0.0;
 
   // TODO check reflection calculation
   // TODO unit test for temp2height and inverse
@@ -95,21 +95,33 @@ y.push_back(currentHeight);
   while(currentHeight > csMinimalHeight) {
     double nextTemp = currentTemp + static_cast<long double>(csLayerDeltaTemp);
     double nextHeight = getHeightAtTemp(nextTemp);
-    horizDisp += static_cast<__float128>(currentHeight - nextHeight) * sinInclination / sqrtq(static_cast<__float128>(1.0) - sinInclination * sinInclination);
     __float128 nextRefractionIndex = getRefractionAtHeight(nextHeight);
     __float128 factor = currentRefractionIndex / nextRefractionIndex;
-    sinInclination *= factor;
+    __float128 nextSinInclination = currentSinInclination * factor;
+    if(nextSinInclination >= static_cast<__float128>(1.0)) { // The problem here is how much sinInclanation is greater than 1. Optimal would be to have it just touch 1, so the last temperature step can't be uniform.
+      auto const criticalTemp = binarySearch(currentTemp, nextTemp, csEpsilon, [this, currentRefractionIndex, currentSinInclination](double const aTemp) {
+        double height = getHeightAtTemp(aTemp);
+        __float128 refractionIndex = getRefractionAtHeight(height);
+        __float128 factor = currentRefractionIndex / refractionIndex;
+        __float128 sinInclination = currentSinInclination * factor;
+        return (sinInclination > static_cast<__float128>(1.0) ? 1.0 : -1.0);
+      });
+      double criticalHeight = getHeightAtTemp(criticalTemp);
+      horizDisp += static_cast<__float128>(currentHeight - criticalHeight) * currentSinInclination / sqrtq(static_cast<__float128>(1.0) - currentSinInclination * currentSinInclination);
+      auto r = csInitialHeight - horizDisp * ::sqrt(1.0 - sinInclination0 * sinInclination0) / sinInclination0;
 x.push_back(horizDisp);
 y.push_back(nextHeight);
-    if(sinInclination >= static_cast<__float128>(1.0)) { // The problem here is how much sinInclanation is greater than 1. Optimal would be to have it just touch 1, so the last temperature step canát be uniform.
-      auto r = csInitialHeight - horizDisp * ::sqrt(1.0 - sinInclination0 * sinInclination0) / sinInclination0;
       result = r;
       break;
     }
     else {
+      horizDisp += static_cast<__float128>(currentHeight - nextHeight) * currentSinInclination / sqrtq(static_cast<__float128>(1.0) - currentSinInclination * currentSinInclination);
+x.push_back(horizDisp);
+y.push_back(nextHeight);
       currentTemp = nextTemp;
       currentHeight = nextHeight;
       currentRefractionIndex = nextRefractionIndex;
+      currentSinInclination = nextSinInclination;
     }
 ++iter;
 //std::cout << iter << "   " << currentHeight << "   " << currentTemp << " - " << sinInclination << "   " << horizDisp << "\n";
