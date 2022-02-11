@@ -1,5 +1,8 @@
 #include "Angle2apparentMirrorDepth.h"
 
+extern "C" {
+#include <quadmath.h>
+}
 #include <functional>
 #include <cmath>
 
@@ -75,10 +78,10 @@ std::cout << "incl error: " << mInclinationProfile->getRrmsError() << "\n";
 std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const aInclination0) const {
   double currentHeight = csInitialHeight;
   double currentTemp = getTempAtHeight(currentHeight);
-  double currentRefractionIndex = getRefractionAtTemp(currentTemp);
+  __float128 currentRefractionIndex = getRefractionAtTemp(currentTemp);
   double sinInclination0 = ::sin(aInclination0);
-  double sinInclination = sinInclination0;
-  double horizDisp = 0.0f;
+  __float128 sinInclination = sinInclination0;
+  __float128 horizDisp = 0.0f;
 
   // TODO check reflection calculation
   // TODO unit test for temp2height and inverse
@@ -90,15 +93,17 @@ std::vector<double> y;
 x.push_back(horizDisp);
 y.push_back(currentHeight);
   while(currentHeight > csMinimalHeight) {
-    auto nextTemp = currentTemp + csLayerDeltaTemp;
-    auto nextHeight = getHeightAtTemp(nextTemp);
-    horizDisp += (currentHeight - nextHeight) * sinInclination / ::sqrt(1 - sinInclination * sinInclination);
-    double nextRefractionIndex = getRefractionAtHeight(nextHeight);
-    sinInclination *= currentRefractionIndex / nextRefractionIndex;
+    double nextTemp = currentTemp + static_cast<long double>(csLayerDeltaTemp);
+    double nextHeight = getHeightAtTemp(nextTemp);
+    horizDisp += static_cast<__float128>(currentHeight - nextHeight) * sinInclination / sqrtq(static_cast<__float128>(1.0) - sinInclination * sinInclination);  ////////////
+    __float128 nextRefractionIndex = getRefractionAtHeight(nextHeight);
+    __float128 factor = currentRefractionIndex / nextRefractionIndex;
+    sinInclination *= factor;
 x.push_back(horizDisp);
 y.push_back(nextHeight);
-    if(sinInclination >= 1.0f) {
-      result = csInitialHeight - horizDisp * ::sqrt(1 - sinInclination0 * sinInclination0) / sinInclination0;
+    if(sinInclination >= static_cast<__float128>(1.0)) {
+      auto r = csInitialHeight - horizDisp * ::sqrt(1.0 - sinInclination0 * sinInclination0) / sinInclination0;
+      result = r;
       break;
     }
     else {

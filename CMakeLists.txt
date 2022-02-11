@@ -15,8 +15,8 @@ INCLUDE_DIRECTORIES ( "/usr/include/eigen3"
 ADD_LIBRARY (Angle2apparentMirrorDepthLib SHARED Angle2apparentMirrorDepth.cpp mathUtil.cpp)
 
 add_executable(googleTest googleTest.cpp)
-target_link_libraries(googleTest GTest::GTest GTest::Main Angle2apparentMirrorDepthLib)
+target_link_libraries(googleTest GTest::GTest GTest::Main Angle2apparentMirrorDepthLib quadmath)
 add_test(google-test googleTest)
 
 add_executable(main main.cpp)
-target_link_libraries(main Angle2apparentMirrorDepthLib)
+target_link_libraries(main Angle2apparentMirrorDepthLib quadmath)
