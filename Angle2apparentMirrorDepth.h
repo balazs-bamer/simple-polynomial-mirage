@@ -16,12 +16,10 @@ private:
   static constexpr double csHeightLimit[csTempProfilePointCount] = { 0.25,  0.25,  0.25,  0.3,   0.35,  0.35,  0.4,   0.4   };  // cm
   static constexpr double csB[csTempProfilePointCount]           = { 0.048, 0.041, 0.035, 0.030, 0.024, 0.018, 0.012, 0.006 };
   static constexpr double csDelta[csTempProfilePointCount]       = { 1.4,   1.4,   1.5,   1.5,   1.6,   1.6,   1.6,   1.6   };
-//  TempProfileConstantPoints csTheta0       = {{ 0.039, 0.035, 0.030, 0.025, 0.020, 0.015, 0.010, 0.005 }};
-//  TempProfileConstantPoints csHeight0      = {{ 0.123, 0.127, 0.129, 0.136, 0.143, 0.155, 0.173, 0.215 }};
   static constexpr double   csDeltaFallback                 = 1.2;
 
 
-  static constexpr uint32_t csInclinationProfilePointCount  =  97u;
+  static constexpr uint32_t csInclinationProfilePointCount  =   7u;
   static constexpr uint32_t csInclinationProfileDegree      =   5u;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
@@ -37,8 +35,6 @@ private:
     std::unique_ptr<PolynomApprox> mHeightLimit;
     std::unique_ptr<PolynomApprox> mB;
     std::unique_ptr<PolynomApprox> mDelta;
-//    std::unique_ptr<PolynomApprox> mTheta0;
-//    std::unique_ptr<PolynomApprox> mHeight0;
 
     Static();
   };
@@ -54,7 +50,7 @@ public:
   Angle2apparentMirrorDepth(double const aTempDiffSurface);
 
   double getTempAtHeight(double const aHeight)       const;
-  double getHeightAtTemp(double const aTemp)       const;
+  double getHeightAtTemp(double const aTemp)         const;
   double getRefractionAtTemp(double const aTemp)     const { return 1.0f + 7.86e-4f * csAtmosphericPressureKpa / (273.15f + aTemp) - 1.5e-11f * csRelativeHumidityPercent * (aTemp * aTemp + 160); }
   double getRefractionAtHeight(double const aHeight) const { return getRefractionAtTemp(getTempAtHeight(aHeight)); }
 

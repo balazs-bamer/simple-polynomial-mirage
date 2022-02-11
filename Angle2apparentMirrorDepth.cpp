@@ -10,11 +10,6 @@ Angle2apparentMirrorDepth::Static::Static() {
   mHeightLimit = std::move(std::make_unique<PolynomApprox>(csTplate, csHeightLimit, csTempProfilePointCount, csTempProfileDegree));
   mB           = std::move(std::make_unique<PolynomApprox>(csTplate, csB,           csTempProfilePointCount, csTempProfileDegree));
   mDelta       = std::move(std::make_unique<PolynomApprox>(csTplate, csDelta,       csTempProfilePointCount, csTempProfileDegree));
-/*std::cout << i << '\n';
-for(int j = 0; j < 3; ++j) {
-  std::cout << mStuff->at(i)->eval(csReferenceTempProfiles[0u][j]) << "   ";
-}
-std::cout << '\n';*/
 }
 
 Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempDiffSurface)
@@ -34,15 +29,16 @@ Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempDiffSurfa
 
 double Angle2apparentMirrorDepth::getTempAtHeight(double const aHeight) const {
   auto height = 100.0 * aHeight;
-  auto delta = (height > mHeightLimit ? mDelta : csDeltaFallback);
-  return csTempAmbient * ::exp(mB * ::pow(height, 1.0 - delta));
+//  auto delta = (height > mHeightLimit ? mDelta : csDeltaFallback);
+  return csTempAmbient * ::exp(mB * ::pow(height, 1.0 - mDelta));
 }
 
 double Angle2apparentMirrorDepth::getHeightAtTemp(double const aTemp) const {
-  return ::exp(::log(::log(aTemp / csTempAmbient) / mB) / (1.0 - mDelta));  // Here I neglect the difference between mDelta and csDeltaFallback, because this result will only be used indirectly.
+  return ::exp(::log(::log(aTemp / csTempAmbient) / mB) / (1.0 - mDelta)) / 100.0;  // Here I neglect the difference between mDelta and csDeltaFallback, because this result will only be used indirectly.
 }
 
 std::vector<uint32_t> gIters;
+bool                  gLog = false;
 
 void Angle2apparentMirrorDepth::initReflection() {
   auto const minInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
@@ -53,27 +49,27 @@ gIters.clear();
   std::vector<double> depths;
   auto increment = (csAlmostHorizontal - minInclination) / (csInclinationProfilePointCount - 1u);
   auto inclination = minInclination;
-std::cout << "====================\n==================\n==================\nincl: ";
+gLog = true;
   for(uint32_t i = 0u; i < csInclinationProfilePointCount; ++i) {
     inclinations.push_back(inclination);
     depths.push_back(getReflectionDepth(inclination).value());
-std::cout << inclination * 180.0 / cgPi << ", ";
     inclination += increment;
   }
-std::cout << "\ndepth: ";
+std::cout << "====================\n==================\n==================\nincl = [";
+for(auto d : inclinations) {
+std::cout << d * 180.0 / cgPi << ", ";
+}
+std::cout << "\ndepth = [";
 for(auto d : depths) {
 std::cout << d << ", ";
 }
-std::cout << "\niter: ";
+std::cout << "\niter = [";
 for(auto d : gIters) {
 std::cout << d << ", ";
 }
 std::cout << "\n";
   mInclinationProfile = std::move(std::make_unique<PolynomApprox>(inclinations, depths, csInclinationProfileDegree));
-std::cout << "incl error: " << mInclinationProfile->getRrmsError() << "\nincl coeff: ";
-for(int i = 0; i < mInclinationProfile->size(); ++i)
-  std::cout << mInclinationProfile->operator[](i) << ' ';
-std::cout << '\n';
+std::cout << "incl error: " << mInclinationProfile->getRrmsError() << "\n";
 }
 
 std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const aInclination0) const {
@@ -87,17 +83,22 @@ std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const
   // TODO check reflection calculation
   // TODO unit test for temp2height and inverse
 
-uint32_t iter = 0u;
-//std::cout << "--------------- " << aInclination0 * 180.0/cgPi << " ---------------- " << iter << "   " << currentHeight << "   " << currentTemp << " - " << sinInclination0 << '\n';
   std::optional<double> result;
+uint32_t iter = 0u;
+std::vector<double> x;
+std::vector<double> y;
+x.push_back(horizDisp);
+y.push_back(currentHeight);
   while(currentHeight > csMinimalHeight) {
     auto nextTemp = currentTemp + csLayerDeltaTemp;
     auto nextHeight = getHeightAtTemp(nextTemp);
     horizDisp += (currentHeight - nextHeight) * sinInclination / ::sqrt(1 - sinInclination * sinInclination);
     double nextRefractionIndex = getRefractionAtHeight(nextHeight);
     sinInclination *= currentRefractionIndex / nextRefractionIndex;
+x.push_back(horizDisp);
+y.push_back(nextHeight);
     if(sinInclination >= 1.0f) {
-      result = horizDisp * ::sqrt(1 - sinInclination0 * sinInclination0) / sinInclination0;
+      result = csInitialHeight - horizDisp * ::sqrt(1 - sinInclination0 * sinInclination0) / sinInclination0;
       break;
     }
     else {
@@ -109,6 +110,20 @@ uint32_t iter = 0u;
 //std::cout << iter << "   " << currentHeight << "   " << currentTemp << " - " << sinInclination << "   " << horizDisp << "\n";
   }
 //std::cout << "\n";
+if(result && gLog) {
 gIters.push_back(iter);
+int const degrees1m = aInclination0 * 180000000.0 / cgPi;
+double const tangentLength = 1000.0;
+std::cout << "x" << degrees1m << " = [";
+for(auto d : x) {
+  std::cout << d << ", ";
+}
+std::cout << "\ny" << degrees1m << " = [";
+for(auto d : y) {
+  std::cout << d << ", ";
+}
+  std::cout << "\nxt" << degrees1m << " = [" << -::sin(aInclination0) * tangentLength << ", " << ::sin(aInclination0) * tangentLength << "]\n";
+  std::cout << "yt" << degrees1m << " = [" << csInitialHeight + ::cos(aInclination0) * tangentLength << ", " << csInitialHeight - ::cos(aInclination0) * tangentLength << "]\n";
+}
   return result;
 }
