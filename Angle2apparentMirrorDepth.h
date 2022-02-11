@@ -19,16 +19,16 @@ private:
   static constexpr double   csDeltaFallback                 = 1.2;
 
 
-  static constexpr uint32_t csInclinationProfilePointCount  =  97u;
+  static constexpr uint32_t csInclinationProfilePointCount  = 197u;
   static constexpr uint32_t csInclinationProfileDegree      =   5u;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
-  static constexpr double   csLayerDeltaTemp                =   0.0001;
+  static constexpr double   csLayerDeltaTemp                =   0.00005;
   static constexpr double   csInitialHeight                 =   1.0;
   static constexpr double   csMinimalHeight                 =   0.001;
   static constexpr double   csAlmostVertical                =   0.01;
-  static constexpr double   csAlmostHorizontal              =   (cgPi / 2.0) * 0.999;
+  static constexpr double   csAlmostHorizontal              =   (cgPi / 2.0) * 0.9999;
   static constexpr double   csEpsilon                       =   0.00001;
 
   struct Static final {
