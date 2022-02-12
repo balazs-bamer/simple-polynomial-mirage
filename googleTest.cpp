@@ -83,6 +83,24 @@ TEST(polynomApprox, 2x3_3x2_4x_5) {
   EXPECT_TRUE(eq(poly.getRrmsError(), 0.0f));
 }
 
+TEST(angle2apparentMirrorDepth, height2temp) {
+  Angle2apparentMirrorDepth mirage(28);
+  EXPECT_TRUE(eq(1.0, mirage.getHeightAtTemp(mirage.getTempAtHeight(1.0))));
+  EXPECT_TRUE(eq(0.5, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.5))));
+  EXPECT_TRUE(eq(0.1, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.1))));
+  EXPECT_TRUE(eq(0.05, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.05))));
+  EXPECT_TRUE(eq(0.01, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.01))));
+  EXPECT_TRUE(eq(0.005, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.005))));
+}
+
+TEST(angle2apparentMirrorDepth, temp2height) {
+  Angle2apparentMirrorDepth mirage(28);
+  EXPECT_TRUE(eq(300.0, mirage.getTempAtHeight(mirage.getHeightAtTemp(300.0))));
+  EXPECT_TRUE(eq(308.0, mirage.getTempAtHeight(mirage.getHeightAtTemp(308.0))));
+  EXPECT_TRUE(eq(316.0, mirage.getTempAtHeight(mirage.getHeightAtTemp(316.0))));
+  EXPECT_TRUE(eq(324.0, mirage.getTempAtHeight(mirage.getHeightAtTemp(324.0))));
+}
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

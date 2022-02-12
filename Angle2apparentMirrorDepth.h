@@ -19,8 +19,8 @@ private:
   static constexpr double   csDeltaFallback                 = 1.2;
 
 
-  static constexpr uint32_t csInclinationProfilePointCount  = 197u;
-  static constexpr uint32_t csInclinationProfileDegree      =   5u;
+  static constexpr uint32_t csInclDepthProfilePointCount    = 197u;
+  static constexpr uint32_t csInclinationProfileDegree      =  13u;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
@@ -49,10 +49,12 @@ private:
 public:
   Angle2apparentMirrorDepth(double const aTempDiffSurface);
 
-  double getTempAtHeight(double const aHeight)       const;
-  double getHeightAtTemp(double const aTemp)         const;
-  double getRefractionAtTemp(double const aTemp)     const { return 1.0f + 7.86e-4f * csAtmosphericPressureKpa / (273.15f + aTemp) - 1.5e-11f * csRelativeHumidityPercent * (aTemp * aTemp + 160); }
-  double getRefractionAtHeight(double const aHeight) const { return getRefractionAtTemp(getTempAtHeight(aHeight)); }
+  static double getWorkingHeight()                                   { return csInitialHeight; }
+  double getTempAtHeight(double const aHeight)                 const;  // Kelvin and meter
+  double getHeightAtTemp(double const aTemp)                   const;  // Kelvin and meter
+  double getRefractionAtTemp(double const aTemp)               const { return 1.0f + 7.86e-4f * csAtmosphericPressureKpa / (273.15f + aTemp) - 1.5e-11f * csRelativeHumidityPercent * (aTemp * aTemp + 160); }
+  double getRefractionAtHeight(double const aHeight)           const { return getRefractionAtTemp(getTempAtHeight(aHeight)); }
+  double approximateReflectionDepth(double const aInclination) const { return mInclinationProfile->eval(aInclination); }
 
 private:
   void initReflection();
