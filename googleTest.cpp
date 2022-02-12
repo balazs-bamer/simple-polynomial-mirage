@@ -85,20 +85,20 @@ TEST(polynomApprox, 2x3_3x2_4x_5) {
 
 TEST(angle2apparentMirrorDepth, height2temp) {
   Angle2apparentMirrorDepth mirage(28);
-  EXPECT_TRUE(eq(1.0, mirage.getHeightAtTemp(mirage.getTempAtHeight(1.0))));
-  EXPECT_TRUE(eq(0.5, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.5))));
-  EXPECT_TRUE(eq(0.1, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.1))));
-  EXPECT_TRUE(eq(0.05, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.05))));
-  EXPECT_TRUE(eq(0.01, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.01))));
-  EXPECT_TRUE(eq(0.005, mirage.getHeightAtTemp(mirage.getTempAtHeight(0.005))));
+  EXPECT_TRUE(eq(1.0, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(1.0))));
+  EXPECT_TRUE(eq(0.5, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.5))));
+  EXPECT_TRUE(eq(0.1, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.1))));
+  EXPECT_TRUE(eq(0.05, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.05))));
+  EXPECT_TRUE(eq(0.01, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.01))));
+  EXPECT_TRUE(eq(0.005, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.005))));
 }
 
 TEST(angle2apparentMirrorDepth, temp2height) {
   Angle2apparentMirrorDepth mirage(28);
-  EXPECT_TRUE(eq(300.0, mirage.getTempAtHeight(mirage.getHeightAtTemp(300.0))));
-  EXPECT_TRUE(eq(308.0, mirage.getTempAtHeight(mirage.getHeightAtTemp(308.0))));
-  EXPECT_TRUE(eq(316.0, mirage.getTempAtHeight(mirage.getHeightAtTemp(316.0))));
-  EXPECT_TRUE(eq(324.0, mirage.getTempAtHeight(mirage.getHeightAtTemp(324.0))));
+  EXPECT_TRUE(eq(0.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(0.0))));
+  EXPECT_TRUE(eq(8.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(8.0))));
+  EXPECT_TRUE(eq(16.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(16.0))));
+  EXPECT_TRUE(eq(24.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(24.0))));
 }
 
 int main(int argc, char **argv) {
