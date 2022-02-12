@@ -1,4 +1,5 @@
 #include "Angle2apparentMirrorDepth.h"
+#include "simpleRaytracer.h"
 #include <functional>
 #include <array>
 #include <iostream>
@@ -31,5 +32,20 @@ int main(int argc, char **argv) {
   test("refractionAtHeight", heights, [&t28](auto aHeight){ return t28.getRefractionAtHeight(aHeight); });
   test("refractionAtTemp", {0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0, 24.0, 25.0, 26.0, 27.0, 28.0, 29.0, 30.0}, [&t28](auto aTemp){ return t28.getRefractionAtTempRise(aTemp); });
   test("reflectionDepth", inclinations, [&t28](auto aIncl){ return t28.approximateReflectionDepth(aIncl); });
+
+  // TODO parse args
+  // Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight)
+  Object object(argv[1], 1000, 2.0, 4.0, 2.0);
+
+  //Medium(double const aTempDiff, Object const &aObject) : mHotPlate(aTempDiff), mObject(aObject) {}
+  Medium medium(28.0, object);
+
+  /*Image::Image(double const aCenterX, double const aCenterY,
+        double const aTilt, double const aPinholeDist,
+        double const aPixelSize,
+        uint32_t const aResZ, uint32_t const aResY,
+        uint32_t const aSubSample, Medium const &aMedium)*/
+  Image image(0.0, 2.0, 0.0, 10.0, 0.005, 800, 400, 4, medium);
+  image.process(argv[2]);
   return 0;
 }

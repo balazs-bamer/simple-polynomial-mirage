@@ -58,7 +58,7 @@ public:
   double getCriticalInclination()                              const { return mCriticalInclination; }
   double getTempRiseAtHeight(double const aHeight)             const;  // delta Celsius and meter
   double getHeightAtTempRise(double const aTempRise)           const;  // delta Celsius and meter
-  double getRefractionAtTempRise(double const aTempRise)       const;
+  double getRefractionAtTempRise(double const aTempRise)       const;  // delta Celsius
   double getRefractionAtHeight(double const aHeight)           const { return getRefractionAtTempRise(getTempRiseAtHeight(aHeight)); }
   double approximateReflectionDepth(double const aInclination) const { return mInclinationProfile->eval(aInclination); }
 

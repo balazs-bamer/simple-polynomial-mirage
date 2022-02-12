@@ -18,5 +18,5 @@ add_executable(googleTest googleTest.cpp)
 target_link_libraries(googleTest GTest::GTest GTest::Main Angle2apparentMirrorDepthLib quadmath)
 add_test(google-test googleTest)
 
-add_executable(main main.cpp)
-target_link_libraries(main Angle2apparentMirrorDepthLib quadmath)
+add_executable(main main.cpp simpleRaytracer.cpp)
+target_link_libraries(main Angle2apparentMirrorDepthLib quadmath png)
