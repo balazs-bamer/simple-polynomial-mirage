@@ -9,7 +9,7 @@ Object::Object(char const * const aName, double const aCenterX, double const aCe
   , mMaxY(aCenterY + aHeight / 2.0)
   , mMinZ(- aWidth / 2.0)
   , mMaxZ(aWidth / 2.0) {
-  mPlane.createFrom2vectors1point({0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {aCenterX, 0.0f, 0.0f});
+  mPlane = Plane::createFrom2vectors1point({0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {aCenterX, 0.0f, 0.0f});
 }
 
 uint8_t Object::getPixel(Ray const &aRay) const {
@@ -29,20 +29,23 @@ uint8_t Medium::trace(Ray const& aRay) const {
   horizontal.mConstant = mHotPlate.getWorkingHeight();
   auto intersection = horizontal.intersect(aRay);
   double inclination;
-  if(intersection.mValid) {
+  /*if(intersection.mValid) {
      if(aRay.mDirection(1) < 0.0f   // Simplest case: must point downwards.
         && (inclination = ::acos(static_cast<double>(-aRay.mDirection.dot(horizontal.mNormal)))) >= mHotPlate.getCriticalInclination()) {
 
-       Ray inner(intersection.mPoint, aRay.mDirection);
+       Ray inner(intersection.mPoint, aRay.mDirection);  // Virtual ray downwards inside the bending air.
        horizontal.mConstant = mHotPlate.approximateReflectionDepth(inclination);
-       auto intersection = horizontal.intersect(inner);
+       intersection = horizontal.intersect(inner);
        inner.mStart = intersection.mPoint;
-       inner.mDirection(1) = -inner.mDirection(1);
+       inner.mDirection(1) = -inner.mDirection(1);       // Virtual reflection, ray still virtual, still inside the bending air.
+       horizontal.mConstant = mHotPlate.getWorkingHeight();
+       intersection = horizontal.intersect(inner);
+       inner.mStart = intersection.mPoint;               // Normal ray in homogeneous air.
        result = mObject.getPixel(inner);
      }
      else {} // Nothing to do
   }
-  else {
+  else*/ {
     result = mObject.getPixel(aRay);
   }
   return result;
@@ -71,12 +74,12 @@ Image::Image(double const aCenterX, double const aCenterY,
 void Image::process(char const * const aName) {
   Ray ray;
   ray.mStart = mPinhole;
-  for(int z = 0; z < mImage.get_width(); ++z) {
-    for(int y = 0; y < mImage.get_height(); ++y) {
+  for(int y = 0; y < mImage.get_height(); ++y) {
+    for(int z = 0; z < mImage.get_width(); ++z) {
       double sum = 0.0;
       for(uint32_t i = 0; i < mSubSample; ++i) {
         for(uint32_t j = 0; j < mSubSample; ++j) {
-          auto subpixel = mCenter + mPixelSize * (
+          Vertex subpixel = mCenter + mPixelSize * (
                 (z - mBiasZ + mSsFactor * (i - mBiasSub)) * mInPlaneZ +
                 (y - mBiasY + mSsFactor * (j - mBiasSub)) * mInPlaneY);
           ray.mDirection = (mPinhole - subpixel).normalized();
