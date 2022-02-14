@@ -1,10 +1,12 @@
 #include "simpleRaytracer.h"
 
 
+#include <iostream> // TODO remove
+
 Object::Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight)
   : mImage(aName)
-  , mDy(mImage.get_height() / aHeight)
-  , mDz(mImage.get_width() / aWidth)
+  , mDy(aHeight / mImage.get_height())
+  , mDz(aWidth / mImage.get_width())
   , mMinY(aCenterY - aHeight / 2.0)
   , mMaxY(aCenterY + aHeight / 2.0)
   , mMinZ(- aWidth / 2.0)
@@ -16,7 +18,7 @@ uint8_t Object::getPixel(Ray const &aRay) const {
   uint8_t result = 0u;
   auto intersection = mPlane.intersect(aRay);
   if(intersection.mValid && intersection.mPoint(1) > mMinY && intersection.mPoint(1) < mMaxY && intersection.mPoint(2) > mMinZ && intersection.mPoint(2) < mMaxZ) {
-    return mImage.get_pixel((intersection.mPoint(2) - mMinZ) / mDz, (intersection.mPoint(1) - mMinY) / mDy);
+    result = mImage.get_pixel((intersection.mPoint(2) - mMinZ) / mDz, (intersection.mPoint(1) - mMinY) / mDy);
   }
   else {} // Nothing to do
   return result;
@@ -29,7 +31,7 @@ uint8_t Medium::trace(Ray const& aRay) const {
   horizontal.mConstant = mHotPlate.getWorkingHeight();
   auto intersection = horizontal.intersect(aRay);
   double inclination;
-  /*if(intersection.mValid) {
+  if(intersection.mValid) {
      if(aRay.mDirection(1) < 0.0f   // Simplest case: must point downwards.
         && (inclination = ::acos(static_cast<double>(-aRay.mDirection.dot(horizontal.mNormal)))) >= mHotPlate.getCriticalInclination()) {
 
@@ -45,7 +47,7 @@ uint8_t Medium::trace(Ray const& aRay) const {
      }
      else {} // Nothing to do
   }
-  else*/ {
+  else {
     result = mObject.getPixel(aRay);
   }
   return result;

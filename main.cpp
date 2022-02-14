@@ -36,7 +36,6 @@ int main(int argc, char **argv) {
   // TODO parse args
   // Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight)
   Object object(argv[1], 1000.0, 4.0, 8.0, 4.0);
-//  Object object(argv[1], 1000.0, 3.0, 4.0, 2.0);
 
   //Medium(double const aTempDiff, Object const &aObject) : mHotPlate(aTempDiff), mObject(aObject) {}
   Medium medium(28.0, object);
@@ -47,7 +46,7 @@ int main(int argc, char **argv) {
         uint32_t const aResZ, uint32_t const aResY,
         uint32_t const aSubSample, Medium const &aMedium)*/
   Image image(0.0, 1.8, 0.0, 0.03*1000.0/(1.0+3.0+1.8), 0.03/40, 80, 40, 1, medium);
-  //Image image(0.0, 1.8, 0.0, 0.03*1000.0/(1.0+3.0+1.8), 0.03/400, 800, 400, 4, medium);
+//  Image image(0.0, 1.8, 0.0, 0.03*1000.0/(1.0+3.0+1.8), 0.03/400, 800, 400, 1, medium);
   image.process(argv[2]);
   return 0;
 }
