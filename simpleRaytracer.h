@@ -30,7 +30,7 @@ private:
 public:
   Medium(double const aTempDiff, Object const &aObject) : mHotPlate(aTempDiff), mObject(aObject) {}
 
-  uint8_t trace(Ray const& aRay) const;
+  uint8_t trace(Ray const& aRay);
 };
 
 class Image final {
@@ -47,14 +47,14 @@ private:
   double   const  mBiasZ;
   double   const  mBiasY;
   double   const  mBiasSub;
-  Medium   const& mMedium;
+  Medium         &mMedium;
 
 public:
   Image(double const aCenterX, double const aCenterY,
         double const aTilt, double const aPinholeDist,
         double const aPixelSize,
         uint32_t const aResZ, uint32_t const aResY,
-        uint32_t const aSubSample, Medium const &aMedium);
+        uint32_t const aSubSample, Medium &aMedium);
 
   void process(char const * const aName);
 };

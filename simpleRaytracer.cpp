@@ -42,7 +42,7 @@ if(gNeed) {
   return result;
 }
 
-uint8_t Medium::trace(Ray const& aRay) const {
+uint8_t Medium::trace(Ray const& aRay) {
   uint8_t result = 0u;
   Plane horizontal;
   horizontal.mNormal = Vector{0.0f, 1.0f, 0.0f};
@@ -81,7 +81,7 @@ Image::Image(double const aCenterX, double const aCenterY,
         double const aTilt, double const aPinholeDist,
         double const aPixelSize,
         uint32_t const aResZ, uint32_t const aResY,
-        uint32_t const aSubSample, Medium const &aMedium)
+        uint32_t const aSubSample, Medium &aMedium)
   : mImage(aResZ, aResY)
   , mSubSample(aSubSample)
   , mSsFactor(1.0 / aSubSample)

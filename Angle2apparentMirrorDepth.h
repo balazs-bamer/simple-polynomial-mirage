@@ -3,7 +3,6 @@
 
 #include "3dGeomUtil.h"
 #include "mathUtil.h"
-#include <memory>
 #include <optional>
 
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
@@ -35,9 +34,9 @@ private:
   static constexpr double   csEpsilon                       =   0.00001;
 
   struct Static final {
-    std::unique_ptr<PolynomApprox> mHeightLimit;
-    std::unique_ptr<PolynomApprox> mB;
-    std::unique_ptr<PolynomApprox> mDelta;
+    PolynomApprox mHeightLimit;
+    PolynomApprox mB;
+    PolynomApprox mDelta;
 
     Static();
   };
@@ -48,7 +47,7 @@ private:
   double mDelta;
   double mCriticalInclination;
 
-  std::unique_ptr<PolynomApprox> mInclinationProfile;
+  PolynomApprox mInclinationProfile;
 
 public:
   Angle2apparentMirrorDepth(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
@@ -60,7 +59,7 @@ public:
   double getHeightAtTempRise(double const aTempRise)           const;  // delta Celsius and meter
   double getRefractionAtTempRise(double const aTempRise)       const;  // delta Celsius
   double getRefractionAtHeight(double const aHeight)           const { return getRefractionAtTempRise(getTempRiseAtHeight(aHeight)); }
-  double approximateReflectionDepth(double const aInclination) const { return mInclinationProfile->eval(aInclination); }
+  double approximateReflectionDepth(double const aInclination)       { return mInclinationProfile.eval(aInclination); }
 
 private:
   void initReflection();

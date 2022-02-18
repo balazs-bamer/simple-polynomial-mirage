@@ -1,5 +1,6 @@
 #include "mathUtil.h"
 #include <numeric>
+#include <stdexcept>
 
 
 double signum(double const aValue) {
@@ -24,52 +25,105 @@ double binarySearch(double const aLower, double const aUpper, double const aEpsi
   return result;
 }
 
-
-PolynomApprox::PolynomApprox(double const* const aSamplesX, double const* const aSamplesY, uint32_t const aSampleCount, uint32_t const aDegree)
-  : mCoeffCount(aDegree + 1u)
-  , mCoefficients(mCoeffCount) {
-  Eigen::MatrixXd fitA(aSampleCount, mCoeffCount);
-  Eigen::VectorXd fitB = Eigen::VectorXd::Map(aSamplesY, aSampleCount);
-
-  if(aSampleCount >= mCoeffCount && mCoeffCount > 1u) {
-    auto [itMin, itMax] = std::minmax_element(aSamplesX, aSamplesX + aSampleCount);
-    mXmin = *itMin;
-    mSpanOriginal = *itMax - mXmin;
-    auto span = getXspan(mCoeffCount - 1u);
-    mSpanFactor = span * 2.0;
-    mSpanStart  = -span;
-    for(uint32_t i = 0u; i < aSampleCount; ++i) {
-      for(uint32_t j = 0u; j < mCoeffCount; ++j) {
-        fitA(i, j) = ::pow(normalize(aSamplesX[i]), j);
-      }
-    }
-    mCoefficients = (fitA.transpose() * fitA).inverse() * fitA.transpose() * fitB;
-    auto diffs = 0.0f;
-    auto desireds = 0.0f;
-    for(uint32_t i = 0u; i < aSampleCount; ++i) {
-      auto x = aSamplesX[i];
-      auto desired = aSamplesY[i];
-      auto y = eval(x);
-      auto diff = desired - y;
-      diffs += diff * diff;
-      desireds += desired * desired;
-    }
-    mRrmsError = (desireds > 0.0f ? ::sqrt(diffs / desireds / aSampleCount) : 0.0f);
-    }
-  else {
-    for(uint32_t j = 0u; j < mCoeffCount; ++j) {
-      mCoefficients(j) = 0.0f;
-    }
-    mRrmsError = std::numeric_limits<double>::max();
+void PolynomApprox::initActuals() {
+  std::fill_n(mActualExponents.begin(), mVariableCount, 0u);
+  for(uint32_t i = 0u; i < mVariableCount; ++i) {
+    mActualPowers.emplace_back(mDegrees[i] + 1u, 0.0);
   }
 }
 
-double PolynomApprox::eval(double const aX) const {
-  auto x = normalize(aX);
-  double result = mCoefficients(mCoeffCount - 1u) * x;
-  for(uint32_t i = mCoeffCount - 2u; i > 0u; --i) {
-    result = (result + mCoefficients(i)) * x;
+void PolynomApprox::append(uint32_t const aSampleCount, double const * const aSamplesX, uint32_t const aDegree) {
+  ++mVariableCount;
+  mDegrees.push_back(aDegree);
+  if(mCumulativeCoeffCounts.empty()) {
+    mCumulativeCoeffCounts.push_back(aDegree + 1u);
   }
-  result += mCoefficients(0);
+  else {
+    mCumulativeCoeffCounts.push_back((aDegree + 1u) * mCumulativeCoeffCounts.back());
+  }
+  auto [itMin, itMax] = std::minmax_element(aSamplesX, aSamplesX + aSampleCount);
+  mXmins.push_back(*itMin);
+  mSpanOriginals.push_back(*itMax - *itMin);
+  auto span = getXspan(mTotalCoeffCount);
+  mSpanFactor = span * 2.0;
+  mSpanStart  = -span;
+}
+
+Eigen::MatrixXd PolynomApprox::doCalculateVandermonde(uint32_t const aVariableIndex, uint32_t const aSampleCount, double const * const aSamplesX, uint32_t const aDegree) {
+  Eigen::MatrixXd result(aSampleCount, aDegree + 1u);
+
+  for(uint32_t i = 0u; i < aSampleCount; ++i) {
+    for(uint32_t j = 0u; j <= aDegree; ++j) {
+       result(i, j) = ::pow(normalize(aSamplesX[i], aVariableIndex), j);
+    }
+  }
+  return result;
+}
+
+Eigen::MatrixXd PolynomApprox::merge(Eigen::MatrixXd const& aOne, Eigen::MatrixXd const& aOther) {
+  uint32_t sampleCount = aOne.rows();
+  uint32_t colsOne = aOne.cols();
+  uint32_t colsOther = aOther.cols();
+  Eigen::MatrixXd result(sampleCount, colsOne * colsOther);
+
+  for(uint32_t r = 0u; r < sampleCount; ++r) {
+    for(uint32_t o = 0u; o < colsOther; ++o) {
+      for(uint32_t t = 0u; t < colsOne; ++t) {
+        result(r, o * colsOne + t) = aOne(r, t) * aOther(r, o);
+      }
+    }
+  }
+  return result;
+}
+
+double PolynomApprox::eval(std::initializer_list<double> const aVariables) {
+  if(aVariables.size() != mVariableCount) {
+    throw std::invalid_argument("eval: variable count mismatch.");
+  }
+  else {} // nothing to do
+  double actualNormalized0 = 0.0;
+  auto arg = aVariables.begin();
+  for(uint32_t v = 0u; v < mVariableCount; ++v) {
+    auto normalized = normalize(*arg, v);
+    auto& actualPowers = mActualPowers[v];
+    if(v == 0u) {
+      actualNormalized0 = normalized;
+    }
+    else {
+      double actual = 1.0;
+      for(uint32_t e = 0u; e <= mDegrees[v]; ++e) {
+        actualPowers[e] = actual;
+        actual *= normalized;
+      }
+    }
+    ++arg;
+  }
+  double result = 0.0;
+  uint32_t degree0 = mDegrees[0];
+  std::fill(mActualExponents.begin(), mActualExponents.end(), 0u);
+  for(uint32_t i = 0u; i < mTotalCoeffCount; i += degree0 + 1u) {
+    double rest = 1.0;
+    for(uint32_t v = 1u; v < mVariableCount; ++v) {
+      rest *= mActualPowers[v][mActualExponents[v]];
+    }
+    result += rest * eval(actualNormalized0, i);
+    ++mActualExponents[mVariableCount - 1u];
+    for(uint32_t v = mVariableCount - 1u; v > 0u; --v) {
+      if(mActualExponents[v] > mDegrees[v]) {
+        mActualExponents[v] = 0u;
+        ++mActualExponents[v - 1u];
+      }
+    }
+  }
+  return result;
+}
+
+double PolynomApprox::eval(double const aX, uint32_t const aOffset) const {
+  auto view = mCoefficients.data() + aOffset;
+  double result = view[mDegrees[0]] * aX;
+  for(uint32_t i = mDegrees[0] - 1u; i > 0u; --i) {
+    result = (result + view[i]) * aX;
+  }
+  result += view[0u];
   return result;
 }
