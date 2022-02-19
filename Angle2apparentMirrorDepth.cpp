@@ -5,9 +5,9 @@
 #include <cmath>
 
 Angle2apparentMirrorDepth::Static::Static() {
-  mHeightLimit = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csHeightLimit, {PolynomApprox::Var{csTplate, csTempProfileDegree}}));
-  mB           = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csB, {PolynomApprox::Var{csTplate, csTempProfileDegree}}));
-  mDelta       = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csDelta, {PolynomApprox::Var{csTplate, csTempProfileDegree}}));
+  mHeightLimit = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csHeightLimit, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
+  mB           = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csB,           std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
+  mDelta       = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csDelta,       std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
 }
 
 Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempDiffSurface)
@@ -49,7 +49,7 @@ void Angle2apparentMirrorDepth::initReflection() {
     depths.push_back(getReflectionDepth(inclination).value());
     inclination += increment;
   }
-  mInclinationProfile = std::move(std::make_unique<PolynomApprox>(depths, {PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
+  mInclinationProfile = std::move(std::make_unique<PolynomApprox>(depths, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
 }
 
 std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const aInclination0) const {

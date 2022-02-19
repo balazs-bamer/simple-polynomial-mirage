@@ -25,10 +25,10 @@ double binarySearch(double const aLower, double const aUpper, double const aEpsi
   return result;
 }
 
-PolynomApprox::PolynomApprox(uint32_t const aSampleCount, double const * const aSampleY, std::initializer_list<PolynomApprox::Var> aVarsX) {
+PolynomApprox::PolynomApprox(uint32_t const aSampleCount, double const * const aSamplesY, std::initializer_list<PolynomApprox::Var> aVarsX) {
   mTotalCoeffCount = 1u;
   for(auto &var : aVarsX) {
-    mTotalCoeffCount *= v.mDegree + 1u;
+    mTotalCoeffCount *= var.mDegree + 1u;
   }
   mVariableCount = aVarsX.size();
   Eigen::MatrixXd vandermonde = Eigen::MatrixXd::Ones(aSampleCount, 1u);
@@ -50,7 +50,7 @@ PolynomApprox::PolynomApprox(uint32_t const aSampleCount, double const * const a
     Eigen::MatrixXd increment(aSampleCount, var.mDegree + 1u);
     for(uint32_t i = 0u; i < aSampleCount; ++i) {
       for(uint32_t j = 0u; j <= var.mDegree; ++j) {
-        increment(i, j) = ::pow(normalize(aSamplesX[i], aVariableIndex), j);
+        increment(i, j) = ::pow(normalize(var.mSamples[i], mDegrees.size() - 1u), j);
       }
     }
     Eigen::MatrixXd previous = vandermonde;
@@ -68,52 +68,25 @@ PolynomApprox::PolynomApprox(uint32_t const aSampleCount, double const * const a
   Eigen::VectorXd y = Eigen::VectorXd::Map(aSamplesY, aSampleCount);
   mCoefficients = (vandermonde.transpose() * vandermonde).inverse() * vandermonde.transpose() * y;
 
-  std::fill_n(mActualExponents.begin(), mVariableCount, 0u);
   for(uint32_t i = 0u; i < mVariableCount; ++i) {
+    mActualExponents.push_back(0u);
     mActualPowers.emplace_back(mDegrees[i] + 1u, 0.0);
   }
-}
 
-double PolynomApprox::eval(std::initializer_list<double> const aVariables) {
-  if(aVariables.size() != mVariableCount) {
-    throw std::invalid_argument("eval: variable count mismatch.");
+  auto diffs = 0.0f;
+  auto desireds = 0.0f;
+  std::vector<double> x;
+  for(uint32_t i = 0u; i < aSampleCount; ++i) {
+    x.clear();
+    for(auto &var : aVarsX) {
+      x.push_back(var.mSamples[i]);
+    }
+    auto desired = aSamplesY[i];
+    auto diff = desired - eval(x);
+    diffs += diff * diff;
+    desireds += desired * desired;
   }
-  else {} // nothing to do
-  double actualNormalized0 = 0.0;
-  auto arg = aVariables.begin();
-  for(uint32_t v = 0u; v < mVariableCount; ++v) {
-    auto normalized = normalize(*arg, v);
-    auto& actualPowers = mActualPowers[v];
-    if(v == 0u) {
-      actualNormalized0 = normalized;
-    }
-    else {
-      double actual = 1.0;
-      for(uint32_t e = 0u; e <= mDegrees[v]; ++e) {
-        actualPowers[e] = actual;
-        actual *= normalized;
-      }
-    }
-    ++arg;
-  }
-  double result = 0.0;
-  uint32_t degree0 = mDegrees[0];
-  std::fill(mActualExponents.begin(), mActualExponents.end(), 0u);
-  for(uint32_t i = 0u; i < mTotalCoeffCount; i += degree0 + 1u) {
-    double rest = 1.0;
-    for(uint32_t v = 1u; v < mVariableCount; ++v) {
-      rest *= mActualPowers[v][mActualExponents[v]];
-    }
-    result += rest * eval(actualNormalized0, i);
-    ++mActualExponents[mVariableCount - 1u];
-    for(uint32_t v = mVariableCount - 1u; v > 0u; --v) {
-      if(mActualExponents[v] > mDegrees[v]) {
-        mActualExponents[v] = 0u;
-        ++mActualExponents[v - 1u];
-      }
-    }
-  }
-  return result;
+  mRrmsError = (desireds > 0.0f ? ::sqrt(diffs / desireds / aSampleCount) : 0.0f);
 }
 
 double PolynomApprox::eval(double const aX, uint32_t const aOffset) const {
