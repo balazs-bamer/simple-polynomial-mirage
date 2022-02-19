@@ -26,8 +26,8 @@ double binarySearch(double const aLower, double const aUpper, double const aEpsi
 }
 
 void PolynomApprox::initActuals() {
-  std::fill_n(mActualExponents.begin(), mVariableCount, 0u);
   for(uint32_t i = 0u; i < mVariableCount; ++i) {
+    mActualExponents.push_back(0u);
     mActualPowers.emplace_back(mDegrees[i] + 1u, 0.0);
   }
 }
