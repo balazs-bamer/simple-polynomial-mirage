@@ -5,18 +5,18 @@
 #include <cmath>
 
 Angle2apparentMirrorDepth::Static::Static() {
-  mHeightLimit.init(csTempProfilePointCount, csHeightLimit, csTplate, csTempProfileDegree);
-  mB.init          (csTempProfilePointCount, csB, csTplate, csTempProfileDegree);
-  mDelta.init      (csTempProfilePointCount, csDelta, csTplate, csTempProfileDegree);
+  mHeightLimit = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csHeightLimit, {PolynomApprox::Var{csTplate, csTempProfileDegree}}));
+  mB           = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csB, {PolynomApprox::Var{csTplate, csTempProfileDegree}}));
+  mDelta       = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csDelta, {PolynomApprox::Var{csTplate, csTempProfileDegree}}));
 }
 
 Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempDiffSurface)
   : mTempDiffSurface(std::max(0.0, aTempDiffSurface)) {
   static Static tempCoeffProfiles;
 
-  mHeightLimit = tempCoeffProfiles.mHeightLimit.eval(csTempAmbient + mTempDiffSurface);
-  mB           = tempCoeffProfiles.mB.eval(csTempAmbient + mTempDiffSurface);
-  mDelta       = tempCoeffProfiles.mDelta.eval(csTempAmbient + mTempDiffSurface);
+  mHeightLimit = tempCoeffProfiles.mHeightLimit->eval(csTempAmbient + mTempDiffSurface);
+  mB           = tempCoeffProfiles.mB->eval(csTempAmbient + mTempDiffSurface);
+  mDelta       = tempCoeffProfiles.mDelta->eval(csTempAmbient + mTempDiffSurface);
   initReflection();
 }
 
@@ -49,7 +49,7 @@ void Angle2apparentMirrorDepth::initReflection() {
     depths.push_back(getReflectionDepth(inclination).value());
     inclination += increment;
   }
-  mInclinationProfile.init(depths, inclinations, csInclinationProfileDegree);
+  mInclinationProfile = std::move(std::make_unique<PolynomApprox>(depths, {PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
 }
 
 std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const aInclination0) const {

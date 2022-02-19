@@ -25,55 +25,53 @@ double binarySearch(double const aLower, double const aUpper, double const aEpsi
   return result;
 }
 
-void PolynomApprox::initActuals() {
+PolynomApprox::PolynomApprox(uint32_t const aSampleCount, double const * const aSampleY, std::initializer_list<PolynomApprox::Var> aVarsX) {
+  mTotalCoeffCount = 1u;
+  for(auto &var : aVarsX) {
+    mTotalCoeffCount *= v.mDegree + 1u;
+  }
+  mVariableCount = aVarsX.size();
+  Eigen::MatrixXd vandermonde = Eigen::MatrixXd::Ones(aSampleCount, 1u);
+  for(auto &var : aVarsX) {
+    mDegrees.push_back(var.mDegree);
+    if(mCumulativeCoeffCounts.empty()) {
+      mCumulativeCoeffCounts.push_back(var.mDegree + 1u);
+    }
+    else {
+      mCumulativeCoeffCounts.push_back((var.mDegree + 1u) * mCumulativeCoeffCounts.back());
+    }
+    auto [itMin, itMax] = std::minmax_element(var.mSamples, var.mSamples + aSampleCount);
+    mXmins.push_back(*itMin);
+    mSpanOriginals.push_back(*itMax - *itMin);
+    auto span = getXspan(mTotalCoeffCount);
+    mSpanFactor = span * 2.0;
+    mSpanStart  = -span;
+
+    Eigen::MatrixXd increment(aSampleCount, var.mDegree + 1u);
+    for(uint32_t i = 0u; i < aSampleCount; ++i) {
+      for(uint32_t j = 0u; j <= var.mDegree; ++j) {
+        increment(i, j) = ::pow(normalize(aSamplesX[i], aVariableIndex), j);
+      }
+    }
+    Eigen::MatrixXd previous = vandermonde;
+    uint32_t colsPrev = previous.cols();
+    uint32_t colsIncr = increment.cols();
+    vandermonde = Eigen::MatrixXd(aSampleCount, colsPrev * colsIncr);
+    for(uint32_t r = 0u; r < aSampleCount; ++r) {
+      for(uint32_t i = 0u; i < colsIncr; ++i) {
+        for(uint32_t p = 0u; p < colsPrev; ++p) {
+          vandermonde(r, i * colsPrev + p) = previous(r, p) * increment(r, i);
+        }
+      }
+    }
+  }
+  Eigen::VectorXd y = Eigen::VectorXd::Map(aSamplesY, aSampleCount);
+  mCoefficients = (vandermonde.transpose() * vandermonde).inverse() * vandermonde.transpose() * y;
+
   std::fill_n(mActualExponents.begin(), mVariableCount, 0u);
   for(uint32_t i = 0u; i < mVariableCount; ++i) {
     mActualPowers.emplace_back(mDegrees[i] + 1u, 0.0);
   }
-}
-
-void PolynomApprox::append(uint32_t const aSampleCount, double const * const aSamplesX, uint32_t const aDegree) {
-  ++mVariableCount;
-  mDegrees.push_back(aDegree);
-  if(mCumulativeCoeffCounts.empty()) {
-    mCumulativeCoeffCounts.push_back(aDegree + 1u);
-  }
-  else {
-    mCumulativeCoeffCounts.push_back((aDegree + 1u) * mCumulativeCoeffCounts.back());
-  }
-  auto [itMin, itMax] = std::minmax_element(aSamplesX, aSamplesX + aSampleCount);
-  mXmins.push_back(*itMin);
-  mSpanOriginals.push_back(*itMax - *itMin);
-  auto span = getXspan(mTotalCoeffCount);
-  mSpanFactor = span * 2.0;
-  mSpanStart  = -span;
-}
-
-Eigen::MatrixXd PolynomApprox::doCalculateVandermonde(uint32_t const aVariableIndex, uint32_t const aSampleCount, double const * const aSamplesX, uint32_t const aDegree) {
-  Eigen::MatrixXd result(aSampleCount, aDegree + 1u);
-
-  for(uint32_t i = 0u; i < aSampleCount; ++i) {
-    for(uint32_t j = 0u; j <= aDegree; ++j) {
-       result(i, j) = ::pow(normalize(aSamplesX[i], aVariableIndex), j);
-    }
-  }
-  return result;
-}
-
-Eigen::MatrixXd PolynomApprox::merge(Eigen::MatrixXd const& aOne, Eigen::MatrixXd const& aOther) {
-  uint32_t sampleCount = aOne.rows();
-  uint32_t colsOne = aOne.cols();
-  uint32_t colsOther = aOther.cols();
-  Eigen::MatrixXd result(sampleCount, colsOne * colsOther);
-
-  for(uint32_t r = 0u; r < sampleCount; ++r) {
-    for(uint32_t o = 0u; o < colsOther; ++o) {
-      for(uint32_t t = 0u; t < colsOne; ++t) {
-        result(r, o * colsOne + t) = aOne(r, t) * aOther(r, o);
-      }
-    }
-  }
-  return result;
 }
 
 double PolynomApprox::eval(std::initializer_list<double> const aVariables) {

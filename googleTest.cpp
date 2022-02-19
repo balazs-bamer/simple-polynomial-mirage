@@ -13,8 +13,7 @@ bool eq(double const aF1, double const aF2) {
 }
 
 TEST(polynomApprox, x2few) {
-  PolynomApprox poly;
-  poly.init(std::vector({1.0, 4.0, 9.0}), std::vector({1.0, 2.0, 3.0}), 2u);
+  PolynomApprox poly(std::vector({1.0, 4.0, 9.0}), std::vector({1.0, 2.0, 3.0}), 2u);
   EXPECT_TRUE(eq(poly.eval(0.0),  0.0));
   EXPECT_TRUE(eq(poly.eval(1.0),  0.0));
   EXPECT_TRUE(eq(poly.eval(4.0),  0.0));
@@ -22,8 +21,7 @@ TEST(polynomApprox, x2few) {
 }
 
 TEST(polynomApprox, x20) {
-  PolynomApprox poly;
-  poly.init(std::vector({0.0, 0.0, 0.0}), std::vector({1.0, 2.0, 3.0}), 2u);
+  PolynomApprox poly(std::vector({0.0, 0.0, 0.0}), std::vector({1.0, 2.0, 3.0}), 2u);
   EXPECT_TRUE(eq(poly.eval(0.0),  0.0));
   EXPECT_TRUE(eq(poly.eval(4.0),  0.0));
   EXPECT_TRUE(eq(poly.eval(5.0),  0.0));
@@ -31,8 +29,7 @@ TEST(polynomApprox, x20) {
 }
 
 TEST(polynomApprox, x2_21_27_30) {
-  PolynomApprox poly;
-  poly.init(std::vector({21.0, 27.0, 30.0}), std::vector({32.0, 48.0, 63.0}), 2u);
+  PolynomApprox poly(std::vector({21.0, 27.0, 30.0}), std::vector({32.0, 48.0, 63.0}), 2u);
   EXPECT_TRUE(eq(poly.eval(32.0),  21.0, 0.1));
   EXPECT_TRUE(eq(poly.eval(48.0),  27.0, 0.1));
   EXPECT_TRUE(eq(poly.eval(63.0),  30.0, 0.1));
@@ -40,8 +37,7 @@ TEST(polynomApprox, x2_21_27_30) {
 }
 
 TEST(polynomApprox, x2) {
-  PolynomApprox poly;
-  poly.init(std::vector({1.0, 4.0, 9.0}), std::vector({1.0, 2.0, 3.0}), 2u);
+  PolynomApprox poly(std::vector({1.0, 4.0, 9.0}), std::vector({1.0, 2.0, 3.0}), 2u);
   EXPECT_TRUE(eq(poly.eval(-1.0), 1.0));
   EXPECT_TRUE(eq(poly.eval(0.0),  0.0));
   EXPECT_TRUE(eq(poly.eval(4.0), 16.0));
@@ -51,8 +47,7 @@ TEST(polynomApprox, x2) {
 }
 
 TEST(polynomApprox, x2_5) {
-  PolynomApprox poly;
-  poly.init(std::vector({6.0, 9.0, 14.0}), std::vector({1.0, 2.0, 3.0}), 2u);
+  PolynomApprox poly(std::vector({6.0, 9.0, 14.0}), std::vector({1.0, 2.0, 3.0}), 2u);
   EXPECT_TRUE(eq(poly.eval(-1.0), 6.0, 0.1));
   EXPECT_TRUE(eq(poly.eval(0.0),  5.0, 0.1));
   EXPECT_TRUE(eq(poly.eval(4.0), 21.0, 0.1));
@@ -62,8 +57,7 @@ TEST(polynomApprox, x2_5) {
 }
 
 TEST(polynomApprox, x2off) {
-  PolynomApprox poly;
-  poly.init(std::vector({1.0, 4.0, 9.0, 15.9}), std::vector({1.0, 2.0, 3.0, 4.0}), 2u);
+  PolynomApprox poly(std::vector({1.0, 4.0, 9.0, 15.9}), std::vector({1.0, 2.0, 3.0, 4.0}), 2u);
   EXPECT_TRUE(eq(poly.eval(0.0),  0.0, 0.1));
   EXPECT_TRUE(eq(poly.eval(4.0), 16.0, 0.1));
   EXPECT_TRUE(eq(poly.eval(5.0), 25.0, 0.3));
@@ -71,8 +65,7 @@ TEST(polynomApprox, x2off) {
 }
 
 TEST(polynomApprox, x2veryoff) {
-  PolynomApprox poly;
-  poly.init(std::vector({1.0, 3.0, 13.0, 13.0}), std::vector({1.0, 2.0, 3.0, 4.0}), 2u);
+  PolynomApprox poly(std::vector({1.0, 3.0, 13.0, 13.0}), std::vector({1.0, 2.0, 3.0, 4.0}), 2u);
   EXPECT_FALSE(eq(poly.eval(0.0),  0.0));
   EXPECT_FALSE(eq(poly.eval(4.0), 16.0));
   EXPECT_FALSE(eq(poly.eval(5.0), 25.0));
@@ -80,8 +73,7 @@ TEST(polynomApprox, x2veryoff) {
 }
 
 TEST(polynomApprox, 2x3_3x2_4x_5) {
-  PolynomApprox poly;
-  poly.init(std::vector({5.0, 14.0, 41.0, 98.0}), std::vector({0.0, 1.0, 2.0, 3.0}), 3u);
+  PolynomApprox poly(std::vector({5.0, 14.0, 41.0, 98.0}), std::vector({0.0, 1.0, 2.0, 3.0}), 3u);
   EXPECT_TRUE(eq(poly.eval(0.5),  8.0));
   EXPECT_TRUE(eq(poly.eval(1.5), 24.5));
   EXPECT_TRUE(eq(poly.eval(2.5), 65.0));
