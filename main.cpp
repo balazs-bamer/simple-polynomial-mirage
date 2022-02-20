@@ -1,4 +1,4 @@
-#include "Angle2apparentMirrorDepth.h"
+#include "PolynomialRayBending.h"
 #include "simpleRaytracer.h"
 #include <functional>
 #include <array>
@@ -18,7 +18,7 @@ void test(char const * const aName, std::vector<double> const& aSamplesX, std::f
 }
 
 int main(int argc, char **argv) {
-  Angle2apparentMirrorDepth t28(28.0);
+  PolynomialRayBending t28(28.0);
   std::vector<double> heights({0.0005, 0.0007, 0.001, 0.0015, 0.002, 0.0035, 0.005, 0.007, 0.01, 0.02, 0.03, 0.05, 0.07, 0.1, 0.13, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7, 0.8, 0.89});
   std::vector<double> inclinations;
   int const count = 97;

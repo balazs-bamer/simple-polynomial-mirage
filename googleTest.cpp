@@ -1,4 +1,4 @@
-#include "Angle2apparentMirrorDepth.h"
+#include "PolynomialRayBending.h"
 #include "gtest/gtest.h"
 
 
@@ -119,7 +119,7 @@ TEST(polynomApprox, 10y_x_x2__x3_xy) {
 }
 
 TEST(angle2apparentMirrorDepth, height2temp) {
-  Angle2apparentMirrorDepth mirage(28);
+  PolynomialRayBending mirage(28);
   EXPECT_TRUE(eq(1.0, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(1.0))));
   EXPECT_TRUE(eq(0.5, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.5))));
   EXPECT_TRUE(eq(0.1, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.1))));
@@ -129,7 +129,7 @@ TEST(angle2apparentMirrorDepth, height2temp) {
 }
 
 TEST(angle2apparentMirrorDepth, temp2height) {
-  Angle2apparentMirrorDepth mirage(28);
+  PolynomialRayBending mirage(28);
   EXPECT_TRUE(eq(0.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(0.0))));
   EXPECT_TRUE(eq(8.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(8.0))));
   EXPECT_TRUE(eq(16.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(16.0))));

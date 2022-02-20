@@ -1,16 +1,17 @@
-#include "Angle2apparentMirrorDepth.h"
+#include "PolynomialRayBending.h"
 
 #include <functional>
 #include <vector>
 #include <cmath>
 
-Angle2apparentMirrorDepth::Static::Static() {
+
+PolynomialRayBending::Static::Static() {
   mHeightLimit = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csHeightLimit, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
   mB           = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csB,           std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
   mDelta       = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csDelta,       std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
 }
 
-Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempDiffSurface)
+PolynomialRayBending::PolynomialRayBending(double const aTempDiffSurface)
   : mTempDiffSurface(std::max(0.0, aTempDiffSurface)) {
   static Static tempCoeffProfiles;
 
@@ -20,23 +21,23 @@ Angle2apparentMirrorDepth::Angle2apparentMirrorDepth(double const aTempDiffSurfa
   initReflection();
 }
 
-double Angle2apparentMirrorDepth::getTempRiseAtHeight(double const aHeight) const {
+double PolynomialRayBending::getTempRiseAtHeight(double const aHeight) const {
   auto height = 100.0 * aHeight;
   return csTempAmbient * ::exp(mB * ::pow(height, 1.0 - mDelta)) - csTempAmbient;  // Here I neglect the difference between mDelta and csDeltaFallback, because this result will only be used indirectly.
 }
 
-double Angle2apparentMirrorDepth::getHeightAtTempRise(double const aTempRise) const {
+double PolynomialRayBending::getHeightAtTempRise(double const aTempRise) const {
   return ::exp(::log(::log((aTempRise + csTempAmbient) / csTempAmbient) / mB) / (1.0 - mDelta)) / 100.0;  // Here I neglect the difference between mDelta and csDeltaFallback, because this result will only be used indirectly.
 }
 
-double Angle2apparentMirrorDepth::getRefractionAtTempRise(double const aTempRise) const {
+double PolynomialRayBending::getRefractionAtTempRise(double const aTempRise) const {
   auto tempKelvin = csTempAmbient + aTempRise;
   auto tempCelsius = tempKelvin - csCelsius2kelvin;
   auto r = 1.0 + 7.86e-4 * csAtmosphericPressureKpa / tempKelvin - 1.5e-11 * csRelativeHumidityPercent * (tempCelsius * tempCelsius + 160.0);
   return r;
 }
 
-void Angle2apparentMirrorDepth::initReflection() {
+void PolynomialRayBending::initReflection() {
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
     return getReflectionDepth(aInclination) ? -1.0 : 1.0;
   }) + csEpsilon;
@@ -52,7 +53,7 @@ void Angle2apparentMirrorDepth::initReflection() {
   mInclinationProfile = std::move(std::make_unique<PolynomApprox>(depths, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
 }
 
-std::optional<double> Angle2apparentMirrorDepth::getReflectionDepth(double const aInclination0) const {
+std::optional<double> PolynomialRayBending::getReflectionDepth(double const aInclination0) const {
   double currentHeight = csInitialHeight;
   double currentTemp = getTempRiseAtHeight(currentHeight);
   double currentRefractionIndex = getRefractionAtTempRise(currentTemp);

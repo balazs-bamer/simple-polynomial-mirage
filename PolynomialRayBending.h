@@ -3,11 +3,12 @@
 
 #include "3dGeomUtil.h"
 #include "mathUtil.h"
+#include <functional>
 #include <optional>
 #include <memory>
 
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
-class Angle2apparentMirrorDepth final {
+class PolynomialRayBending final {
 public:
   static constexpr double   csCelsius2kelvin                = 273.15;
 
@@ -51,7 +52,7 @@ private:
   std::unique_ptr<PolynomApprox> mInclinationProfile;
 
 public:
-  Angle2apparentMirrorDepth(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
+  PolynomialRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
 
   static double getWorkingHeight()                                   { return csInitialHeight; }
   static double getAmbientTemp()    /* Kelvin */                     { return csTempAmbient; }

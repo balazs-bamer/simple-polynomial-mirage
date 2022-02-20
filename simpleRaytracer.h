@@ -1,7 +1,7 @@
 #ifndef SIMPLERAYTRACER_H
 #define SIMPLERAYTRACER_H
 
-#include "Angle2apparentMirrorDepth.h"
+#include "PolynomialRayBending.h"
 #include "3dGeomUtil.h"
 #include <png++/png.hpp>
 
@@ -24,8 +24,8 @@ public:
 
 class Medium final {
 private:
-  Angle2apparentMirrorDepth mHotPlate;
-  Object const&             mObject;
+  PolynomialRayBending mHotPlate;
+  Object const&        mObject;
 
 public:
   Medium(double const aTempDiff, Object const &aObject) : mHotPlate(aTempDiff), mObject(aObject) {}
