@@ -66,7 +66,7 @@ PolynomApprox::PolynomApprox(uint32_t const aSampleCount, double const * const a
     }
   }
   Eigen::VectorXd y = Eigen::VectorXd::Map(aSamplesY, aSampleCount);
-  mCoefficients = (vandermonde.transpose() * vandermonde).inverse() * vandermonde.transpose() * y;
+  mCoefficients = vandermonde.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV).solve(y);  // most accurate method according to https://eigen.tuxfamily.org/dox/group__LeastSquares.html
 
   for(uint32_t i = 0u; i < mVariableCount; ++i) {
     mActualExponents.push_back(0u);
