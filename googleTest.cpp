@@ -96,6 +96,28 @@ TEST(polynomApprox, 10x_y_y2_xy) {
   EXPECT_TRUE(eq(poly.getRrmsError(), 0.0f));
 }
 
+TEST(polynomApprox, 10y_x_x2_xy) {
+  double const y[] = {0.0, 2.0, 6.0, 10.0, 13.0, 18.0, 20.0, 24.0, 30.0};
+  double const x1[] = {0.0, 1.0, 2.0, 0.0, 1.0, 2.0, 0.0, 1.0, 2.0};
+  double const x2[] = {0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0};
+  PolynomApprox poly(9u, y, {{x1, 2u}, {x2, 1u}});
+  EXPECT_TRUE(eq(poly.eval(std::initializer_list<double>{0.0, 3.0}),  30.0));
+  EXPECT_TRUE(eq(poly.eval(std::initializer_list<double>{3.0, 0.0}),  12.0));
+  EXPECT_TRUE(eq(poly.eval(std::initializer_list<double>{3.0, 3.0}),  51.0));
+  EXPECT_TRUE(eq(poly.getRrmsError(), 0.0f));
+}
+
+TEST(polynomApprox, 10y_x_x2__x3_xy) {
+  double const y[] = {0.0, 1.0, -2.0, -15.0, 10.0, 12.0, 10.0, -2.0, 20.0, 23.0, 22.0, 11.0};
+  double const x1[] = {0.0, 1.0, 2.0, 3.0, 0.0, 1.0, 2.0, 3.0, 0.0, 1.0, 2.0, 3.0};
+  double const x2[] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0};
+  PolynomApprox poly(9u, y, {{x1, 3u}, {x2, 1u}});
+  EXPECT_TRUE(eq(poly.eval(std::initializer_list<double>{0.0, 4.0}),  40.0));
+  EXPECT_TRUE(eq(poly.eval(std::initializer_list<double>{4.0, 0.0}), -44.0));
+  EXPECT_TRUE(eq(poly.eval(std::initializer_list<double>{4.0, 4.0}),  12.0));
+  EXPECT_TRUE(eq(poly.getRrmsError(), 0.0f));
+}
+
 TEST(angle2apparentMirrorDepth, height2temp) {
   Angle2apparentMirrorDepth mirage(28);
   EXPECT_TRUE(eq(1.0, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(1.0))));
