@@ -10,6 +10,12 @@
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
 class PolynomialRayBending final {
 public:
+  struct DispDepth {
+    double mDisp;
+    double mDepth;
+    DispDepth(double const aDisp, double const aDepth) : mDisp(aDisp), mDepth(aDepth) {}
+  };
+
   static constexpr double   csCelsius2kelvin                = 273.15;
 
 private:
@@ -49,7 +55,8 @@ private:
   double mDelta;
   double mCriticalInclination;
 
-  std::unique_ptr<PolynomApprox> mInclinationProfile;
+  std::unique_ptr<PolynomApprox> mInclination2horizDisp;
+  std::unique_ptr<PolynomApprox> mInclination2virtualDepth;
 
 public:
   PolynomialRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
@@ -61,11 +68,12 @@ public:
   double getHeightAtTempRise(double const aTempRise)           const;  // delta Celsius and meter
   double getRefractionAtTempRise(double const aTempRise)       const;  // delta Celsius
   double getRefractionAtHeight(double const aHeight)           const { return getRefractionAtTempRise(getTempRiseAtHeight(aHeight)); }
-  double approximateReflectionDepth(double const aInclination)       { return mInclinationProfile->eval(aInclination); }
+  double approximateHorizontalDisplacement(double const aInclination){ return mInclination2horizDisp->eval(aInclination); }
+  double approximateReflectionDepth(double const aInclination)       { return mInclination2virtualDepth->eval(aInclination); }
 
 private:
   void initReflection();
-  std::optional<double> getReflectionDepth(double const aInclination) const;
+  std::optional<DispDepth> getReflectionDispDepth(double const aInclination) const;
 };
 
 #endif

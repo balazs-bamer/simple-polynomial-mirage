@@ -39,21 +39,25 @@ double PolynomialRayBending::getRefractionAtTempRise(double const aTempRise) con
 
 void PolynomialRayBending::initReflection() {
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
-    return getReflectionDepth(aInclination) ? -1.0 : 1.0;
+    return getReflectionDispDepth(aInclination) ? -1.0 : 1.0;
   }) + csEpsilon;
   std::vector<double> inclinations;
+  std::vector<double> disps;
   std::vector<double> depths;
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csInclDepthProfilePointCount - 1u);
   auto inclination = mCriticalInclination;
   for(uint32_t i = 0u; i < csInclDepthProfilePointCount; ++i) {
     inclinations.push_back(inclination);
-    depths.push_back(getReflectionDepth(inclination).value());
+    auto dd = getReflectionDispDepth(inclination).value();
+    disps.push_back(dd.mDisp);
+    depths.push_back(dd.mDepth);
     inclination += increment;
   }
-  mInclinationProfile = std::move(std::make_unique<PolynomApprox>(depths, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
+  mInclination2horizDisp    = std::move(std::make_unique<PolynomApprox>(disps, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
+  mInclination2virtualDepth = std::move(std::make_unique<PolynomApprox>(depths, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
 }
 
-std::optional<double> PolynomialRayBending::getReflectionDepth(double const aInclination0) const {
+std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflectionDispDepth(double const aInclination0) const {
   double currentHeight = csInitialHeight;
   double currentTemp = getTempRiseAtHeight(currentHeight);
   double currentRefractionIndex = getRefractionAtTempRise(currentTemp);
@@ -61,7 +65,7 @@ std::optional<double> PolynomialRayBending::getReflectionDepth(double const aInc
   double currentSinInclination = sinInclination0;
   double horizDisp = 0.0;
 
-  std::optional<double> result;
+  std::optional<DispDepth> result;
   while(currentHeight > csMinimalHeight) {
     double nextTemp = currentTemp + static_cast<long double>(csLayerDeltaTemp);
     double nextHeight = getHeightAtTempRise(nextTemp);
@@ -78,8 +82,8 @@ std::optional<double> PolynomialRayBending::getReflectionDepth(double const aInc
       });
       double criticalHeight = getHeightAtTempRise(criticalTemp);
       horizDisp += static_cast<double>(currentHeight - criticalHeight) * currentSinInclination / ::sqrt(static_cast<double>(1.0) - currentSinInclination * currentSinInclination);
-      auto r = csInitialHeight - horizDisp * ::sqrt(1.0 - sinInclination0 * sinInclination0) / sinInclination0;
-      result = r;
+      auto virt = csInitialHeight - horizDisp * ::sqrt(1.0 - sinInclination0 * sinInclination0) / sinInclination0;
+      result = DispDepth(horizDisp * 2.0, virt);
       break;
     }
     else {
