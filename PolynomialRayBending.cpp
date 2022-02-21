@@ -44,6 +44,7 @@ void PolynomialRayBending::initReflection() {
   std::vector<double> inclinations;
   std::vector<double> disps;
   std::vector<double> depths;
+  std::vector<double> iters;
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csInclDepthProfilePointCount - 1u);
   auto inclination = mCriticalInclination;
   for(uint32_t i = 0u; i < csInclDepthProfilePointCount; ++i) {
@@ -51,10 +52,12 @@ void PolynomialRayBending::initReflection() {
     auto dd = getReflectionDispDepth(inclination).value();
     disps.push_back(dd.mDisp);
     depths.push_back(dd.mDepth);
+    iters.push_back(dd.mIter);
     inclination += increment;
   }
   mInclination2horizDisp    = std::move(std::make_unique<PolynomApprox>(disps, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
   mInclination2virtualDepth = std::move(std::make_unique<PolynomApprox>(depths, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
+  mInclination2iterations   = std::move(std::make_unique<PolynomApprox>(iters, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
 }
 
 std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflectionDispDepth(double const aInclination0) const {
@@ -66,7 +69,9 @@ std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflecti
   double horizDisp = 0.0;
 
   std::optional<DispDepth> result;
+  uint32_t iterations = 0u;
   while(currentHeight > csMinimalHeight) {
+    ++iterations;
     double nextTemp = currentTemp + static_cast<long double>(csLayerDeltaTemp);
     double nextHeight = getHeightAtTempRise(nextTemp);
     double nextRefractionIndex = getRefractionAtHeight(nextHeight);
@@ -83,7 +88,7 @@ std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflecti
       double criticalHeight = getHeightAtTempRise(criticalTemp);
       horizDisp += static_cast<double>(currentHeight - criticalHeight) * currentSinInclination / ::sqrt(static_cast<double>(1.0) - currentSinInclination * currentSinInclination);
       auto virt = csInitialHeight - horizDisp * ::sqrt(1.0 - sinInclination0 * sinInclination0) / sinInclination0;
-      result = DispDepth(horizDisp * 2.0, virt);
+      result = DispDepth(horizDisp * 2.0, virt, iterations);
       break;
     }
     else {

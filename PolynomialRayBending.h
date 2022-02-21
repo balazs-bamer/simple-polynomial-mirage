@@ -11,9 +11,10 @@
 class PolynomialRayBending final {
 public:
   struct DispDepth {
-    double mDisp;
-    double mDepth;
-    DispDepth(double const aDisp, double const aDepth) : mDisp(aDisp), mDepth(aDepth) {}
+    double   mDisp;
+    double   mDepth;
+    uint32_t mIter;
+    DispDepth(double const aDisp, double const aDepth, uint32_t const aIter) : mDisp(aDisp), mDepth(aDepth), mIter(aIter) {}
   };
 
   static constexpr double   csCelsius2kelvin                = 273.15;
@@ -57,6 +58,7 @@ private:
 
   std::unique_ptr<PolynomApprox> mInclination2horizDisp;
   std::unique_ptr<PolynomApprox> mInclination2virtualDepth;
+  std::unique_ptr<PolynomApprox> mInclination2iterations;
 
 public:
   PolynomialRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
@@ -70,6 +72,7 @@ public:
   double getRefractionAtHeight(double const aHeight)           const { return getRefractionAtTempRise(getTempRiseAtHeight(aHeight)); }
   double approximateHorizontalDisplacement(double const aInclination){ return mInclination2horizDisp->eval(aInclination); }
   double approximateReflectionDepth(double const aInclination)       { return mInclination2virtualDepth->eval(aInclination); }
+  double approximateIterations(double const aInclination)            { return mInclination2iterations->eval(aInclination); }
 
 private:
   void initReflection();
