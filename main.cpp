@@ -35,6 +35,14 @@ int main(int argc, char **argv) {
   test("reflectionDepth", inclinations, [&t28](auto aIncl){ return t28.approximateReflectionDepth(aIncl); });
   test("iterations", inclinations, [&t28](auto aIncl){ return t28.approximateIterations(aIncl); });
 
+  int32_t const cQuantiles = 10;
+  auto layerThicknesses = t28.getQuantiles(cQuantiles);
+  std::cout << "Layer thickness quantiles (" << cQuantiles << "): ";
+  for(auto t : layerThicknesses) {
+    std::cout << t << ", ";
+  }
+  std::cout << "\naverage thickness: " << t28.getAverage() << '\n';
+
   // TODO parse args
   // Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight)
   Object object(argv[1], 1000.0, 1.8, 2.0, 1.5); // Top is 2.3

@@ -5,6 +5,7 @@
 #include "mathUtil.h"
 #include <functional>
 #include <optional>
+#include <numeric>
 #include <memory>
 
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
@@ -28,7 +29,6 @@ private:
   static constexpr double   csB[csTempProfilePointCount]           = { 0.048, 0.041, 0.035, 0.030, 0.024, 0.018, 0.012, 0.006 };
   static constexpr double   csDelta[csTempProfilePointCount]       = { 1.4,   1.4,   1.5,   1.5,   1.6,   1.6,   1.6,   1.6   };
   static constexpr double   csDeltaFallback                 = 1.2;
-
 
   static constexpr uint32_t csInclDepthProfilePointCount    = 197u;
   static constexpr uint32_t csInclinationProfileDegree      =  17u;
@@ -59,6 +59,7 @@ private:
   std::unique_ptr<PolynomApprox> mInclination2horizDisp;
   std::unique_ptr<PolynomApprox> mInclination2virtualDepth;
   std::unique_ptr<PolynomApprox> mInclination2iterations;
+  mutable std::vector<double>            mLayerThicknesses;
 
 public:
   PolynomialRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
@@ -74,9 +75,12 @@ public:
   double approximateReflectionDepth(double const aInclination)       { return mInclination2virtualDepth->eval(aInclination); }
   double approximateIterations(double const aInclination)            { return mInclination2iterations->eval(aInclination); }
 
+  std::vector<double> getQuantiles(int32_t const aDivisions)   const;
+  double              getAverage() const { return std::accumulate(mLayerThicknesses.begin(), mLayerThicknesses.end(), 0.0) / mLayerThicknesses.size(); }
+
 private:
   void initReflection();
-  std::optional<DispDepth> getReflectionDispDepth(double const aInclination) const;
+  std::optional<DispDepth> getReflectionDispDepth(double const aInclination, bool const aNeedThicknesses) const;
 };
 
 #endif

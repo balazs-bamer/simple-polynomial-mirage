@@ -37,9 +37,20 @@ double PolynomialRayBending::getRefractionAtTempRise(double const aTempRise) con
   return r;
 }
 
+std::vector<double> PolynomialRayBending::getQuantiles(int32_t const aDivisions) const {
+  std::vector<double> result;
+  if(aDivisions > 0) {
+    double range = mLayerThicknesses.size() - 1u;
+    for(int32_t i = 0.0; i <= aDivisions; ++i) {
+      result.push_back(mLayerThicknesses[static_cast<uint32_t>(::round(range * i / static_cast<double>(aDivisions)))]);
+    }
+  }
+  return result;
+}
+
 void PolynomialRayBending::initReflection() {
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
-    return getReflectionDispDepth(aInclination) ? -1.0 : 1.0;
+    return getReflectionDispDepth(aInclination, false) ? -1.0 : 1.0;
   }) + csEpsilon;
   std::vector<double> inclinations;
   std::vector<double> disps;
@@ -49,7 +60,7 @@ void PolynomialRayBending::initReflection() {
   auto inclination = mCriticalInclination;
   for(uint32_t i = 0u; i < csInclDepthProfilePointCount; ++i) {
     inclinations.push_back(inclination);
-    auto dd = getReflectionDispDepth(inclination).value();
+    auto dd = getReflectionDispDepth(inclination, inclination == mCriticalInclination).value();
     disps.push_back(dd.mDisp);
     depths.push_back(dd.mDepth);
     iters.push_back(dd.mIter);
@@ -60,7 +71,7 @@ void PolynomialRayBending::initReflection() {
   mInclination2iterations   = std::move(std::make_unique<PolynomApprox>(iters, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
 }
 
-std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflectionDispDepth(double const aInclination0) const {
+std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflectionDispDepth(double const aInclination0, bool const aNeedThicknesses) const {
   double currentHeight = csInitialHeight;
   double currentTemp = getTempRiseAtHeight(currentHeight);
   double currentRefractionIndex = getRefractionAtTempRise(currentTemp);
@@ -77,6 +88,10 @@ std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflecti
     double nextRefractionIndex = getRefractionAtHeight(nextHeight);
     double factor = currentRefractionIndex / nextRefractionIndex;
     double nextSinInclination = currentSinInclination * factor;
+    if(aNeedThicknesses) {
+      mLayerThicknesses.push_back(currentHeight - nextHeight);
+    }
+    else {} // Nothing to do
     if(nextSinInclination >= static_cast<double>(1.0)) { // The problem here is how much sinInclanation is greater than 1. Optimal would be to have it just touch 1, so the last temperature step can't be uniform.
       auto const criticalTemp = binarySearch(currentTemp, nextTemp, csEpsilon, [this, currentRefractionIndex, currentSinInclination](double const aTemp) {
         double height = getHeightAtTempRise(aTemp);
