@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-project(PolynomialRayBending)
+project(Angle2apparentMirrorDepth)
 
 enable_testing()
 find_package(GTest REQUIRED)
@@ -13,11 +13,11 @@ add_definitions(-DEIGEN_MATRIX_PLUGIN="Matrix_initializer_list.h" -DEIGEN_ARRAY_
 INCLUDE_DIRECTORIES ( "/usr/include/eigen3"
                       "../repos/stl_reader"
                       "../repos/eigen-initializer_list/src" )
-ADD_LIBRARY (PolynomialRayBendingLib SHARED PolynomialRayBending.cpp mathUtil.cpp)
+ADD_LIBRARY (Angle2apparentMirrorDepthLib SHARED Angle2apparentMirrorDepth.cpp mathUtil.cpp)
 
 add_executable(googleTest googleTest.cpp)
-target_link_libraries(googleTest GTest::GTest GTest::Main PolynomialRayBendingLib quadmath)
+target_link_libraries(googleTest GTest::GTest GTest::Main Angle2apparentMirrorDepthLib quadmath)
 add_test(google-test googleTest)
 
 add_executable(main main.cpp simpleRaytracer.cpp)
-target_link_libraries(main PolynomialRayBendingLib quadmath png)
+target_link_libraries(main Angle2apparentMirrorDepthLib quadmath png)
