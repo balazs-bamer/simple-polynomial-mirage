@@ -136,6 +136,42 @@ TEST(angle2apparentMirrorDepth, temp2height) {
   EXPECT_TRUE(eq(24.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(24.0))));
 }
 
+/* TODO test
+
+  PolynomialRayBending::Gather g;
+  g.mAsphalt = false;
+  g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));
+  g.mCollection.emplace_back(0.9, 3.0, 3.0/::sqrt(0.1*0.1+3.0*3.0));
+  g.mCollection.emplace_back(0.8, 4.0, 4.0/::sqrt(0.1*0.1+4.0*4.0));
+  g.mCollection.emplace_back(0.75, 0.0, std::nan("1"));
+
+  PolynomialRayBending::Gather g;
+  g.mAsphalt = false;
+  g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));
+  g.mCollection.emplace_back(0.9, 0.0, std::nan("1"));
+
+  PolynomialRayBending::Gather g;
+  g.mAsphalt = true;
+  g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));
+  g.mCollection.emplace_back(0.9, 3.0, 3.0/::sqrt(0.1*0.1+3.0*3.0));
+  g.mCollection.emplace_back(0.8, 4.0, 4.0/::sqrt(0.1*0.1+4.0*4.0));
+
+  auto p = PolynomialRayBending::process(g);
+  std::cout << "d = [";
+  for(auto i : p) {
+    std::cout << i.mHorizDisp << ", ";
+  }
+  std::cout << "\nh = [";
+  for(auto i : p) {
+    std::cout << i.mHeight << ", ";
+  }
+  std::cout << "\na = [";
+  for(auto i : p) {
+    std::cout << i.mAngleFromHoriz << ", ";
+  }
+  std::cout << '\n';
+ */
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

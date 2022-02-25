@@ -1,12 +1,13 @@
-#ifndef ANGLE2APPARENTMIRRORDEPTH
-#define ANGLE2APPARENTMIRRORDEPTH
+#ifndef POLYNOMIALRAYBENDING
+#define POLYNOMIALRAYBENDING
 
 #include "3dGeomUtil.h"
 #include "mathUtil.h"
 #include <functional>
-#include <optional>
 #include <numeric>
 #include <memory>
+#include <deque>
+
 
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
 class PolynomialRayBending final {
@@ -40,8 +41,37 @@ private:
   static constexpr double   csMinimalHeight                 =   0.001;
   static constexpr double   csAlmostVertical                =   0.01;
   static constexpr double   csAlmostHorizontal              =   (cgPi / 2.0) * 0.9999;
+  static constexpr double   csAsphaltHitSampleAngleLimit    =   (cgPi / 4.0);
   static constexpr double   csEpsilon                       =   0.00001;
 
+public: // TODO private when ready
+  // Used to gather data from one half ray bending trace.
+  struct RawSample final {
+    double mHeight;
+    double mHorizDisp;      // starting from mHeight to the next point
+    double mSinInclination;
+    RawSample(double const aHeight, double const aHorizDisp, double const aSinInclination) : mHeight(aHeight), mHorizDisp(aHorizDisp), mSinInclination(aSinInclination) {}
+  };
+
+  // Used to gather data from all the traces
+  struct Sample final {
+    double mHeight;
+    double mHorizDisp;      // Cumulative, from starting point.
+    double mAngleFromHoriz; // 0 is horizontal, negative points downwards, positive upwards.
+    Sample(double const aHeight, double const aHorizDisp, double const aAngleFromHoriz) : mHeight(aHeight), mHorizDisp(aHorizDisp), mAngleFromHoriz(aAngleFromHoriz) {}
+  };
+
+  struct Gather final {
+    bool                  mAsphalt;
+    std::deque<RawSample> mCollection;
+  };
+
+  struct Intermediate final {
+    bool                mAsphalt;
+    std::vector<Sample> mCollection;
+  };
+
+private:
   struct Static final {
     std::unique_ptr<PolynomApprox> mHeightLimit;
     std::unique_ptr<PolynomApprox> mB;
@@ -56,11 +86,6 @@ private:
   double mDelta;
   double mCriticalInclination;
 
-  std::unique_ptr<PolynomApprox> mInclination2horizDisp;
-  std::unique_ptr<PolynomApprox> mInclination2virtualDepth;
-  std::unique_ptr<PolynomApprox> mInclination2iterations;
-  mutable std::vector<double>            mLayerThicknesses;
-
 public:
   PolynomialRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
 
@@ -71,16 +96,13 @@ public:
   double getHeightAtTempRise(double const aTempRise)           const;  // delta Celsius and meter
   double getRefractionAtTempRise(double const aTempRise)       const;  // delta Celsius
   double getRefractionAtHeight(double const aHeight)           const { return getRefractionAtTempRise(getTempRiseAtHeight(aHeight)); }
-  double approximateHorizontalDisplacement(double const aInclination){ return mInclination2horizDisp->eval(aInclination); }
-  double approximateReflectionDepth(double const aInclination)       { return mInclination2virtualDepth->eval(aInclination); }
-  double approximateIterations(double const aInclination)            { return mInclination2iterations->eval(aInclination); }
-
-  std::vector<double> getQuantiles(int32_t const aDivisions)   const;
-  double              getAverage() const { return std::accumulate(mLayerThicknesses.begin(), mLayerThicknesses.end(), 0.0) / mLayerThicknesses.size(); }
 
 private:
   void initReflection();
-  std::optional<DispDepth> getReflectionDispDepth(double const aInclination, bool const aNeedThicknesses) const;
+  Gather getReflectionDispDepth(double const aInclination) const;
+
+public:  // TODO private when ready
+  static Intermediate process(Gather const aRaws);
 };
 
 #endif

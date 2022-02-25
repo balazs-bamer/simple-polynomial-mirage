@@ -37,50 +37,40 @@ double PolynomialRayBending::getRefractionAtTempRise(double const aTempRise) con
   return r;
 }
 
-std::vector<double> PolynomialRayBending::getQuantiles(int32_t const aDivisions) const {
-  std::vector<double> result;
-  if(aDivisions > 0) {
-    double range = mLayerThicknesses.size() - 1u;
-    for(int32_t i = 0.0; i <= aDivisions; ++i) {
-      result.push_back(mLayerThicknesses[static_cast<uint32_t>(::round(range * i / static_cast<double>(aDivisions)))]);
-    }
-  }
-  return result;
-}
-
 void PolynomialRayBending::initReflection() {
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
-    return getReflectionDispDepth(aInclination, false) ? -1.0 : 1.0;
+    return getReflectionDispDepth(aInclination).mAsphalt ? 1.0 : -1.0;
   }) + csEpsilon;
-  std::vector<double> inclinations;
-  std::vector<double> disps;
-  std::vector<double> depths;
-  std::vector<double> iters;
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csInclDepthProfilePointCount - 1u);
   auto inclination = mCriticalInclination;
+  std::deque<Sample> samplesBend;
   for(uint32_t i = 0u; i < csInclDepthProfilePointCount; ++i) {
-    inclinations.push_back(inclination);
-    auto dd = getReflectionDispDepth(inclination, inclination == mCriticalInclination).value();
-    disps.push_back(dd.mDisp);
-    depths.push_back(dd.mDepth);
-    iters.push_back(dd.mIter);
+    auto processed = process(getReflectionDispDepth(inclination));
+    if(!processed.mAsphalt) {
+      add(samplesBend, processed.mCollection);
+    }
+    else {
+      throw "Should not hit asphalt in bending region.";
+    }
     inclination += increment;
   }
-  mInclination2horizDisp    = std::move(std::make_unique<PolynomApprox>(disps, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
-  mInclination2virtualDepth = std::move(std::make_unique<PolynomApprox>(depths, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
-  mInclination2iterations   = std::move(std::make_unique<PolynomApprox>(iters, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{inclinations, csInclinationProfileDegree}}));
+  mCriticalInclination -= 2.0 * csEpsilon;
+  std::deque<Sample> samplesAsphaltDown;
+  std::deque<Sample> samplesAsphaltUp;
+  // TODO sample asphalt hit region and gather these
+  // TODO process samples*
 }
 
-std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflectionDispDepth(double const aInclination0, bool const aNeedThicknesses) const {
+PolynomialRayBending::Gather PolynomialRayBending::getReflectionDispDepth(double const aInclination0) const {
   double currentHeight = csInitialHeight;
   double currentTemp = getTempRiseAtHeight(currentHeight);
   double currentRefractionIndex = getRefractionAtTempRise(currentTemp);
   double sinInclination0 = ::sin(aInclination0);
   double currentSinInclination = sinInclination0;
-  double horizDisp = 0.0;
 
-  std::optional<DispDepth> result;
+  Gather result;
   uint32_t iterations = 0u;
+  result.mAsphalt = true;
   while(currentHeight > csMinimalHeight) {
     ++iterations;
     double nextTemp = currentTemp + static_cast<long double>(csLayerDeltaTemp);
@@ -88,10 +78,7 @@ std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflecti
     double nextRefractionIndex = getRefractionAtHeight(nextHeight);
     double factor = currentRefractionIndex / nextRefractionIndex;
     double nextSinInclination = currentSinInclination * factor;
-    if(aNeedThicknesses) {
-      mLayerThicknesses.push_back(currentHeight - nextHeight);
-    }
-    else {} // Nothing to do
+    double disp;
     if(nextSinInclination >= static_cast<double>(1.0)) { // The problem here is how much sinInclanation is greater than 1. Optimal would be to have it just touch 1, so the last temperature step can't be uniform.
       auto const criticalTemp = binarySearch(currentTemp, nextTemp, csEpsilon, [this, currentRefractionIndex, currentSinInclination](double const aTemp) {
         double height = getHeightAtTempRise(aTemp);
@@ -101,17 +88,61 @@ std::optional<PolynomialRayBending::DispDepth> PolynomialRayBending::getReflecti
         return (sinInclination > static_cast<double>(1.0) ? 1.0 : -1.0);
       });
       double criticalHeight = getHeightAtTempRise(criticalTemp);
-      horizDisp += static_cast<double>(currentHeight - criticalHeight) * currentSinInclination / ::sqrt(static_cast<double>(1.0) - currentSinInclination * currentSinInclination);
-      auto virt = csInitialHeight - horizDisp * ::sqrt(1.0 - sinInclination0 * sinInclination0) / sinInclination0;
-      result = DispDepth(horizDisp * 2.0, virt, iterations);
+      disp = static_cast<double>(currentHeight - criticalHeight) * currentSinInclination / ::sqrt(static_cast<double>(1.0) - currentSinInclination * currentSinInclination);
+      result.mCollection.emplace_back(currentHeight, 0.0, std::nan("1"));
+      result.mAsphalt = false;
       break;
     }
     else {
-      horizDisp += static_cast<double>(currentHeight - nextHeight) * currentSinInclination / ::sqrt(static_cast<double>(1.0) - currentSinInclination * currentSinInclination);
+      disp = static_cast<double>(currentHeight - nextHeight) * currentSinInclination / ::sqrt(static_cast<double>(1.0) - currentSinInclination * currentSinInclination);
+      result.mCollection.emplace_back(currentHeight, disp, currentSinInclination);
       currentTemp = nextTemp;
       currentHeight = nextHeight;
       currentRefractionIndex = nextRefractionIndex;
       currentSinInclination = nextSinInclination;
+    }
+  }
+  return result;
+}
+
+PolynomialRayBending::Intermediate PolynomialRayBending::process(Gather const aRaws) {
+  Intermediate result;
+  result.mAsphalt = aRaws.mAsphalt;
+  if(!aRaws.mAsphalt) {
+    double previousSinInclination;
+    double sumDisp = 0.0;
+    result.mCollection.reserve(aRaws.mCollection.size() * 2u - 1u);
+    for(auto const &rawSample : aRaws.mCollection) {
+      if(!std::isnan(rawSample.mSinInclination)) {
+        previousSinInclination = rawSample.mSinInclination;
+        result.mCollection.emplace_back(rawSample.mHeight, sumDisp, std::asin(rawSample.mSinInclination) - cgPi / 2.0);
+      }
+      else {
+        result.mCollection.emplace_back(rawSample.mHeight, sumDisp, cgPi / 2.0 - std::asin(previousSinInclination));
+      }
+      sumDisp += rawSample.mHorizDisp;
+    }
+    auto i = aRaws.mCollection.crbegin();
+    ++i;
+    sumDisp += i->mHorizDisp;
+    auto previousHeight = i->mHeight;
+    previousSinInclination = i->mSinInclination;
+    ++i;
+    while(i != aRaws.mCollection.crend()) {
+      result.mCollection.emplace_back(previousHeight, sumDisp, cgPi / 2.0 - std::asin(i->mSinInclination));
+      sumDisp += i->mHorizDisp;
+      previousHeight = i->mHeight;
+      previousSinInclination = i->mSinInclination;
+      ++i;
+    }
+    result.mCollection.emplace_back(previousHeight, sumDisp, cgPi / 2.0 - std::asin(previousSinInclination));
+  }
+  else {
+    double sumDisp = 0.0;
+    result.mCollection.reserve(aRaws.mCollection.size());
+    for(auto const &rawSample : aRaws.mCollection) {
+      result.mCollection.emplace_back(rawSample.mHeight, sumDisp, std::asin(rawSample.mSinInclination) - cgPi / 2.0);
+      sumDisp += rawSample.mHorizDisp;
     }
   }
   return result;

@@ -55,7 +55,7 @@ gNeed = false;
         && (inclination = ::acos(static_cast<double>(-aRay.mDirection.dot(horizontal.mNormal)))) >= mHotPlate.getCriticalInclination()) {
 gIncl = inclination;
        Ray inner(intersection.mPoint, aRay.mDirection);  // Virtual ray downwards inside the bending air.
-       horizontal.mConstant = mHotPlate.approximateReflectionDepth(inclination);
+       horizontal.mConstant = 0; // TODO mHotPlate.approximateReflectionDepth(inclination);
 gDepth = horizontal.mConstant;
        intersection = horizontal.intersect(inner);
 gBottom = intersection.mPoint(1);
