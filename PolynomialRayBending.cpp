@@ -12,7 +12,8 @@ PolynomialRayBending::Static::Static() {
 }
 
 PolynomialRayBending::PolynomialRayBending(double const aTempDiffSurface)
-  : mTempDiffSurface(std::max(0.0, aTempDiffSurface)) {
+  : mTempDiffSurface(std::max(0.0, aTempDiffSurface))
+  , mRandomDistribution(-csRelativeRandomRadius, csRelativeRandomRadius) {
   static Static tempCoeffProfiles;
 
   mHeightLimit = tempCoeffProfiles.mHeightLimit->eval(csTempAmbient + mTempDiffSurface);
@@ -41,13 +42,13 @@ void PolynomialRayBending::initReflection() {
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
     return getReflectionDispDepth(aInclination).mAsphalt ? 1.0 : -1.0;
   }) + csEpsilon;
-  auto increment = (csAlmostHorizontal - mCriticalInclination) / (csInclDepthProfilePointCount - 1u);
+  auto increment = (csAlmostHorizontal - mCriticalInclination) / (csRayTraceCountBending - 1u);
   auto inclination = mCriticalInclination;
-  std::deque<Sample> samplesBend;
-  for(uint32_t i = 0u; i < csInclDepthProfilePointCount; ++i) {
-    auto processed = process(getReflectionDispDepth(inclination));
-    if(!processed.mAsphalt) {
-      add(samplesBend, processed.mCollection);
+  std::deque<Sample> samplesBending;
+  for(uint32_t i = 0u; i < csRayTraceCountBending; ++i) {
+    auto rayPath = toRayPath(getReflectionDispDepth(inclination));
+    if(!rayPath.mAsphalt) {
+      addForward(samplesBending, rayPath.mCollection);
     }
     else {
       throw "Should not hit asphalt in bending region.";
@@ -55,9 +56,21 @@ void PolynomialRayBending::initReflection() {
     inclination += increment;
   }
   mCriticalInclination -= 2.0 * csEpsilon;
+  increment = (mCriticalInclination - csAsphaltRayAngleLimit) / (csRayTraceCountAsphalt - 1u);
+  inclination = csAsphaltRayAngleLimit;
   std::deque<Sample> samplesAsphaltDown;
   std::deque<Sample> samplesAsphaltUp;
-  // TODO sample asphalt hit region and gather these
+  for(uint32_t i = 0u; i < csRayTraceCountAsphalt; ++i) {              // TODO consider uneven distribution.
+    auto rayPath = toRayPath(getReflectionDispDepth(inclination));
+    if(rayPath.mAsphalt) {
+      addForward(samplesAsphaltDown, rayPath.mCollection);
+      addReverse(samplesAsphaltUp, rayPath.mCollection);
+    }
+    else {
+      throw "Should hit asphalt outside bending region.";
+    }
+    inclination += increment;
+  }
   // TODO process samples*
 }
 
@@ -105,7 +118,7 @@ PolynomialRayBending::Gather PolynomialRayBending::getReflectionDispDepth(double
   return result;
 }
 
-PolynomialRayBending::Intermediate PolynomialRayBending::process(Gather const aRaws) {
+PolynomialRayBending::Intermediate PolynomialRayBending::toRayPath(Gather const aRaws) {
   Intermediate result;
   result.mAsphalt = aRaws.mAsphalt;
   if(!aRaws.mAsphalt) {
@@ -145,5 +158,25 @@ PolynomialRayBending::Intermediate PolynomialRayBending::process(Gather const aR
       sumDisp += rawSample.mHorizDisp;
     }
   }
+  return result;
+}
+
+void PolynomialRayBending::addForward(std::deque<Sample> &aCollector, std::vector<Sample> const &aLot) const {
+
+}
+
+void PolynomialRayBending::addReverse(std::deque<Sample> &aCollector, std::vector<Sample> const &aLot) const {
+
+}
+
+std::vector<uint32_t> PolynomialRayBending::getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const {
+  std::vector<uint32_t> result;
+  result.reserve(csSamplePointsOnRay);
+  result.push_back(0u);
+  double step = (aFromCount - 1u) / (csSamplePointsOnRay - 1u);
+  for(uint32_t i = 0u; i < csSamplePointsOnRay - 1u; ++i) {
+    result.push_back(static_cast<uint32_t>(::round((aFromCount - 1u) * step * (i + mRandomDistribution(mRandomEngine)))));
+  }
+  result.push_back(aFromCount - 1u);
   return result;
 }

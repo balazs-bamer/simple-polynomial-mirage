@@ -6,6 +6,7 @@
 #include <functional>
 #include <numeric>
 #include <memory>
+#include <random>
 #include <deque>
 
 
@@ -31,8 +32,13 @@ private:
   static constexpr double   csDelta[csTempProfilePointCount]       = { 1.4,   1.4,   1.5,   1.5,   1.6,   1.6,   1.6,   1.6   };
   static constexpr double   csDeltaFallback                 = 1.2;
 
-  static constexpr uint32_t csInclDepthProfilePointCount    = 197u;
-  static constexpr uint32_t csInclinationProfileDegree      =  17u;
+  static constexpr uint32_t csRayTraceCountAsphalt          = 101u;
+  static constexpr uint32_t csRayTraceCountBending          = 101u;
+  static constexpr uint32_t csPolynomDegreeHeight           =   7u;
+  static constexpr uint32_t csPolynomDegreeDirection        =   7u;
+  static constexpr uint32_t csPolynomDegreeHorizDisp        =   7u;
+  static constexpr uint32_t csSamplePointsOnRay             =  15u;
+  static constexpr double   csRelativeRandomRadius          =   0.25;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
@@ -41,7 +47,7 @@ private:
   static constexpr double   csMinimalHeight                 =   0.001;
   static constexpr double   csAlmostVertical                =   0.01;
   static constexpr double   csAlmostHorizontal              =   (cgPi / 2.0) * 0.9999;
-  static constexpr double   csAsphaltHitSampleAngleLimit    =   (cgPi / 4.0);
+  static constexpr double   csAsphaltRayAngleLimit          =   (cgPi / 4.0);
   static constexpr double   csEpsilon                       =   0.00001;
 
 public: // TODO private when ready
@@ -86,6 +92,9 @@ private:
   double mDelta;
   double mCriticalInclination;
 
+  mutable std::minstd_rand                       mRandomEngine;
+  mutable std::uniform_real_distribution<double> mRandomDistribution;
+
 public:
   PolynomialRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
 
@@ -102,7 +111,10 @@ private:
   Gather getReflectionDispDepth(double const aInclination) const;
 
 public:  // TODO private when ready
-  static Intermediate process(Gather const aRaws);
+  static Intermediate   toRayPath(Gather const aRaws);
+  void                  addForward(std::deque<Sample> &aCollector, std::vector<Sample> const &aLot) const;
+  void                  addReverse(std::deque<Sample> &aCollector, std::vector<Sample> const &aLot) const;
+  std::vector<uint32_t> getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const;
 };
 
 #endif

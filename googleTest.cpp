@@ -156,7 +156,7 @@ TEST(angle2apparentMirrorDepth, temp2height) {
   g.mCollection.emplace_back(0.9, 3.0, 3.0/::sqrt(0.1*0.1+3.0*3.0));
   g.mCollection.emplace_back(0.8, 4.0, 4.0/::sqrt(0.1*0.1+4.0*4.0));
 
-  auto p = PolynomialRayBending::process(g);
+  auto p = PolynomialRayBending::toRayPath(g);
   std::cout << "d = [";
   for(auto i : p) {
     std::cout << i.mHorizDisp << ", ";
