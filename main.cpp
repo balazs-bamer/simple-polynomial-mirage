@@ -2,6 +2,7 @@
 #include "simpleRaytracer.h"
 #include <functional>
 #include <array>
+#include <vector>
 #include <iostream>
 #include <iomanip>
 
@@ -31,11 +32,13 @@ int main(int argc, char **argv) {
   test("tempAtHeight", heights, [&t28](auto aHeight){ return t28.getTempRiseAtHeight(aHeight); });
 */
   PolynomialRayBending::Gather g;
-  g.mAsphalt = true;
+  g.mAsphalt = false;
   g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));
   g.mCollection.emplace_back(0.9, 3.0, 3.0/::sqrt(0.1*0.1+3.0*3.0));
   g.mCollection.emplace_back(0.8, 4.0, 4.0/::sqrt(0.1*0.1+4.0*4.0));
-  auto p = PolynomialRayBending::process(g);
+  g.mCollection.emplace_back(0.75, 0.0, std::nan("1"));
+
+  auto p = PolynomialRayBending::toRayPath(g);
   std::cout << "d = [";
   for(auto i : p.mCollection) {
     std::cout << i.mHorizDisp << ", ";
@@ -49,7 +52,6 @@ int main(int argc, char **argv) {
     std::cout << i.mAngleFromHoriz << ", ";
   }
   std::cout << '\n';
-
   /*
   // TODO parse args
   // Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight)

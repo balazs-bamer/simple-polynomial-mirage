@@ -13,7 +13,7 @@ PolynomialRayBending::Static::Static() {
 
 PolynomialRayBending::PolynomialRayBending(double const aTempDiffSurface)
   : mTempDiffSurface(std::max(0.0, aTempDiffSurface))
-  , mRandomDistribution(-csRelativeRandomRadius, csRelativeRandomRadius) {
+  , mRandomDistribution(-1.0, 1.0) {
   static Static tempCoeffProfiles;
 
   mHeightLimit = tempCoeffProfiles.mHeightLimit->eval(csTempAmbient + mTempDiffSurface);
@@ -39,12 +39,12 @@ double PolynomialRayBending::getRefractionAtTempRise(double const aTempRise) con
 }
 
 void PolynomialRayBending::initReflection() {
-  mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
+/*  mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
     return getReflectionDispDepth(aInclination).mAsphalt ? 1.0 : -1.0;
   }) + csEpsilon;
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csRayTraceCountBending - 1u);
   auto inclination = mCriticalInclination;
-  std::deque<Sample> samplesBending;
+  std::deque<Relation> samplesBending;
   for(uint32_t i = 0u; i < csRayTraceCountBending; ++i) {
     auto rayPath = toRayPath(getReflectionDispDepth(inclination));
     if(!rayPath.mAsphalt) {
@@ -58,8 +58,8 @@ void PolynomialRayBending::initReflection() {
   mCriticalInclination -= 2.0 * csEpsilon;
   increment = (mCriticalInclination - csAsphaltRayAngleLimit) / (csRayTraceCountAsphalt - 1u);
   inclination = csAsphaltRayAngleLimit;
-  std::deque<Sample> samplesAsphaltDown;
-  std::deque<Sample> samplesAsphaltUp;
+  std::deque<Relation> samplesAsphaltDown;
+  std::deque<Relation> samplesAsphaltUp;
   for(uint32_t i = 0u; i < csRayTraceCountAsphalt; ++i) {              // TODO consider uneven distribution.
     auto rayPath = toRayPath(getReflectionDispDepth(inclination));
     if(rayPath.mAsphalt) {
@@ -70,7 +70,7 @@ void PolynomialRayBending::initReflection() {
       throw "Should hit asphalt outside bending region.";
     }
     inclination += increment;
-  }
+  }*/
   // TODO process samples*
 }
 
@@ -161,22 +161,41 @@ PolynomialRayBending::Intermediate PolynomialRayBending::toRayPath(Gather const 
   return result;
 }
 
-void PolynomialRayBending::addForward(std::deque<Sample> &aCollector, std::vector<Sample> const &aLot) const {
-
+void PolynomialRayBending::addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
+  auto indices = getRandomIndices(aLot.size(), csSamplePointsOnRay);
+  for(uint32_t i = 1u; i < aLot.size(); ++i) {
+    for(uint32_t j = 0u; j < i; ++j) {          // j -> i
+      aCollector.emplace_back(aLot[j].mHeight, aLot[j].mAngleFromHoriz, aLot[i].mHorizDisp - aLot[j].mHorizDisp, aLot[i].mHeight, aLot[i].mAngleFromHoriz);
+    }
+  }
 }
 
-void PolynomialRayBending::addReverse(std::deque<Sample> &aCollector, std::vector<Sample> const &aLot) const {
-
+void PolynomialRayBending::addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
+  auto indices = getRandomIndices(aLot.size(), csSamplePointsOnRay);
+  for(uint32_t i = 1u; i < aLot.size(); ++i) {
+    for(uint32_t j = 0u; j < i; ++j) {          // j -> i
+      aCollector.emplace_back(aLot[i].mHeight, aLot[i].mAngleFromHoriz, aLot[i].mHorizDisp - aLot[j].mHorizDisp, aLot[j].mHeight, aLot[j].mAngleFromHoriz);
+    }
+  }
 }
 
 std::vector<uint32_t> PolynomialRayBending::getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const {
   std::vector<uint32_t> result;
-  result.reserve(csSamplePointsOnRay);
-  result.push_back(0u);
-  double step = (aFromCount - 1u) / (csSamplePointsOnRay - 1u);
-  for(uint32_t i = 0u; i < csSamplePointsOnRay - 1u; ++i) {
-    result.push_back(static_cast<uint32_t>(::round((aFromCount - 1u) * step * (i + mRandomDistribution(mRandomEngine)))));
+  auto count = std::min(aFromCount, aChosenCount);
+  result.reserve(count);
+  if(aChosenCount >= aFromCount) {
+     result.resize(count);
+     std::iota(result.begin(), result.end(), 0u);
   }
-  result.push_back(aFromCount - 1u);
+  else {
+    double step = static_cast<double>(aFromCount - 1u) / (aChosenCount - 1u);
+    auto randomRadius = (step * csRelativeRandomRadius > 1.0 ? csRelativeRandomRadius : 0.0 );
+    for(int32_t i = 0; i < aChosenCount; ++i) {
+      auto index = static_cast<int32_t>(::round(step * (i + randomRadius * mRandomDistribution(mRandomEngine))));
+      index = std::max(0, index);
+      index = std::min(index, static_cast<int32_t>(aFromCount - 1));
+      result.push_back(index);
+    }
+  }
   return result;
 }

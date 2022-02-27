@@ -170,6 +170,64 @@ TEST(angle2apparentMirrorDepth, temp2height) {
     std::cout << i.mAngleFromHoriz << ", ";
   }
   std::cout << '\n';
+
+  PolynomialRayBending prb(33);
+  auto p = prb.getRandomIndices(101,15);
+  std::cout << "d = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(23,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(3,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(16,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(17,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(55,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(56,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(57,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(58,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(222,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  p = prb.getRandomIndices(323,15);
+  std::cout << "\nd = [";
+  for(auto i : p) {
+    std::cout << i << ", ";
+  }
+  std::cout << '\n';
  */
 
 int main(int argc, char **argv) {

@@ -67,6 +67,21 @@ public: // TODO private when ready
     Sample(double const aHeight, double const aHorizDisp, double const aAngleFromHoriz) : mHeight(aHeight), mHorizDisp(aHorizDisp), mAngleFromHoriz(aAngleFromHoriz) {}
   };
 
+  // Used to generate Vandermonde matrices and polynomial fit
+  struct Relation final {
+    double mStartHeight;
+    double mStartAngleFromHoriz;
+    double mHorizDisp;
+    double mEndHeight;
+    double mEndAngleFromHoriz;
+    Relation(double const aStartHeight, double const aStartAngleFromHoriz, double const aHorizDisp, double const aEndHeight, double const aEndAngleFromHoriz)
+      : mStartHeight(aStartHeight)
+      , mStartAngleFromHoriz(aStartAngleFromHoriz)
+      , mHorizDisp(aHorizDisp)
+      , mEndHeight(aEndHeight)
+      , mEndAngleFromHoriz(aEndAngleFromHoriz) {}
+  };
+
   struct Gather final {
     bool                  mAsphalt;
     std::deque<RawSample> mCollection;
@@ -112,8 +127,8 @@ private:
 
 public:  // TODO private when ready
   static Intermediate   toRayPath(Gather const aRaws);
-  void                  addForward(std::deque<Sample> &aCollector, std::vector<Sample> const &aLot) const;
-  void                  addReverse(std::deque<Sample> &aCollector, std::vector<Sample> const &aLot) const;
+  void                  addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const;
+  void                  addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const;
   std::vector<uint32_t> getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const;
 };
 
