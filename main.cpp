@@ -19,7 +19,19 @@ void test(char const * const aName, std::vector<double> const& aSamplesX, std::f
 }
 
 int main(int argc, char **argv) {
-/*  PolynomialRayBending t28(28.0);
+  PolynomialRayBending t28(28.0);
+
+  std::vector<double> angles({89.6, 89.65, 89.7, 89.75, 89.8, 89.85, 89.9, 89.95});
+
+  test("height1dist50height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 50).first; });
+  test("height1dist50dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 50).second; });
+  test("height1dist100height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 100).first; });
+  test("height1dist100dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 100).second; });
+  test("height1dist200height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 200).first; });
+  test("height1dist200dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 200).second; });
+  test("height1dist300height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 300).first; });
+  test("height1dist300dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 300).second; });
+  /*
   std::vector<double> heights({0.0005, 0.0007, 0.001, 0.0015, 0.002, 0.0035, 0.005, 0.007, 0.01, 0.02, 0.03, 0.05, 0.07, 0.1, 0.13, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7, 0.8, 0.89});
   std::vector<double> inclinations;
   int const count = 97;
@@ -31,27 +43,6 @@ int main(int argc, char **argv) {
   }
   test("tempAtHeight", heights, [&t28](auto aHeight){ return t28.getTempRiseAtHeight(aHeight); });
 */
-  PolynomialRayBending::Gather g;
-  g.mAsphalt = false;
-  g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));
-  g.mCollection.emplace_back(0.9, 3.0, 3.0/::sqrt(0.1*0.1+3.0*3.0));
-  g.mCollection.emplace_back(0.8, 4.0, 4.0/::sqrt(0.1*0.1+4.0*4.0));
-  g.mCollection.emplace_back(0.75, 0.0, std::nan("1"));
-
-  auto p = PolynomialRayBending::toRayPath(g);
-  std::cout << "d = [";
-  for(auto i : p.mCollection) {
-    std::cout << i.mHorizDisp << ", ";
-  }
-  std::cout << "\nh = [";
-  for(auto i : p.mCollection) {
-    std::cout << i.mHeight << ", ";
-  }
-  std::cout << "\na = [";
-  for(auto i : p.mCollection) {
-    std::cout << i.mAngleFromHoriz << ", ";
-  }
-  std::cout << '\n';
   /*
   // TODO parse args
   // Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight)

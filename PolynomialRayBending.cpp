@@ -4,6 +4,7 @@
 #include <vector>
 #include <cmath>
 
+#include <iostream> // TODO remove
 
 PolynomialRayBending::Static::Static() {
   mHeightLimit = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csHeightLimit, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
@@ -39,14 +40,15 @@ double PolynomialRayBending::getRefractionAtTempRise(double const aTempRise) con
 }
 
 void PolynomialRayBending::initReflection() {
-/*  mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
-    return getReflectionDispDepth(aInclination).mAsphalt ? 1.0 : -1.0;
+  mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
+    return traceHalf(aInclination).mAsphalt ? 1.0 : -1.0;
   }) + csEpsilon;
+std::cout << "ready 1: critical inclination\n";
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csRayTraceCountBending - 1u);
   auto inclination = mCriticalInclination;
   std::deque<Relation> samplesBending;
   for(uint32_t i = 0u; i < csRayTraceCountBending; ++i) {
-    auto rayPath = toRayPath(getReflectionDispDepth(inclination));
+    auto rayPath = toRayPath(traceHalf(inclination));
     if(!rayPath.mAsphalt) {
       addForward(samplesBending, rayPath.mCollection);
     }
@@ -55,13 +57,19 @@ void PolynomialRayBending::initReflection() {
     }
     inclination += increment;
   }
+std::cout << "ready 2: bending trace\n";
+  mPolyBendingHeight         = std::move(toPolynomial(samplesBending, &Relation::mEndHeight));
+std::cout << "ready 3: mPolyBendingHeight\n";
+  mPolyBendingAngleFromHoriz = std::move(toPolynomial(samplesBending, &Relation::mEndAngleFromHoriz));
+std::cout << "ready 4: mPolyBendingAngleFromHoriz\n";
+
   mCriticalInclination -= 2.0 * csEpsilon;
   increment = (mCriticalInclination - csAsphaltRayAngleLimit) / (csRayTraceCountAsphalt - 1u);
   inclination = csAsphaltRayAngleLimit;
   std::deque<Relation> samplesAsphaltDown;
   std::deque<Relation> samplesAsphaltUp;
   for(uint32_t i = 0u; i < csRayTraceCountAsphalt; ++i) {              // TODO consider uneven distribution.
-    auto rayPath = toRayPath(getReflectionDispDepth(inclination));
+    auto rayPath = toRayPath(traceHalf(inclination));
     if(rayPath.mAsphalt) {
       addForward(samplesAsphaltDown, rayPath.mCollection);
       addReverse(samplesAsphaltUp, rayPath.mCollection);
@@ -70,11 +78,19 @@ void PolynomialRayBending::initReflection() {
       throw "Should hit asphalt outside bending region.";
     }
     inclination += increment;
-  }*/
-  // TODO process samples*
+  }
+std::cout << "ready 5: asphalt trace\n";
+  mPolyAsphaltDownHeight         = std::move(toPolynomial(samplesAsphaltDown, &Relation::mEndHeight));
+std::cout << "ready 6: mPolyAsphaltDownHeight\n";
+  mPolyAsphaltDownAngleFromHoriz = std::move(toPolynomial(samplesAsphaltDown, &Relation::mEndAngleFromHoriz));
+std::cout << "ready 7: mPolyAsphaltDownAngleFromHoriz\n";
+  mPolyAsphaltUpHeight           = std::move(toPolynomial(samplesAsphaltUp,   &Relation::mEndHeight));
+std::cout << "ready 8: mPolyAsphaltUpHeight\n";
+  mPolyAsphaltUpAngleFromHoriz   = std::move(toPolynomial(samplesAsphaltUp,   &Relation::mEndAngleFromHoriz));
+std::cout << "ready 9: mPolyAsphaltUpAngleFromHoriz\n";
 }
 
-PolynomialRayBending::Gather PolynomialRayBending::getReflectionDispDepth(double const aInclination0) const {
+PolynomialRayBending::Gather PolynomialRayBending::traceHalf(double const aInclination0) const {
   double currentHeight = csInitialHeight;
   double currentTemp = getTempRiseAtHeight(currentHeight);
   double currentRefractionIndex = getRefractionAtTempRise(currentTemp);
@@ -163,18 +179,22 @@ PolynomialRayBending::Intermediate PolynomialRayBending::toRayPath(Gather const 
 
 void PolynomialRayBending::addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
   auto indices = getRandomIndices(aLot.size(), csSamplePointsOnRay);
-  for(uint32_t i = 1u; i < aLot.size(); ++i) {
+  for(uint32_t i = 1u; i < indices.size(); ++i) {
     for(uint32_t j = 0u; j < i; ++j) {          // j -> i
-      aCollector.emplace_back(aLot[j].mHeight, aLot[j].mAngleFromHoriz, aLot[i].mHorizDisp - aLot[j].mHorizDisp, aLot[i].mHeight, aLot[i].mAngleFromHoriz);
+      auto from = indices[j];
+      auto to = indices[i];
+      aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[to].mHorizDisp - aLot[from].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
     }
   }
 }
 
 void PolynomialRayBending::addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
   auto indices = getRandomIndices(aLot.size(), csSamplePointsOnRay);
-  for(uint32_t i = 1u; i < aLot.size(); ++i) {
+  for(uint32_t i = 1u; i < indices.size(); ++i) {
     for(uint32_t j = 0u; j < i; ++j) {          // j -> i
-      aCollector.emplace_back(aLot[i].mHeight, aLot[i].mAngleFromHoriz, aLot[i].mHorizDisp - aLot[j].mHorizDisp, aLot[j].mHeight, aLot[j].mAngleFromHoriz);
+      auto to = indices[j];
+      auto from = indices[i];
+      aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[from].mHorizDisp - aLot[to].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
     }
   }
 }
@@ -198,4 +218,22 @@ std::vector<uint32_t> PolynomialRayBending::getRandomIndices(uint32_t const aFro
     }
   }
   return result;
+}
+
+std::unique_ptr<PolynomApprox> PolynomialRayBending::toPolynomial(std::deque<Relation> &aData, double Relation::* const aMember) {
+  std::vector<double> heights;
+  std::vector<double> directions;
+  std::vector<double> horizDisps;
+  std::vector<double> outputs;
+  heights.reserve(aData.size());
+  directions.reserve(aData.size());
+  horizDisps.reserve(aData.size());
+  outputs.reserve(aData.size());
+  for(auto relation : aData) {
+    heights.push_back(relation.mStartHeight);
+    directions.push_back(relation.mStartAngleFromHoriz);
+    horizDisps.push_back(relation.mHorizDisp);
+    outputs.push_back(relation.*aMember);
+  }
+  return std::make_unique<PolynomApprox>(outputs, std::initializer_list<PolynomApprox::Var>{{heights.data(), csPolynomDegreeHeight}, {directions.data(), csPolynomDegreeDirection}, {horizDisps.data(), csPolynomDegreeHorizDisp}});
 }
