@@ -39,6 +39,13 @@ double PolynomialRayBending::getRefractionAtTempRise(double const aTempRise) con
   return r;
 }
 
+double gCount;
+double gFromHeigth;
+double gFromDir;
+double gDisp;
+double gToHeight;
+double gToDir;
+
 void PolynomialRayBending::initReflection() {
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
     return traceHalf(aInclination).mAsphalt ? 1.0 : -1.0;
@@ -47,6 +54,7 @@ std::cout << "ready 1: critical inclination\n";
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csRayTraceCountBending - 1u);
   auto inclination = mCriticalInclination;
   std::deque<Relation> samplesBending;
+gCount = gFromHeigth = gFromDir = gDisp = gToHeight = gToDir = 0;
   for(uint32_t i = 0u; i < csRayTraceCountBending; ++i) {
     auto rayPath = toRayPath(traceHalf(inclination));
     if(!rayPath.mAsphalt) {
@@ -58,6 +66,7 @@ std::cout << "ready 1: critical inclination\n";
     inclination += increment;
   }
 std::cout << "ready 2: bending trace\n";
+std::cout << csPolynomDegreeHeight << " raw fh: " << gFromHeigth / gCount << " fd: " << gFromDir / gCount << " d: " << gDisp / gCount << " th: " << gToHeight / gCount<< " td: " << gToDir / gCount << '\n';
   mPolyBendingHeight         = std::move(toPolynomial(samplesBending, &Relation::mEndHeight));
 std::cout << "ready 3: mPolyBendingHeight\n";
   mPolyBendingAngleFromHoriz = std::move(toPolynomial(samplesBending, &Relation::mEndAngleFromHoriz));
@@ -184,6 +193,12 @@ void PolynomialRayBending::addForward(std::deque<Relation> &aCollector, std::vec
       auto from = indices[j];
       auto to = indices[i];
       aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[to].mHorizDisp - aLot[from].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
+gFromHeigth += aLot[from].mHeight;
+gFromDir += aLot[from].mAngleFromHoriz;
+gDisp += aLot[to].mHorizDisp - aLot[from].mHorizDisp;
+gToHeight += aLot[to].mHeight;
+gToDir += aLot[to].mAngleFromHoriz;
+++gCount;
     }
   }
 }
