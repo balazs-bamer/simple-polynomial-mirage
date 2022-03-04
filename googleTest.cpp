@@ -2,7 +2,7 @@
 #include "gtest/gtest.h"
 
 
-constexpr float cgEpsilon = 0.0001f;
+constexpr double cgEpsilon = 0.0001f;
 
 bool eq(double const aF1, double const aF2, double const aEpsilon) {
   return ::abs(aF1 - aF2) < aEpsilon;
