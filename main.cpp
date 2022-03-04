@@ -30,70 +30,97 @@ void test(char const * const aName, std::vector<double> const& aSamplesX, std::f
 
 int main(int argc, char **argv) {
 
-  std::vector<double> xs, ys, zs;
-  double const deltay = 0.25;
-  double const deltax = 50;
-  double const r2    = 25.0;
+  std::vector<double> xs, ys, zs, as;
+  double const deltaX = 50;
+  double const deltaY = 0.25;
+  double const deltaZ = 0.125;
+  double const minX = -800.0;
+  double const midX =  200.0;
+  double const maxX = 1200.0;
+  double const minY = -8.0;
+  double const midY = -3.0;
+  double const maxY = 2.0;
+  double const minZ = -5.0;
+  double const maxZ = 5.0;
+  double const r    = 5.0;
+  double const r2    = r * r;
+  double const zSlice = -2.0;
   std::cout << "tx = [";
-  for(double x = -800; x < 1190; x += deltax) {
+  for(double x = minX; x < maxX - cgEpsilon; x += deltaX) {
     std::cout << x << ", ";
   }
-  std::cout << "1200]';\n";
+  std::cout << maxX << "]';\n";
   std::cout << "ty = [";
-  for(double x = -8.0; x < 1.9; x += deltay) {
+  for(double x = minY; x < maxY - cgEpsilon; x += deltaY) {
     std::cout << x << ", ";
   }
-  std::cout << "2]';\n";
+  std::cout << maxY << "]';\n";
+  std::cout << "tz = [";
+  for(double x = minZ; x < maxZ - cgEpsilon; x += deltaZ) {
+    std::cout << x << ", ";
+  }
+  std::cout << maxZ << "]';\n";
   std::cout << "ref = [";
-  for(double x = -800; x < 1210; x += deltax) {
-    for(double y = -8.0; y < 2.1; y += deltay) {
-      double ex = (x - 200) / 200;
-      double ey = y + 3;
-      double e = ::exp(ex / 10.0 + ey / 10.0) * 2.0;
-      ex *= ex; ey *= ey;
-      double z;
-      if(ex + ey < r2) {
-        z = ::sqrt(r2 - ex - ey) + e;
-        xs.push_back(x);
-        ys.push_back(y);
-        zs.push_back(z);
+  for(double x = minX; x < maxX + cgEpsilon; x += deltaX) {
+    for(double y = minY; y < maxY + cgEpsilon; y += deltaY) {
+      for(double z = minZ; z < maxZ + cgEpsilon; z += deltaZ) {
+        double ex = (x - midX) / 200;
+        double ey = y - midY;
+        double e = ::exp(ex / 10.0 - ey / 10.0 + z / 10.0);
+        ex *= ex; ey *= ey;
+        double ez = z * z;
+        double a;
+        if(ex + ey + ez <= r2) {
+          a = ::sqrt(r2 - ex - ey - ez) + e;
+          xs.push_back(x);
+          ys.push_back(y);
+          zs.push_back(z);
+          as.push_back(a);
+        }
+        else a = 0.0;
+        if(eq(z, zSlice)) {
+          std::cout << a;
+          if(eq(y, maxY)) {
+            if(eq(x, maxX))
+              std::cout << "];\n";
+            else
+              std::cout << ";\n";
+          }
+          else
+            std::cout << ',';
+        }
       }
-      else z = 0.0;
-      std::cout << z;
-      if(eq(y, 2)) {
-        if(eq(x, 1200))
-          std::cout << "];\n";
-        else
-          std::cout << ";\n";
-      }
-      else
-        std::cout << ',';
     }
   }
 
-  PolynomApprox poly(zs, {{xs.data(), 5u}, {ys.data(), 5u}});
+  PolynomApprox poly(as, {{xs.data(), 2u}, {ys.data(), 2u}, {zs.data(), 2u}});
   std::cout << "err = " << poly.getRrmsError() << "\n";
   std::cout << "ev = [";
-  for(double x = -800; x < 1210; x += deltax) {
-    for(double y = -8.0; y < 2.1; y += deltay) {
-      double ex = (x - 200) / 200;
-      double ey = y + 3;
-      double e = ::exp(ex / 10.0 + ey / 10.0) * 2.0;
-      ex *= ex; ey *= ey;
-      double z;
-      if(ex + ey < r2) {
-        z = ::sqrt(r2 - ex - ey) + e - poly.eval(std::initializer_list<double>{x ,y});
+  for(double x = minX; x < maxX + cgEpsilon; x += deltaX) {
+    for(double y = minY; y < maxY + cgEpsilon; y += deltaY) {
+      for(double z = minZ; z < maxZ + cgEpsilon; z += deltaZ) {
+        double ex = (x - midX) / 200;
+        double ey = y - midY;
+        double e = ::exp(ex / 10.0 - ey / 10.0 + z / 10.0);
+        ex *= ex; ey *= ey;
+        double ez = z * z;
+        double a;
+        if(ex + ey + ez <= r2) {
+          a = ::sqrt(r2 - ex - ey - ez) + e - poly.eval(std::initializer_list<double>{x, y, z});
+        }
+        else a = 0.0;
+        if(eq(z, zSlice)) {
+          std::cout << a;
+          if(eq(y, maxY)) {
+            if(eq(x, maxX))
+               std::cout << "];\n";
+            else
+              std::cout << ";\n";
+          }
+          else
+            std::cout << ',';
+        }
       }
-      else z = 0.0;
-      std::cout << z;
-      if(eq(y, 2)) {
-        if(eq(x, 1200))
-          std::cout << "];\n";
-        else
-          std::cout << ";\n";
-      }
-      else
-        std::cout << ',';
     }
   }
 
