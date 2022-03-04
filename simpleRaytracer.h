@@ -1,7 +1,7 @@
 #ifndef SIMPLERAYTRACER_H
 #define SIMPLERAYTRACER_H
 
-#include "PolynomialRayBending.h"
+#include "ShepardRayBending.h"
 #include "3dGeomUtil.h"
 #include <png++/png.hpp>
 
@@ -24,7 +24,7 @@ public:
 
 class Medium final {
 private:
-  PolynomialRayBending mHotPlate;
+  ShepardRayBending mHotPlate;
   Object const&        mObject;
 
 public:

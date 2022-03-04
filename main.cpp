@@ -1,4 +1,4 @@
-#include "PolynomialRayBending.h"
+#include "ShepardRayBending.h"
 #include "simpleRaytracer.h"
 #include <functional>
 #include <array>
@@ -19,7 +19,7 @@ void test(char const * const aName, std::vector<double> const& aSamplesX, std::f
 }
 
 int main(int argc, char **argv) {
-  PolynomialRayBending t28(28.0);
+  ShepardRayBending t28(28.0);
 
   std::vector<double> angles({89.6, 89.65, 89.7, 89.75, 89.8, 89.85, 89.9, 89.95});
 

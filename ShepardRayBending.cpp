@@ -1,4 +1,4 @@
-#include "PolynomialRayBending.h"
+#include "ShepardRayBending.h"
 
 #include <functional>
 #include <vector>
@@ -6,13 +6,13 @@
 
 #include <iostream> // TODO remove
 
-PolynomialRayBending::Static::Static() {
+ShepardRayBending::Static::Static() {
   mHeightLimit = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csHeightLimit, std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
   mB           = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csB,           std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
   mDelta       = std::move(std::make_unique<PolynomApprox>(csTempProfilePointCount, csDelta,       std::initializer_list<PolynomApprox::Var>{PolynomApprox::Var{csTplate, csTempProfileDegree}}));
 }
 
-PolynomialRayBending::PolynomialRayBending(double const aTempDiffSurface)
+ShepardRayBending::ShepardRayBending(double const aTempDiffSurface)
   : mTempDiffSurface(std::max(0.0, aTempDiffSurface))
   , mRandomDistribution(-1.0, 1.0) {
   static Static tempCoeffProfiles;
@@ -23,16 +23,16 @@ PolynomialRayBending::PolynomialRayBending(double const aTempDiffSurface)
   initReflection();
 }
 
-double PolynomialRayBending::getTempRiseAtHeight(double const aHeight) const {
+double ShepardRayBending::getTempRiseAtHeight(double const aHeight) const {
   auto height = 100.0 * aHeight;
   return csTempAmbient * ::exp(mB * ::pow(height, 1.0 - mDelta)) - csTempAmbient;  // Here I neglect the difference between mDelta and csDeltaFallback, because this result will only be used indirectly.
 }
 
-double PolynomialRayBending::getHeightAtTempRise(double const aTempRise) const {
+double ShepardRayBending::getHeightAtTempRise(double const aTempRise) const {
   return ::exp(::log(::log((aTempRise + csTempAmbient) / csTempAmbient) / mB) / (1.0 - mDelta)) / 100.0;  // Here I neglect the difference between mDelta and csDeltaFallback, because this result will only be used indirectly.
 }
 
-double PolynomialRayBending::getRefractionAtTempRise(double const aTempRise) const {
+double ShepardRayBending::getRefractionAtTempRise(double const aTempRise) const {
   auto tempKelvin = csTempAmbient + aTempRise;
   auto tempCelsius = tempKelvin - csCelsius2kelvin;
   auto r = 1.0 + 7.86e-4 * csAtmosphericPressureKpa / tempKelvin - 1.5e-11 * csRelativeHumidityPercent * (tempCelsius * tempCelsius + 160.0);
@@ -46,7 +46,7 @@ double gDisp;
 double gToHeight;
 double gToDir;
 
-void PolynomialRayBending::initReflection() {
+void ShepardRayBending::initReflection() {
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
     return traceHalf(aInclination).mAsphalt ? 1.0 : -1.0;
   }) + csEpsilon;
@@ -67,9 +67,9 @@ gCount = gFromHeigth = gFromDir = gDisp = gToHeight = gToDir = 0;
   }
 std::cout << "ready 2: bending trace\n";
 std::cout << csPolynomDegreeHeight << " raw fh: " << gFromHeigth / gCount << " fd: " << gFromDir / gCount << " d: " << gDisp / gCount << " th: " << gToHeight / gCount<< " td: " << gToDir / gCount << '\n';
-  mPolyBendingHeight         = std::move(toPolynomial(samplesBending, &Relation::mEndHeight));
+  mPolyBendingHeight         = std::move(toShepard(samplesBending, &Relation::mEndHeight));
 std::cout << "ready 3: mPolyBendingHeight\n";
-  mPolyBendingAngleFromHoriz = std::move(toPolynomial(samplesBending, &Relation::mEndAngleFromHoriz));
+  mPolyBendingAngleFromHoriz = std::move(toShepard(samplesBending, &Relation::mEndAngleFromHoriz));
 std::cout << "ready 4: mPolyBendingAngleFromHoriz\n";
 
   mCriticalInclination -= 2.0 * csEpsilon;
@@ -89,17 +89,17 @@ std::cout << "ready 4: mPolyBendingAngleFromHoriz\n";
     inclination += increment;
   }
 std::cout << "ready 5: asphalt trace\n";
-  mPolyAsphaltDownHeight         = std::move(toPolynomial(samplesAsphaltDown, &Relation::mEndHeight));
+  mPolyAsphaltDownHeight         = std::move(toShepard(samplesAsphaltDown, &Relation::mEndHeight));
 std::cout << "ready 6: mPolyAsphaltDownHeight\n";
-  mPolyAsphaltDownAngleFromHoriz = std::move(toPolynomial(samplesAsphaltDown, &Relation::mEndAngleFromHoriz));
+  mPolyAsphaltDownAngleFromHoriz = std::move(toShepard(samplesAsphaltDown, &Relation::mEndAngleFromHoriz));
 std::cout << "ready 7: mPolyAsphaltDownAngleFromHoriz\n";
-  mPolyAsphaltUpHeight           = std::move(toPolynomial(samplesAsphaltUp,   &Relation::mEndHeight));
+  mPolyAsphaltUpHeight           = std::move(toShepard(samplesAsphaltUp,   &Relation::mEndHeight));
 std::cout << "ready 8: mPolyAsphaltUpHeight\n";
-  mPolyAsphaltUpAngleFromHoriz   = std::move(toPolynomial(samplesAsphaltUp,   &Relation::mEndAngleFromHoriz));
+  mPolyAsphaltUpAngleFromHoriz   = std::move(toShepard(samplesAsphaltUp,   &Relation::mEndAngleFromHoriz));
 std::cout << "ready 9: mPolyAsphaltUpAngleFromHoriz\n";
 }
 
-PolynomialRayBending::Gather PolynomialRayBending::traceHalf(double const aInclination0) const {
+ShepardRayBending::Gather ShepardRayBending::traceHalf(double const aInclination0) const {
   double currentHeight = csInitialHeight;
   double currentTemp = getTempRiseAtHeight(currentHeight);
   double currentRefractionIndex = getRefractionAtTempRise(currentTemp);
@@ -143,7 +143,7 @@ PolynomialRayBending::Gather PolynomialRayBending::traceHalf(double const aIncli
   return result;
 }
 
-PolynomialRayBending::Intermediate PolynomialRayBending::toRayPath(Gather const aRaws) {
+ShepardRayBending::Intermediate ShepardRayBending::toRayPath(Gather const aRaws) {
   Intermediate result;
   result.mAsphalt = aRaws.mAsphalt;
   if(!aRaws.mAsphalt) {
@@ -186,7 +186,7 @@ PolynomialRayBending::Intermediate PolynomialRayBending::toRayPath(Gather const 
   return result;
 }
 
-void PolynomialRayBending::addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
+void ShepardRayBending::addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
   auto indices = getRandomIndices(aLot.size(), csSamplePointsOnRay);
   for(uint32_t i = 1u; i < indices.size(); ++i) {
     for(uint32_t j = 0u; j < i; ++j) {          // j -> i
@@ -203,7 +203,7 @@ gToDir += aLot[to].mAngleFromHoriz;
   }
 }
 
-void PolynomialRayBending::addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
+void ShepardRayBending::addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
   auto indices = getRandomIndices(aLot.size(), csSamplePointsOnRay);
   for(uint32_t i = 1u; i < indices.size(); ++i) {
     for(uint32_t j = 0u; j < i; ++j) {          // j -> i
@@ -214,7 +214,7 @@ void PolynomialRayBending::addReverse(std::deque<Relation> &aCollector, std::vec
   }
 }
 
-std::vector<uint32_t> PolynomialRayBending::getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const {
+std::vector<uint32_t> ShepardRayBending::getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const {
   std::vector<uint32_t> result;
   auto count = std::min(aFromCount, aChosenCount);
   result.reserve(count);
@@ -235,7 +235,7 @@ std::vector<uint32_t> PolynomialRayBending::getRandomIndices(uint32_t const aFro
   return result;
 }
 
-std::unique_ptr<PolynomApprox> PolynomialRayBending::toPolynomial(std::deque<Relation> &aData, double Relation::* const aMember) {
+std::unique_ptr<PolynomApprox> ShepardRayBending::toShepard(std::deque<Relation> &aData, double Relation::* const aMember) {
   std::vector<double> heights;
   std::vector<double> directions;
   std::vector<double> horizDisps;

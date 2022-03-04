@@ -1,4 +1,4 @@
-#include "PolynomialRayBending.h"
+#include "ShepardRayBending.h"
 #include "gtest/gtest.h"
 
 
@@ -119,7 +119,7 @@ TEST(polynomApprox, 10y_x_x2__x3_xy) {
 }
 
 TEST(angle2apparentMirrorDepth, height2temp) {
-  PolynomialRayBending mirage(28);
+  ShepardRayBending mirage(28);
   EXPECT_TRUE(eq(1.0, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(1.0))));
   EXPECT_TRUE(eq(0.5, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.5))));
   EXPECT_TRUE(eq(0.1, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.1))));
@@ -129,7 +129,7 @@ TEST(angle2apparentMirrorDepth, height2temp) {
 }
 
 TEST(angle2apparentMirrorDepth, temp2height) {
-  PolynomialRayBending mirage(28);
+  ShepardRayBending mirage(28);
   EXPECT_TRUE(eq(0.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(0.0))));
   EXPECT_TRUE(eq(8.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(8.0))));
   EXPECT_TRUE(eq(16.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(16.0))));
@@ -138,25 +138,25 @@ TEST(angle2apparentMirrorDepth, temp2height) {
 
 /* TODO test
 
-  PolynomialRayBending::Gather g;
+  ShepardRayBending::Gather g;
   g.mAsphalt = false;
   g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));
   g.mCollection.emplace_back(0.9, 3.0, 3.0/::sqrt(0.1*0.1+3.0*3.0));
   g.mCollection.emplace_back(0.8, 4.0, 4.0/::sqrt(0.1*0.1+4.0*4.0));
   g.mCollection.emplace_back(0.75, 0.0, std::nan("1"));
 
-  PolynomialRayBending::Gather g;
+  ShepardRayBending::Gather g;
   g.mAsphalt = false;
   g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));
   g.mCollection.emplace_back(0.9, 0.0, std::nan("1"));
 
-  PolynomialRayBending::Gather g;
+  ShepardRayBending::Gather g;
   g.mAsphalt = true;
   g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));
   g.mCollection.emplace_back(0.9, 3.0, 3.0/::sqrt(0.1*0.1+3.0*3.0));
   g.mCollection.emplace_back(0.8, 4.0, 4.0/::sqrt(0.1*0.1+4.0*4.0));
 
-  auto p = PolynomialRayBending::toRayPath(g);
+  auto p = ShepardRayBending::toRayPath(g);
   std::cout << "d = [";
   for(auto i : p) {
     std::cout << i.mHorizDisp << ", ";
@@ -171,7 +171,7 @@ TEST(angle2apparentMirrorDepth, temp2height) {
   }
   std::cout << '\n';
 
-  PolynomialRayBending prb(33);
+  ShepardRayBending prb(33);
   auto p = prb.getRandomIndices(101,15);
   std::cout << "d = [";
   for(auto i : p) {

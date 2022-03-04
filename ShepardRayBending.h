@@ -1,6 +1,7 @@
-#ifndef POLYNOMIALRAYBENDING
-#define POLYNOMIALRAYBENDING
+#ifndef SHEPARDRAYBENDING
+#define SHEPARDRAYBENDING
 
+#include "ShepardInterpolation.h"
 #include "3dGeomUtil.h"
 #include "mathUtil.h"
 #include <functional>
@@ -11,7 +12,7 @@
 
 
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
-class PolynomialRayBending final {
+class ShepardRayBending final {
 public:
   struct DispDepth {
     double   mDisp;
@@ -122,7 +123,7 @@ private:
   std::unique_ptr<PolynomApprox>                 mPolyAsphaltUpAngleFromHoriz;
 
 public:
-  PolynomialRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
+  ShepardRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
 
   static double getWorkingHeight()                                   { return csInitialHeight; }
   static double getAmbientTemp()    /* Kelvin */                     { return csTempAmbient; }
@@ -146,7 +147,7 @@ public:  // TODO private when ready
   void                                  addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const;
   void                                  addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const;
   std::vector<uint32_t>                 getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const;
-  static std::unique_ptr<PolynomApprox> toPolynomial(std::deque<Relation> &aData, double Relation::* const aMember);
+  static std::unique_ptr<PolynomApprox> toShepard(std::deque<Relation> &aData, double Relation::* const aMember);
 };
 
 #endif
