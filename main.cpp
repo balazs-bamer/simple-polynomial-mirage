@@ -32,22 +32,22 @@ int main(int argc, char **argv) {
 
   std::vector<double> xs, ys, zs;
   double const deltay = 0.25;
-  double const deltax = 0.5;
+  double const deltax = 50;
   double const r2    = 25.0;
   std::cout << "tx = [";
-  for(double x = -8.0; x < 11.9; x += deltax) {
+  for(double x = -800; x < 1190; x += deltax) {
     std::cout << x << ", ";
   }
-  std::cout << "12]';\n";
+  std::cout << "1200]';\n";
   std::cout << "ty = [";
   for(double x = -8.0; x < 1.9; x += deltay) {
     std::cout << x << ", ";
   }
   std::cout << "2]';\n";
   std::cout << "ref = [";
-  for(double x = -8.0; x < 12.1; x += deltax) {
+  for(double x = -800; x < 1210; x += deltax) {
     for(double y = -8.0; y < 2.1; y += deltay) {
-      double ex = (x - 2.0) / 2.0;
+      double ex = (x - 200) / 200;
       double ey = y + 3;
       double e = ::exp(ex / 10.0 + ey / 10.0) * 2.0;
       ex *= ex; ey *= ey;
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
       else z = 0.0;
       std::cout << z;
       if(eq(y, 2)) {
-        if(eq(x, 12))
+        if(eq(x, 1200))
           std::cout << "];\n";
         else
           std::cout << ";\n";
@@ -74,9 +74,9 @@ int main(int argc, char **argv) {
   PolynomApprox poly(zs, {{xs.data(), 5u}, {ys.data(), 5u}});
   std::cout << "err = " << poly.getRrmsError() << "\n";
   std::cout << "ev = [";
-  for(double x = -8.0; x < 12.1; x += deltax) {
+  for(double x = -800; x < 1210; x += deltax) {
     for(double y = -8.0; y < 2.1; y += deltay) {
-      double ex = (x - 2.0) / 2.0;
+      double ex = (x - 200) / 200;
       double ey = y + 3;
       double e = ::exp(ex / 10.0 + ey / 10.0) * 2.0;
       ex *= ex; ey *= ey;
@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
       else z = 0.0;
       std::cout << z;
       if(eq(y, 2)) {
-        if(eq(x, 12))
+        if(eq(x, 1200))
           std::cout << "];\n";
         else
           std::cout << ";\n";
