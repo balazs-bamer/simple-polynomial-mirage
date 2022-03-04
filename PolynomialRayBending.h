@@ -32,12 +32,12 @@ private:
   static constexpr double   csDelta[csTempProfilePointCount]       = { 1.4,   1.4,   1.5,   1.5,   1.6,   1.6,   1.6,   1.6   };
   static constexpr double   csDeltaFallback                 = 1.2;
 
-  static constexpr uint32_t csRayTraceCountAsphalt          = 101u;
-  static constexpr uint32_t csRayTraceCountBending          = 101u;
-  static constexpr uint32_t csPolynomDegreeHeight           =   5u;  // Perhaps 11 not too slow
-  static constexpr uint32_t csPolynomDegreeDirection        =   5u;
-  static constexpr uint32_t csPolynomDegreeHorizDisp        =   5u;
-  static constexpr uint32_t csSamplePointsOnRay             =  23u;  // Perhaps 31 not too slow, now 4 mins by me.
+  static constexpr uint32_t csRayTraceCountAsphalt          = 197u;
+  static constexpr uint32_t csRayTraceCountBending          = 197u;
+  static constexpr uint32_t csPolynomDegreeHeight           =   2u;
+  static constexpr uint32_t csPolynomDegreeDirection        =   2u;
+  static constexpr uint32_t csPolynomDegreeHorizDisp        =   2u;
+  static constexpr uint32_t csSamplePointsOnRay             =  31u;
   static constexpr double   csRelativeRandomRadius          =   0.25;
 
   // TODO first height points are definitely wrong:

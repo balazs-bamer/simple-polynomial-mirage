@@ -68,8 +68,10 @@ gCount = gFromHeigth = gFromDir = gDisp = gToHeight = gToDir = 0;
 std::cout << "ready 2: bending trace\n";
 std::cout << csPolynomDegreeHeight << " raw fh: " << gFromHeigth / gCount << " fd: " << gFromDir / gCount << " d: " << gDisp / gCount << " th: " << gToHeight / gCount<< " td: " << gToDir / gCount << '\n';
   mPolyBendingHeight         = std::move(toPolynomial(samplesBending, &Relation::mEndHeight));
+std::cout << mPolyBendingHeight->getRrmsError() << '\n';
 std::cout << "ready 3: mPolyBendingHeight\n";
   mPolyBendingAngleFromHoriz = std::move(toPolynomial(samplesBending, &Relation::mEndAngleFromHoriz));
+std::cout << mPolyBendingAngleFromHoriz->getRrmsError() << '\n';
 std::cout << "ready 4: mPolyBendingAngleFromHoriz\n";
 
   mCriticalInclination -= 2.0 * csEpsilon;
