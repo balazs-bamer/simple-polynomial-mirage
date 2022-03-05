@@ -39,12 +39,6 @@ double ShepardRayBending::getRefractionAtTempRise(double const aTempRise) const 
   return r;
 }
 
-double gCount;
-double gFromHeigth;
-double gFromDir;
-double gDisp;
-double gToHeight;
-double gToDir;
 
 void ShepardRayBending::initReflection() {
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
@@ -54,7 +48,6 @@ std::cout << "ready 1: critical inclination\n";
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csRayTraceCountBending - 1u);
   auto inclination = mCriticalInclination;
   std::deque<Relation> samplesBending;
-gCount = gFromHeigth = gFromDir = gDisp = gToHeight = gToDir = 0;
   for(uint32_t i = 0u; i < csRayTraceCountBending; ++i) {
     auto rayPath = toRayPath(traceHalf(inclination));
     if(!rayPath.mAsphalt) {
@@ -66,7 +59,6 @@ gCount = gFromHeigth = gFromDir = gDisp = gToHeight = gToDir = 0;
     inclination += increment;
   }
 std::cout << "ready 2: bending trace\n";
-std::cout << csPolynomDegreeHeight << " raw fh: " << gFromHeigth / gCount << " fd: " << gFromDir / gCount << " d: " << gDisp / gCount << " th: " << gToHeight / gCount<< " td: " << gToDir / gCount << '\n';
   mPolyBendingHeight         = std::move(toShepard(samplesBending, &Relation::mEndHeight));
 std::cout << "ready 3: mPolyBendingHeight\n";
   mPolyBendingAngleFromHoriz = std::move(toShepard(samplesBending, &Relation::mEndAngleFromHoriz));
@@ -193,12 +185,6 @@ void ShepardRayBending::addForward(std::deque<Relation> &aCollector, std::vector
       auto from = indices[j];
       auto to = indices[i];
       aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[to].mHorizDisp - aLot[from].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
-gFromHeigth += aLot[from].mHeight;
-gFromDir += aLot[from].mAngleFromHoriz;
-gDisp += aLot[to].mHorizDisp - aLot[from].mHorizDisp;
-gToHeight += aLot[to].mHeight;
-gToDir += aLot[to].mAngleFromHoriz;
-++gCount;
     }
   }
 }
