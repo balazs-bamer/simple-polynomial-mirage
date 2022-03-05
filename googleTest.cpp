@@ -1,5 +1,6 @@
 #include "ShepardRayBending.h"
 #include "gtest/gtest.h"
+#include <random>
 
 
 constexpr float cgEpsilon = 0.0001f;
@@ -118,7 +119,14 @@ TEST(polynomApprox, 10y_x_x2__x3_xy) {
   EXPECT_TRUE(eq(poly.getRrmsError(), 0.0f));
 }
 
-TEST(angle2apparentMirrorDepth, height2temp) {
+TEST(shepardInterpolation, level0_dim1_data0) {
+  using ShepIntpol = ShepardInterpolation<float, 1u, int, 4>;
+  std::vector<ShepIntpol::Data> data;
+  ShepIntpol shep(data, 3u);
+  EXPECT_TRUE(shep.getTargetLevel() == 0u);
+}
+
+/*TEST(angle2apparentMirrorDepth, height2temp) {
   ShepardRayBending mirage(28);
   EXPECT_TRUE(eq(1.0, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(1.0))));
   EXPECT_TRUE(eq(0.5, mirage.getHeightAtTempRise(mirage.getTempRiseAtHeight(0.5))));
@@ -134,7 +142,7 @@ TEST(angle2apparentMirrorDepth, temp2height) {
   EXPECT_TRUE(eq(8.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(8.0))));
   EXPECT_TRUE(eq(16.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(16.0))));
   EXPECT_TRUE(eq(24.0, mirage.getTempRiseAtHeight(mirage.getHeightAtTempRise(24.0))));
-}
+}*/
 
 /* TODO test
 
