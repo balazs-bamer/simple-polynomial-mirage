@@ -123,7 +123,26 @@ TEST(shepardInterpolation, level0_dim1_data0) {
   using ShepIntpol = ShepardInterpolation<float, 1u, int, 4>;
   std::vector<ShepIntpol::Data> data;
   ShepIntpol shep(data, 3u);
-  EXPECT_TRUE(shep.getTargetLevel() == 0u);
+  EXPECT_TRUE(shep.getTargetLevel() == std::numeric_limits<uint32_t>::max());
+  EXPECT_TRUE(shep.getLevelCount() == 1u);
+  EXPECT_TRUE(shep.getNodeCount(0u) == 1u);
+  EXPECT_TRUE(shep.getItemCount(0u) == 0u);
+}
+
+TEST(shepardInterpolation, level0_dim1_data0) {
+  using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 4>;
+  std::vector<ShepIntpol::Data> data;
+  for(uint32_t i = 0u; i < 10u; ++i) {
+    Data item;
+    item.mLocation[0] = ::pow(1.0 / 3.0, i);
+    item.mPayload = i;
+    data.push_back(item);
+  }
+  ShepIntpol shep(data, 3u);
+  EXPECT_TRUE(shep.getTargetLevel() == std::numeric_limits<uint32_t>::max());
+  EXPECT_TRUE(shep.getLevelCount() == 1u);
+  EXPECT_TRUE(shep.getNodeCount(0u) == 1u);
+  EXPECT_TRUE(shep.getItemCount(0u) == 0u);
 }
 
 /*TEST(angle2apparentMirrorDepth, height2temp) {

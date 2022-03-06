@@ -7,13 +7,92 @@
 #include <memory>
 #include <vector>
 #include <variant>
-#include <Eigen/Dense>
 
+
+template<typename tCoordinate, size_t tSize>
+class CoefficientWise final {
+private:
+  std::array<tCoordinate, tSize> mArray;
+
+public:
+  CoefficientWise() = default;
+  CoefficientWise(tCoordinate const aInit) { std::fill(mArray.begin(), mArray.end(), aInit); }
+
+  CoefficientWise(CoefficientWise const &) = default;
+  CoefficientWise(CoefficientWise &&) = default;
+  CoefficientWise& operator=(CoefficientWise const &) = default;
+  CoefficientWise& operator=(CoefficientWise &&) = default;
+
+  tCoordinate& operator[](uint32_t const aIndex) { return mArray[aIndex]; }
+  tCoordinate const& operator[](uint32_t const aIndex) const { return mArray[aIndex]; }
+
+  CoefficientWise operator+(CoefficientWise const& aOther) const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = mArray[i] + aOther.mArray[i];
+    }
+    return result;
+  }
+
+  CoefficientWise operator-(CoefficientWise const& aOther) const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = mArray[i] - aOther.mArray[i];
+    }
+    return result;
+  }
+
+  CoefficientWise operator*(tCoordinate const aOther) const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = mArray[i] * aOther;
+    }
+    return result;
+  }
+
+  CoefficientWise operator/(tCoordinate const aOther) const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = mArray[i] / aOther;
+    }
+    return result;
+  }
+
+  CoefficientWise& operator*=(tCoordinate const aOther) {
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      mArray[i] *= aOther;
+    }
+    return *this;
+  }
+
+  CoefficientWise& operator/=(tCoordinate const aOther) {
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      mArray[i] /= aOther;
+    }
+    return *this;
+  }
+
+  static CoefficientWise min(CoefficientWise const& aOne, CoefficientWise const& aOther) {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = std::min(aOne.mArray[i], aOther.mArray[i]);
+    }
+    return result;
+  }
+
+  static CoefficientWise max(CoefficientWise const& aOne, CoefficientWise const& aOther) {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = std::max(aOne.mArray[i], aOther.mArray[i]);
+    }
+    return result;
+  }
+};
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
 class ShepardInterpolation final {
 public:
-  using Location = Eigen::Array<tCoordinate, 1, tDimensions>;
+  using Location = CoefficientWise<tCoordinate, tDimensions>;
   struct Data {
     Location mLocation;
     tPayload mPayload;
@@ -59,10 +138,21 @@ private:
   Location                                        mBoundsMax;
   uint32_t const                                  cmSamplesToConsider;
   uint32_t                                        mTargetLevelInChild0;
+  std::vector<uint32_t>                           mNodesPerLevel;
+  std::vector<uint32_t>                           mItemsPerLevel;
 
 public:
+  ShepardInterpolation() = delete;
+  ShepardInterpolation(ShepardInterpolation const &) = delete;
+  ShepardInterpolation(ShepardInterpolation &&) = delete;
+  ShepardInterpolation& operator=(ShepardInterpolation const &) = delete;
+  ShepardInterpolation& operator=(ShepardInterpolation &&) = delete;
+
   ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider);
-  uint32_t getTargetLevel() const { return mTargetLevelInChild0; }
+  uint32_t getTargetLevel()                    const { return mTargetLevelInChild0; }
+  uint32_t getLevelCount()                     const { return mNodesPerLevel.size(); }
+  uint32_t getNodeCount(uint32_t const aLevel) const { return mNodesPerLevel[aLevel]; }
+  uint32_t getItemCount(uint32_t const aLevel) const { return mItemsPerLevel[aLevel]; }
 
   tPayload interpolate(tCoordinate const aX, tCoordinate const aY, tCoordinate const aZ) const;
   tPayload interpolate(Location const& aLocation) const { return interpolate(aLocation[0], aLocation[1], aLocation[2]); }
@@ -70,24 +160,24 @@ public:
 private:
   void buildTree(size_t const aWhich, Location const aCenter, Location const aBoundsMax, std::vector<Data> const& aData);
   void addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem);
-  uint32_t calculateTargetLevelFromChild0() const;
+  void calculateTargetLevelFromChild0();
 };
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
 ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider)
-  : mBoundsMin {  std::numeric_limits<tCoordinate>::max(),  std::numeric_limits<tCoordinate>::max(),  std::numeric_limits<tCoordinate>::max()}
-  , mBoundsMax { -std::numeric_limits<tCoordinate>::max(), -std::numeric_limits<tCoordinate>::max(), -std::numeric_limits<tCoordinate>::max()}
+  : mBoundsMin {  std::numeric_limits<tCoordinate>::max()}
+  , mBoundsMax { -std::numeric_limits<tCoordinate>::max()}
   , cmSamplesToConsider(aSamplesToConsider)
   , mTargetLevelInChild0(0) {
   for(auto const &item : aData) {
     for(size_t j = 0u; j < tDimensions; ++j) {
-      mBoundsMin[j] = std::min(mBoundsMin[j], item.mLocation[j]);
-      mBoundsMax[j] = std::max(mBoundsMax[j], item.mLocation[j]);
+      mBoundsMin = Location::min(mBoundsMin, item.mLocation);
+      mBoundsMax = Location::min(mBoundsMax, item.mLocation);
     }
   }
 
   buildTree(0u, (mBoundsMin + mBoundsMax) / 2u, mBoundsMax - mBoundsMin, aData);
-  mTargetLevelInChild0 = calculateTargetLevelFromChild0();
+  calculateTargetLevelFromChild0();
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
@@ -145,25 +235,31 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-uint32_t ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calculateTargetLevelFromChild0() const {
+void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calculateTargetLevelFromChild0() {
   struct Item {
-    Node const * const cmNode;
-    uint32_t const     cmLevel;
-    Item(Node const * const aNode, uint32_t const aLevel) : cmNode(aNode), cmLevel(aLevel) {}
+    Node*    mNode;
+    uint32_t mLevel;
+    Item(Node * const aNode, uint32_t const aLevel) : mNode(aNode), mLevel(aLevel) {}
   };
   std::deque<Item> queue;
   uint32_t level = 0u;
+  mTargetLevelInChild0 = std::numeric_limits<uint32_t>::max();
   auto root = mRoots[0].get();
   queue.emplace_back(root, level);
   while(queue.size() > 0u) {
-    double average = 0.0;
+    tCoordinate average = 0.0;
     int32_t count = 0u;
     auto item = queue.front();
-    while(item.cmLevel == level) {
-      average += item.cmNode->mCountTotal;
+    mNodesPerLevel.push_back(0u);
+    mItemsPerLevel.push_back(0u);
+    while(queue.size() > 0u && item.mLevel == level) {
+      item = queue.front();
+      ++mNodesPerLevel.back();
+      mItemsPerLevel.back() += item.mNode->mCountHere;
+      average += item.mNode->mCountTotal;
       ++count;
-      if(std::holds_alternative<typename Node::Children>(item.cmNode->mContents)) {
-        auto &children = std::get<typename Node::Children>(item.cmNode->mContents);
+      if(std::holds_alternative<typename Node::Children>(item.mNode->mContents)) {
+        auto &children = std::get<typename Node::Children>(item.mNode->mContents);
         for(auto const &child : children) {
           if(child) {
             queue.emplace_back(child.get(), level + 1u);
@@ -175,13 +271,12 @@ uint32_t ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::cal
       queue.pop_front();
     }
     average /= count;
-    if(average < cmSamplesToConsider) {
-      break;
+    if(average >= cmSamplesToConsider) {
+      mTargetLevelInChild0 = level;
     }
     else {} // Nothing to do
     ++level;
   }
-  return level;
 }
 
 #endif // SHEPARD_H
