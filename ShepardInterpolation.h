@@ -7,6 +7,9 @@
 #include <memory>
 #include <vector>
 #include <variant>
+#include <stdexcept>
+
+#include <iostream> // TODO remove
 
 
 template<typename tCoordinate, size_t tSize>
@@ -99,6 +102,7 @@ public:
   };
 
   static constexpr uint32_t csChildCount = 1u << tDimensions;
+  static constexpr uint32_t csMaxLevels  = 50u;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
@@ -116,6 +120,7 @@ private:
     Location                        mSize;
 
     Node(Location const &aCenter, Location const& aSize) : mCountTotal(0u), mCountHere(0u), mCenter(aCenter), mSize(aSize) {}
+
     std::pair<uint32_t, Location> getChildIndexCenter(Data const &aItem) const {
       uint32_t index = 0u;
       Location location = mCenter;
@@ -131,6 +136,23 @@ private:
       }
       return std::pair(index, location);
     }
+
+void print(uint32_t aLevel) const {
+  std::cout << "Level(" << aLevel <<") [CT:" << mCountTotal << " CH:" << mCountHere << " C:" << mCenter[0] << " S:" << mSize[0] << ' ';
+  if(mCountHere > 0u) {
+    auto& payload = std::get<Payload>(mContents);
+    for(uint32_t i = 0u; i < mCountHere; ++i) {
+      std::cout << " (l:" << payload[i].mLocation[0] << " p:" << payload[i].mPayload << ")";
+    }
+  }
+  else if(mCountTotal > 0u) {
+    auto& children = std::get<Children>(mContents);
+    for(uint32_t i = 0u; i < csChildCount; ++i) {
+      std::cout << (children[i] ? " (C)" : " (-)");
+    }
+  }
+  std::cout << "]\n";
+}
   };
 
   std::array<std::unique_ptr<Node>, csChildCount> mRoots;
@@ -159,7 +181,7 @@ public:
 
 private:
   void buildTree(size_t const aWhich, Location const aCenter, Location const aBoundsMax, std::vector<Data> const& aData);
-  void addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem);
+  void addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem, uint32_t const aLevel);
   void calculateTargetLevelFromChild0();
 };
 
@@ -168,16 +190,17 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
   : mBoundsMin {  std::numeric_limits<tCoordinate>::max()}
   , mBoundsMax { -std::numeric_limits<tCoordinate>::max()}
   , cmSamplesToConsider(aSamplesToConsider)
-  , mTargetLevelInChild0(0) {
+  , mTargetLevelInChild0(0u) {
   for(auto const &item : aData) {
     for(size_t j = 0u; j < tDimensions; ++j) {
       mBoundsMin = Location::min(mBoundsMin, item.mLocation);
-      mBoundsMax = Location::min(mBoundsMax, item.mLocation);
+      mBoundsMax = Location::max(mBoundsMax, item.mLocation);
     }
   }
 
   buildTree(0u, (mBoundsMin + mBoundsMax) / 2u, mBoundsMax - mBoundsMin, aData);
-  calculateTargetLevelFromChild0();
+// TODO restore calculateTargetLevelFromChild0();
+if(mNodesPerLevel.size() == 0u) calculateTargetLevelFromChild0();
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
@@ -185,16 +208,25 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::buildTr
   mRoots[aWhich] = std::move(std::make_unique<Node>(aCenter, aSize));
   auto root = mRoots[aWhich].get();
   for(auto const &item : aData) {
-    addLeaf(root, aCenter, aSize, item);
+    addLeaf(root, aCenter, aSize, item, 0u);
+mNodesPerLevel.clear();
+mItemsPerLevel.clear();
+calculateTargetLevelFromChild0();
+std::cout << '\n';
   }
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem) {
-  Node * branch    = aBranch;
+void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem, uint32_t const aLevel) {
+  Node * branch   = aBranch;
   Location center = aCenter;
   Location size   = aSize;
+  auto level      = aLevel;
   while(true) {
+    if(level > csMaxLevels) {
+      throw std::invalid_argument("ShepardInterpolation: maximum tree levels reached.");
+    }
+    else {} // nothing to do
     ++branch->mCountTotal;
     if(branch->mCountTotal <= tInPlace) {
       if(branch->mCountHere == 0u) {
@@ -218,7 +250,7 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf
             children[childIndex] = std::move(std::make_unique<Node>(childCenter, size));
           }
           else {} // nothing to do
-          addLeaf(children[childIndex].get(), childCenter, size, item);
+          addLeaf(children[childIndex].get(), childCenter, size, item, level + 1u);  // Recursive, but has only a depth of 1
         }
       }
       else {} // Nothing to do
@@ -230,6 +262,7 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf
       }
       else {} // nothing to do
       branch = children[childIndex].get();
+      ++level;
     }
   }
 }
@@ -252,8 +285,8 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calcula
     auto item = queue.front();
     mNodesPerLevel.push_back(0u);
     mItemsPerLevel.push_back(0u);
-    while(queue.size() > 0u && item.mLevel == level) {
-      item = queue.front();
+    while(item.mLevel == level) {
+item.mNode->print(item.mLevel);
       ++mNodesPerLevel.back();
       mItemsPerLevel.back() += item.mNode->mCountHere;
       average += item.mNode->mCountTotal;
@@ -269,6 +302,12 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calcula
       }
       else {} // Nothing to do
       queue.pop_front();
+      if(queue.size() > 0u) {
+        item = queue.front();
+      }
+      else {
+        break;
+      }
     }
     average /= count;
     if(average >= cmSamplesToConsider) {

@@ -1,6 +1,7 @@
 #include "ShepardRayBending.h"
 
 #include <functional>
+#include <stdexcept>
 #include <vector>
 #include <cmath>
 
@@ -54,7 +55,7 @@ std::cout << "ready 1: critical inclination\n";
       addForward(samplesBending, rayPath.mCollection);
     }
     else {
-      throw "Should not hit asphalt in bending region.";
+      throw std::runtime_error("Should not hit asphalt in bending region.");
     }
     inclination += increment;
   }
@@ -76,7 +77,7 @@ std::cout << "ready 4: mPolyBendingAngleFromHoriz\n";
       addReverse(samplesAsphaltUp, rayPath.mCollection);
     }
     else {
-      throw "Should hit asphalt outside bending region.";
+      throw std::runtime_error("Should hit asphalt outside bending region.");
     }
     inclination += increment;
   }

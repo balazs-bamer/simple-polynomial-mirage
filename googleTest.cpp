@@ -129,20 +129,53 @@ TEST(shepardInterpolation, level0_dim1_data0) {
   EXPECT_TRUE(shep.getItemCount(0u) == 0u);
 }
 
-TEST(shepardInterpolation, level0_dim1_data0) {
-  using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 4>;
+#include <iostream>
+
+TEST(shepardInterpolation, levelN_dim1_data10) {
+  using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 3>;
   std::vector<ShepIntpol::Data> data;
   for(uint32_t i = 0u; i < 10u; ++i) {
-    Data item;
+    typename ShepIntpol::Data item;
     item.mLocation[0] = ::pow(1.0 / 3.0, i);
     item.mPayload = i;
     data.push_back(item);
   }
   ShepIntpol shep(data, 3u);
-  EXPECT_TRUE(shep.getTargetLevel() == std::numeric_limits<uint32_t>::max());
-  EXPECT_TRUE(shep.getLevelCount() == 1u);
+std::cout << "nodes: ";
+for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
+  std::cout << shep.getNodeCount(i) << ", ";
+}
+std::cout << "\nitems: ";
+for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
+  std::cout << shep.getItemCount(i) << ", ";
+}
+std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
+// nodes: 1, 2, 2, 1, 2, 2, 1, 2, 2, 1, 2,
+// items: 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 4,
+  EXPECT_TRUE(shep.getTargetLevel() == 9u);
+  EXPECT_TRUE(shep.getLevelCount() == 11u);
   EXPECT_TRUE(shep.getNodeCount(0u) == 1u);
   EXPECT_TRUE(shep.getItemCount(0u) == 0u);
+  EXPECT_TRUE(shep.getNodeCount(1u) == 2u);
+  EXPECT_TRUE(shep.getItemCount(1u) == 1u);
+  EXPECT_TRUE(shep.getNodeCount(2u) == 2u);
+  EXPECT_TRUE(shep.getItemCount(2u) == 1u);
+  EXPECT_TRUE(shep.getNodeCount(3u) == 1u);
+  EXPECT_TRUE(shep.getItemCount(3u) == 0u);
+  EXPECT_TRUE(shep.getNodeCount(4u) == 2u);
+  EXPECT_TRUE(shep.getItemCount(4u) == 1u);
+  EXPECT_TRUE(shep.getNodeCount(5u) == 2u);
+  EXPECT_TRUE(shep.getItemCount(5u) == 1u);
+  EXPECT_TRUE(shep.getNodeCount(6u) == 1u);
+  EXPECT_TRUE(shep.getItemCount(6u) == 0u);
+  EXPECT_TRUE(shep.getNodeCount(7u) == 2u);
+  EXPECT_TRUE(shep.getItemCount(7u) == 1u);
+  EXPECT_TRUE(shep.getNodeCount(8u) == 2u);
+  EXPECT_TRUE(shep.getItemCount(8u) == 1u);
+  EXPECT_TRUE(shep.getNodeCount(9u) == 1u);
+  EXPECT_TRUE(shep.getItemCount(9u) == 0u);
+  EXPECT_TRUE(shep.getNodeCount(10u) == 2u);
+  EXPECT_TRUE(shep.getItemCount(10u) == 4u);
 }
 
 /*TEST(angle2apparentMirrorDepth, height2temp) {
