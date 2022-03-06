@@ -1,6 +1,7 @@
 #ifndef SHEPARDINTERPOLATION
 #define SHEPARDINTERPOLATION
 
+#include <cmath>
 #include <array>
 #include <deque>
 #include <limits>
@@ -18,6 +19,14 @@ private:
 public:
   CoefficientWise() = default;
   CoefficientWise(tCoordinate const aInit) { std::fill(mArray.begin(), mArray.end(), aInit); }
+
+  CoefficientWise(std::initializer_list<tCoordinate> aInit) {
+    if(aInit.size() != tSize) {
+      throw std::invalid_argument("CoefficientWise: invalid initializer_list.");
+    }
+    else {} // nothing to do
+    std::copy(aInit.begin(), aInit.end(), mArray.begin());
+  }
 
   CoefficientWise(CoefficientWise const &) = default;
   CoefficientWise(CoefficientWise &&) = default;
@@ -43,6 +52,38 @@ public:
     return result;
   }
 
+  CoefficientWise operator*(CoefficientWise const& aOther) const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = mArray[i] * aOther.mArray[i];
+    }
+    return result;
+  }
+
+  CoefficientWise operator/(CoefficientWise const& aOther) const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = mArray[i] / aOther.mArray[i];
+    }
+    return result;
+  }
+
+  CoefficientWise operator+(tCoordinate const aOther) const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = mArray[i] + aOther;
+    }
+    return result;
+  }
+
+  CoefficientWise operator-(tCoordinate const aOther) const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = mArray[i] - aOther;
+    }
+    return result;
+  }
+
   CoefficientWise operator*(tCoordinate const aOther) const {
     CoefficientWise result;
     for(uint32_t i = 0u; i < tSize; ++i) {
@@ -59,6 +100,20 @@ public:
     return result;
   }
 
+  CoefficientWise& operator+=(tCoordinate const aOther) {
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      mArray[i] += aOther;
+    }
+    return *this;
+  }
+
+  CoefficientWise& operator-=(tCoordinate const aOther) {
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      mArray[i] -= aOther;
+    }
+    return *this;
+  }
+
   CoefficientWise& operator*=(tCoordinate const aOther) {
     for(uint32_t i = 0u; i < tSize; ++i) {
       mArray[i] *= aOther;
@@ -71,6 +126,22 @@ public:
       mArray[i] /= aOther;
     }
     return *this;
+  }
+
+  tCoordinate norm() const {
+    tCoordinate result = 0.0;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result += mArray[i] * mArray[i];
+    }
+    return ::sqrt(result);
+  }
+
+  CoefficientWise floor() const {
+    CoefficientWise result;
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      result.mArray[i] = ::floor(mArray[i]);
+    }
+    return result;
   }
 
   static CoefficientWise min(CoefficientWise const& aOne, CoefficientWise const& aOther) {
@@ -119,12 +190,12 @@ private:
 
     Node(Location const &aCenter, Location const& aSize) : mCountTotal(0u), mCountHere(0u), mCenter(aCenter), mSize(aSize) {}
 
-    std::pair<uint32_t, Location> getChildIndexCenter(Data const &aItem) const {
+    std::pair<uint32_t, Location> getChildIndexCenter(Location const &aTarget) const {
       uint32_t index = 0u;
       Location location = mCenter;
       for(uint32_t i = 0u; i < tDimensions; ++i) {
         auto diff = mSize[i] / 4.0;
-        if(aItem.mLocation[i] >= mCenter[i]) {
+        if(aTarget[i] >= mCenter[i]) {
           index += 1u << i;
           location[i] += diff;
         }
@@ -141,6 +212,9 @@ private:
   Location                                        mBoundsMax;
   uint32_t const                                  cmSamplesToConsider;
   uint32_t                                        mTargetLevelInChild0;  // Where average of total count >= cmSamplesToConsider
+  Location                                        mTargetSize;
+  Location                                        mTargetSizeDiv2;
+  Location                                        mTargetSizeDiv4;
   std::vector<uint32_t>                           mNodesPerLevel;
   std::vector<uint32_t>                           mItemsPerLevel;
 
@@ -159,11 +233,14 @@ public:
 
   tPayload interpolate(tCoordinate const aX, tCoordinate const aY, tCoordinate const aZ) const;
   tPayload interpolate(Location const& aLocation) const { return interpolate(aLocation[0], aLocation[1], aLocation[2]); }
+  tCoordinate getDistanceFromTargetCenter(Location const& aLocation) const;
 
 private:
-  void buildTree(size_t const aWhich, Location const aCenter, Location const aBoundsMax, std::vector<Data> const& aData);
-  void addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem, uint32_t const aLevel);
-  void calculateTargetLevelFromChild0();
+  void                       buildTree(size_t const aWhichRoot, Location const aCenter, Location const aBoundsMax, std::vector<Data> const& aData);
+  void                       addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem, uint32_t const aLevel);
+  void                       calculateTargetLevelFromChild0();
+  std::pair<Node*, uint32_t> getTargetNodeLevelDiff(uint32_t const aWhichRoot, Location const& aLoc) const;
+  std::pair<Node*, uint32_t> getTargetNodeLevelDiff(Location const& aLoc) const;
 };
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
@@ -172,6 +249,10 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
   , mBoundsMax { -std::numeric_limits<tCoordinate>::max()}
   , cmSamplesToConsider(aSamplesToConsider)
   , mTargetLevelInChild0(0u) {
+  if(aData.size() < aSamplesToConsider || aSamplesToConsider == 0u) {
+    throw std::invalid_argument("ShepardInterpolation: invalid constructor arguments.");
+  }
+  else {} // nothing to do
   for(auto const &item : aData) {
     for(size_t j = 0u; j < tDimensions; ++j) {
       mBoundsMin = Location::min(mBoundsMin, item.mLocation);
@@ -179,14 +260,44 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
     }
   }
 
-  buildTree(0u, (mBoundsMin + mBoundsMax) / 2u, mBoundsMax - mBoundsMin, aData);
+  auto size = mBoundsMax - mBoundsMin;
+  buildTree(0u, (mBoundsMin + mBoundsMax) / 2u, size, aData);
   calculateTargetLevelFromChild0();
+  mTargetSize = size / ::pow(2.0, mTargetLevelInChild0);
+  mTargetSizeDiv2 = mTargetSize / 2.0;
+  mTargetSizeDiv4 = mTargetSize / 4.0;
+
+  for(uint32_t i = 1u; i < csChildCount; ++i) {
+    auto newBoundsMax = mBoundsMax;
+    auto newBoundsMin = mBoundsMin;
+    for(uint32_t dim = 0u; dim < tDimensions; ++dim) {
+      if(i && (1u << dim)) {
+        newBoundsMin[dim] -= mTargetSize[dim] / 2.0;
+        newBoundsMax[dim] += mTargetSize[dim] * 1.5;
+      }
+      else {} // nothing to do
+    }
+    buildTree(i, (newBoundsMin + newBoundsMax) / 2u, newBoundsMax - newBoundsMin, aData);
+  }
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::buildTree(size_t const aWhich, Location const aCenter, Location const aSize, std::vector<Data> const& aData) {
-  mRoots[aWhich] = std::move(std::make_unique<Node>(aCenter, aSize));
-  auto root = mRoots[aWhich].get();
+tCoordinate ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getDistanceFromTargetCenter(Location const& aLocation) const {
+  tCoordinate result;
+  auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
+  if(levelDiff == 0u) {
+    result = 0.0;
+  }
+  else {
+    result = (branch->mCenter - aLocation).norm() / mTargetSize.norm();
+  }
+  return result;
+}
+
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
+void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::buildTree(size_t const aWhichRoot, Location const aCenter, Location const aSize, std::vector<Data> const& aData) {
+  mRoots[aWhichRoot] = std::move(std::make_unique<Node>(aCenter, aSize));
+  auto root = mRoots[aWhichRoot].get();
   for(auto const &item : aData) {
     addLeaf(root, aCenter, aSize, item, 0u);
   }
@@ -221,7 +332,7 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf
         branch->mContents = typename Node::Children();
         auto& children = std::get<typename Node::Children>(branch->mContents);
         for(auto const &item : contentsSoFar) {
-          auto [childIndex, childCenter] = branch->getChildIndexCenter(item);
+          auto [childIndex, childCenter] = branch->getChildIndexCenter(item.mLocation);
           if(!children[childIndex]) {
             children[childIndex] = std::move(std::make_unique<Node>(childCenter, size));
           }
@@ -231,7 +342,7 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf
       }
       else {} // Nothing to do
       uint32_t childIndex;
-      std::tie(childIndex, center) = branch->getChildIndexCenter(aItem);
+      std::tie(childIndex, center) = branch->getChildIndexCenter(aItem.mLocation);
       auto& children = std::get<typename Node::Children>(branch->mContents);
       if(!children[childIndex]) {
         children[childIndex] = std::move(std::make_unique<Node>(center, size));
@@ -291,6 +402,47 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calcula
     else {} // Nothing to do
     ++level;
   }
+}
+
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
+std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::Node*, uint32_t>
+ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNodeLevelDiff(uint32_t const aWhichRoot, Location const& aLoc) const {
+  uint32_t actualTargetLevel = mTargetLevelInChild0 + (aWhichRoot == 0u ? 0u : 1u);
+  auto branch = mRoots[aWhichRoot].get();
+  uint32_t level = 0u;
+  uint32_t levelDiff = actualTargetLevel;
+  Node* result = branch;
+  while(branch != nullptr && level <= actualTargetLevel) {
+    if(branch->mCountTotal >= cmSamplesToConsider) {
+      result = branch;
+      levelDiff = actualTargetLevel - level;
+    }
+    else{} // nothing to do
+    if(branch->mCountTotal > 0u && branch->mCountHere == 0u) {
+      auto const& children = std::get<typename Node::Children>(branch->mContents);
+      auto [childIndex, childCenter] = branch->getChildIndexCenter(aLoc);
+      branch = children[childIndex].get();
+    }
+    else {
+      branch = nullptr;
+    }
+  }
+  return std::pair(result, levelDiff);
+}
+
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
+std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::Node*, uint32_t>
+ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNodeLevelDiff(Location const& aLocation) const {
+  auto fromMin = aLocation - mBoundsMin;
+  auto fromCenter = fromMin - (fromMin / mTargetSize).floor() * mTargetSize - mTargetSizeDiv2; // TODO fails if space size is 0 in some dimension
+  uint32_t index = 0u;
+  for(uint32_t i = 0u; i < tDimensions; ++i) {
+    if(::abs(fromCenter[i]) >= mTargetSizeDiv4[i]) {
+      index += 1u << i;
+    }
+    else {} // nothing to do
+  }
+  return getTargetNodeLevelDiff(index, aLocation);
 }
 
 #endif // SHEPARD_H

@@ -119,7 +119,7 @@ TEST(polynomApprox, 10y_x_x2__x3_xy) {
   EXPECT_TRUE(eq(poly.getRrmsError(), 0.0f));
 }
 
-TEST(shepardInterpolation, level0_dim1_data0) {
+/*TEST(shepardInterpolation, level0_dim1_data0) {
   using ShepIntpol = ShepardInterpolation<float, 1u, int, 4>;
   std::vector<ShepIntpol::Data> data;
   ShepIntpol shep(data, 3u);
@@ -127,7 +127,7 @@ TEST(shepardInterpolation, level0_dim1_data0) {
   EXPECT_TRUE(shep.getLevelCount() == 1u);
   EXPECT_TRUE(shep.getNodeCount(0u) == 1u);
   EXPECT_TRUE(shep.getItemCount(0u) == 0u);
-}
+}*/
 
 #include <iostream>
 
@@ -165,6 +165,16 @@ TEST(shepardInterpolation, level10_dim1_data10) {
   EXPECT_TRUE(shep.getItemCount(9u) == 0u);
   EXPECT_TRUE(shep.getNodeCount(10u) == 2u);
   EXPECT_TRUE(shep.getItemCount(10u) == 4u);
+  std::cout << shep.getDistanceFromTargetCenter(0.0) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.1) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.2) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.3) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.4) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.5) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.6) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.7) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.8) << '\n';
+  std::cout << shep.getDistanceFromTargetCenter(0.9) << '\n';
 }
 
 TEST(shepardInterpolation, levelFew_dim1_random40) {
