@@ -9,8 +9,6 @@
 #include <variant>
 #include <stdexcept>
 
-#include <iostream> // TODO remove
-
 
 template<typename tCoordinate, size_t tSize>
 class CoefficientWise final {
@@ -136,30 +134,13 @@ private:
       }
       return std::pair(index, location);
     }
-
-void print(uint32_t aLevel) const {
-  std::cout << "Level(" << aLevel <<") [CT:" << mCountTotal << " CH:" << mCountHere << " C:" << mCenter[0] << " S:" << mSize[0] << ' ';
-  if(mCountHere > 0u) {
-    auto& payload = std::get<Payload>(mContents);
-    for(uint32_t i = 0u; i < mCountHere; ++i) {
-      std::cout << " (l:" << payload[i].mLocation[0] << " p:" << payload[i].mPayload << ")";
-    }
-  }
-  else if(mCountTotal > 0u) {
-    auto& children = std::get<Children>(mContents);
-    for(uint32_t i = 0u; i < csChildCount; ++i) {
-      std::cout << (children[i] ? " (C)" : " (-)");
-    }
-  }
-  std::cout << "]\n";
-}
   };
 
   std::array<std::unique_ptr<Node>, csChildCount> mRoots;
   Location                                        mBoundsMin;
   Location                                        mBoundsMax;
   uint32_t const                                  cmSamplesToConsider;
-  uint32_t                                        mTargetLevelInChild0;
+  uint32_t                                        mTargetLevelInChild0;  // Where average of total count >= cmSamplesToConsider
   std::vector<uint32_t>                           mNodesPerLevel;
   std::vector<uint32_t>                           mItemsPerLevel;
 
@@ -199,8 +180,7 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
   }
 
   buildTree(0u, (mBoundsMin + mBoundsMax) / 2u, mBoundsMax - mBoundsMin, aData);
-// TODO restore calculateTargetLevelFromChild0();
-if(mNodesPerLevel.size() == 0u) calculateTargetLevelFromChild0();
+  calculateTargetLevelFromChild0();
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
@@ -209,10 +189,6 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::buildTr
   auto root = mRoots[aWhich].get();
   for(auto const &item : aData) {
     addLeaf(root, aCenter, aSize, item, 0u);
-mNodesPerLevel.clear();
-mItemsPerLevel.clear();
-calculateTargetLevelFromChild0();
-std::cout << '\n';
   }
 }
 
@@ -286,7 +262,6 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calcula
     mNodesPerLevel.push_back(0u);
     mItemsPerLevel.push_back(0u);
     while(item.mLevel == level) {
-item.mNode->print(item.mLevel);
       ++mNodesPerLevel.back();
       mItemsPerLevel.back() += item.mNode->mCountHere;
       average += item.mNode->mCountTotal;
