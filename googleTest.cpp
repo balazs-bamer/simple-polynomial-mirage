@@ -165,16 +165,8 @@ TEST(shepardInterpolation, level10_dim1_data10) {
   EXPECT_TRUE(shep.getItemCount(9u) == 0u);
   EXPECT_TRUE(shep.getNodeCount(10u) == 2u);
   EXPECT_TRUE(shep.getItemCount(10u) == 4u);
-  std::cout << shep.getDistanceFromTargetCenter(0.0) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.1) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.2) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.3) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.4) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.5) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.6) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.7) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.8) << '\n';
-  std::cout << shep.getDistanceFromTargetCenter(0.9) << '\n';
+  EXPECT_TRUE(shep.getDistanceFromTargetCenter(0.0) == 0.0);
+  EXPECT_TRUE(shep.getDistanceFromTargetCenter(1.0) == 0.0);
 }
 
 TEST(shepardInterpolation, levelFew_dim1_random40) {
@@ -199,6 +191,12 @@ for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
 }
 std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   EXPECT_TRUE(shep.getTargetLevel() == 3u);
+  for(uint32_t i = 0u; i < 40u; ++i) {
+    typename ShepIntpol::Location loc;
+    loc[0] = number;
+    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) == 0.0);
+    number = (number + 41u) % 64u;
+  }
 }
 
 TEST(shepardInterpolation, levelFew_dim2_random40_data1d) {
@@ -250,6 +248,14 @@ for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
 }
 std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   EXPECT_TRUE(shep.getTargetLevel() == 2u);
+  for(uint32_t i = 0u; i < 40u; ++i) {
+    typename ShepIntpol::Location loc;
+    loc[0] = number;
+    number = (number + 41u) % 64u;
+    loc[1] = number;
+    number = (number + 41u) % 64u;
+    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) == 0.0);
+  }
 }
 
 TEST(shepardInterpolation, levelFew_dim3_random40_data3d) {
@@ -259,11 +265,14 @@ TEST(shepardInterpolation, levelFew_dim3_random40_data3d) {
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Data item;
     item.mLocation[0] = number;
-    number = (number + 11u) % 16u;
+std::cout << number << ' ';
+    number = (number + 11u) % 41u;
     item.mLocation[1] = number;
-    number = (number + 11u) % 16u;
+std::cout << number << ' ';
+    number = (number + 11u) % 41u;
     item.mLocation[2] = number;
-    number = (number + 11u) % 16u;
+std::cout << number << ": " << i << '\n';
+    number = (number + 11u) % 41u;
     item.mPayload = i;
     data.push_back(item);
   }
@@ -278,6 +287,21 @@ for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
 }
 std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   EXPECT_TRUE(shep.getTargetLevel() == 2u);
+  for(uint32_t i = 0u; i < 40u; ++i) {
+    typename ShepIntpol::Location loc;
+    loc[0] = number;
+std::cout << "lookup: " << number << ' ';
+    number = (number + 13u) % 41u;
+    loc[1] = number;
+std::cout << number << ' ';
+    number = (number + 13u) % 41u;
+    loc[2] = number;
+std::cout << number << "-> ";
+    number = (number + 13u) % 41u;
+    shep.interpolate(loc);
+std::cout << '\n';
+  //  EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) == 0.0);
+  }
 }
 
 /*TEST(angle2apparentMirrorDepth, height2temp) {

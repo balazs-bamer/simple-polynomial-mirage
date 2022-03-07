@@ -11,6 +11,8 @@
 #include <stdexcept>
 
 
+#include<iostream>
+
 template<typename tCoordinate, size_t tSize>
 class CoefficientWise final {
 private:
@@ -182,11 +184,11 @@ private:
     using Children = std::array<std::unique_ptr<Node>, csChildCount>;
     using Payload  = std::array<Data, tInPlace>;
 
-    uint32_t                        mCountTotal;
-    uint32_t                        mCountHere;
-    std::variant<Children, Payload> mContents;
-    Location                        mCenter;
-    Location                        mSize;
+    uint32_t                                        mCountTotal;
+    uint32_t                                        mCountHere;
+    std::variant<std::monostate, Children, Payload> mContents;
+    Location                                        mCenter;
+    Location                                        mSize;
 
     Node(Location const &aCenter, Location const& aSize) : mCountTotal(0u), mCountHere(0u), mCenter(aCenter), mSize(aSize) {}
 
@@ -217,6 +219,7 @@ private:
   Location                                        mTargetSizeDiv4;
   std::vector<uint32_t>                           mNodesPerLevel;
   std::vector<uint32_t>                           mItemsPerLevel;
+  mutable std::vector<Node*>                      mInterpolatorQueue;  // Just to avoid frequent allocations
 
 public:
   ShepardInterpolation() = delete;
@@ -231,8 +234,7 @@ public:
   uint32_t getNodeCount(uint32_t const aLevel) const { return mNodesPerLevel[aLevel]; }
   uint32_t getItemCount(uint32_t const aLevel) const { return mItemsPerLevel[aLevel]; }
 
-  tPayload interpolate(tCoordinate const aX, tCoordinate const aY, tCoordinate const aZ) const;
-  tPayload interpolate(Location const& aLocation) const { return interpolate(aLocation[0], aLocation[1], aLocation[2]); }
+  tPayload interpolate(Location const& aLocation) const;
   tCoordinate getDistanceFromTargetCenter(Location const& aLocation) const;
 
 private:
@@ -245,8 +247,8 @@ private:
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
 ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider)
-  : mBoundsMin {  std::numeric_limits<tCoordinate>::max()}
-  , mBoundsMax { -std::numeric_limits<tCoordinate>::max()}
+  : mBoundsMin ( std::numeric_limits<tCoordinate>::max())
+  , mBoundsMax (-std::numeric_limits<tCoordinate>::max())
   , cmSamplesToConsider(aSamplesToConsider)
   , mTargetLevelInChild0(0u) {
   if(aData.size() < aSamplesToConsider || aSamplesToConsider == 0u) {
@@ -282,10 +284,41 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
+tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::interpolate(Location const &aLocation) const {
+  auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
+  mInterpolatorQueue.emplace_back(branch);
+std::cout << " [center: ";
+for(uint32_t i = 0u; i < tDimensions; ++i) {
+  std::cout << static_cast<int32_t>(::round(branch->mCenter[i])) << ' ';
+}
+std::cout << "] ";
+  while(mInterpolatorQueue.size() > 0u) {
+    branch = mInterpolatorQueue.back();
+    mInterpolatorQueue.pop_back();
+    if(std::holds_alternative<typename Node::Children>(branch->mContents)) {
+      auto &children = std::get<typename Node::Children>(branch->mContents);
+      for(auto const &child : children) {
+        if(child) {
+          mInterpolatorQueue.emplace_back(child.get());
+        }
+        else {} // Nothing to do
+      }
+    }
+    else if(std::holds_alternative<typename Node::Payload>(branch->mContents)) {
+      auto &payload = std::get<typename Node::Payload>(branch->mContents);
+      for(uint32_t i = 0u; i < branch->mCountHere; ++i) {
+std::cout << payload[i].mPayload << ' ';
+      }
+    }
+  }
+  return tPayload(0); // TODO
+}
+
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
 tCoordinate ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getDistanceFromTargetCenter(Location const& aLocation) const {
   tCoordinate result;
   auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
-  if(levelDiff == 0u) {
+  if(levelDiff > 0u) {
     result = 0.0;
   }
   else {
@@ -412,13 +445,18 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNod
   uint32_t level = 0u;
   uint32_t levelDiff = actualTargetLevel;
   Node* result = branch;
+std::cout << "  (WhichRoot:" << aWhichRoot << " TCs:";
   while(branch != nullptr && level <= actualTargetLevel) {
     if(branch->mCountTotal >= cmSamplesToConsider) {
+std::cout << " +" << branch->mCountTotal;
       result = branch;
       levelDiff = actualTargetLevel - level;
     }
-    else{} // nothing to do
-    if(branch->mCountTotal > 0u && branch->mCountHere == 0u) {
+    else{
+
+std::cout << " -" << branch->mCountTotal;
+    } // nothing to do
+    if(std::holds_alternative<typename Node::Children>(branch->mContents)) {
       auto const& children = std::get<typename Node::Children>(branch->mContents);
       auto [childIndex, childCenter] = branch->getChildIndexCenter(aLoc);
       branch = children[childIndex].get();
@@ -427,14 +465,18 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNod
       branch = nullptr;
     }
   }
+std::cout << ")  ";
   return std::pair(result, levelDiff);
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
 std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::Node*, uint32_t>
 ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNodeLevelDiff(Location const& aLocation) const {
-  auto fromMin = aLocation - mBoundsMin;
-  auto fromCenter = fromMin - (fromMin / mTargetSize).floor() * mTargetSize - mTargetSizeDiv2; // TODO fails if space size is 0 in some dimension
+  Location fromCenter;
+  for(uint32_t i = 0u; i < tDimensions; ++i) {
+    auto fromMin = aLocation[i] - mBoundsMin[i];
+    fromCenter[i] = fromMin - ::floor(fromMin / mTargetSize[i]) * mTargetSize[i] - mTargetSizeDiv2[i]; // TODO fails if space size is 0 in some dimension
+  }
   uint32_t index = 0u;
   for(uint32_t i = 0u; i < tDimensions; ++i) {
     if(::abs(fromCenter[i]) >= mTargetSizeDiv4[i]) {
