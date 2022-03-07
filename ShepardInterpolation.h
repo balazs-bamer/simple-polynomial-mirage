@@ -11,8 +11,6 @@
 #include <stdexcept>
 
 
-#include<iostream>
-
 template<typename tCoordinate, size_t tSize>
 class CoefficientWise final {
 private:
@@ -287,11 +285,6 @@ template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t t
 tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::interpolate(Location const &aLocation) const {
   auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
   mInterpolatorQueue.emplace_back(branch);
-std::cout << " [center: ";
-for(uint32_t i = 0u; i < tDimensions; ++i) {
-  std::cout << static_cast<int32_t>(::round(branch->mCenter[i])) << ' ';
-}
-std::cout << "] ";
   while(mInterpolatorQueue.size() > 0u) {
     branch = mInterpolatorQueue.back();
     mInterpolatorQueue.pop_back();
@@ -307,7 +300,7 @@ std::cout << "] ";
     else if(std::holds_alternative<typename Node::Payload>(branch->mContents)) {
       auto &payload = std::get<typename Node::Payload>(branch->mContents);
       for(uint32_t i = 0u; i < branch->mCountHere; ++i) {
-std::cout << payload[i].mPayload << ' ';
+        // TODO
       }
     }
   }
@@ -445,17 +438,12 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNod
   uint32_t level = 0u;
   uint32_t levelDiff = actualTargetLevel;
   Node* result = branch;
-std::cout << "  (WhichRoot:" << aWhichRoot << " TCs:";
   while(branch != nullptr && level <= actualTargetLevel) {
     if(branch->mCountTotal >= cmSamplesToConsider) {
-std::cout << " +" << branch->mCountTotal;
       result = branch;
       levelDiff = actualTargetLevel - level;
     }
-    else{
-
-std::cout << " -" << branch->mCountTotal;
-    } // nothing to do
+    else{} // nothing to do
     if(std::holds_alternative<typename Node::Children>(branch->mContents)) {
       auto const& children = std::get<typename Node::Children>(branch->mContents);
       auto [childIndex, childCenter] = branch->getChildIndexCenter(aLoc);
@@ -465,7 +453,6 @@ std::cout << " -" << branch->mCountTotal;
       branch = nullptr;
     }
   }
-std::cout << ")  ";
   return std::pair(result, levelDiff);
 }
 

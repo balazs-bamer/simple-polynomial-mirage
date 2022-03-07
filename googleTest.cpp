@@ -181,15 +181,6 @@ TEST(shepardInterpolation, levelFew_dim1_random40) {
     number = (number + 41u) % 64u;
   }
   ShepIntpol shep(data, 3u);
-std::cout << "nodes: ";
-for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
-  std::cout << shep.getNodeCount(i) << ", ";
-}
-std::cout << "\nitems: ";
-for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
-  std::cout << shep.getItemCount(i) << ", ";
-}
-std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   EXPECT_TRUE(shep.getTargetLevel() == 3u);
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Location loc;
@@ -212,15 +203,6 @@ TEST(shepardInterpolation, levelFew_dim2_random40_data1d) {
     number = (number + 41u) % 64u;
   }
   ShepIntpol shep(data, 3u);
-std::cout << "nodes: ";
-for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
-  std::cout << shep.getNodeCount(i) << ", ";
-}
-std::cout << "\nitems: ";
-for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
-  std::cout << shep.getItemCount(i) << ", ";
-}
-std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   EXPECT_TRUE(shep.getTargetLevel() == 3u);
 }
 
@@ -238,15 +220,6 @@ TEST(shepardInterpolation, levelFew_dim2_random40_data2d) {
     data.push_back(item);
   }
   ShepIntpol shep(data, 3u);
-std::cout << "nodes: ";
-for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
-  std::cout << shep.getNodeCount(i) << ", ";
-}
-std::cout << "\nitems: ";
-for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
-  std::cout << shep.getItemCount(i) << ", ";
-}
-std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   EXPECT_TRUE(shep.getTargetLevel() == 2u);
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Location loc;
@@ -265,42 +238,26 @@ TEST(shepardInterpolation, levelFew_dim3_random40_data3d) {
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Data item;
     item.mLocation[0] = number;
-std::cout << number << ' ';
     number = (number + 11u) % 41u;
     item.mLocation[1] = number;
-std::cout << number << ' ';
     number = (number + 11u) % 41u;
     item.mLocation[2] = number;
-std::cout << number << ": " << i << '\n';
     number = (number + 11u) % 41u;
     item.mPayload = i;
     data.push_back(item);
   }
   ShepIntpol shep(data, 3u);
-std::cout << "nodes: ";
-for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
-  std::cout << shep.getNodeCount(i) << ", ";
-}
-std::cout << "\nitems: ";
-for(uint32_t i = 0; i < shep.getLevelCount(); ++i) {
-  std::cout << shep.getItemCount(i) << ", ";
-}
-std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   EXPECT_TRUE(shep.getTargetLevel() == 2u);
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Location loc;
     loc[0] = number;
-std::cout << "lookup: " << number << ' ';
     number = (number + 13u) % 41u;
     loc[1] = number;
-std::cout << number << ' ';
     number = (number + 13u) % 41u;
     loc[2] = number;
-std::cout << number << "-> ";
     number = (number + 13u) % 41u;
     shep.interpolate(loc);
-std::cout << '\n';
-  //  EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) == 0.0);
+    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) == 0.0);
   }
 }
 
