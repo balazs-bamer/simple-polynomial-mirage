@@ -172,9 +172,9 @@ public:
     tPayload mPayload;
   };
 
-  static constexpr uint32_t csChildCount        = 1u << tDimensions;
-  static constexpr uint32_t csMaxLevels         = 50u;
-  static constexpr tCoortdinate csInflateBounds = 1.01;
+  static constexpr uint32_t csChildCount       = 1u << tDimensions;
+  static constexpr uint32_t csMaxLevels        = 50u;
+  static constexpr tCoordinate csInflateBounds = 1.01;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
@@ -189,15 +189,15 @@ private:
     uint32_t                                        mCountHere;
     std::variant<std::monostate, Children, Payload> mContents;
     Location                                        mCenter;
-    Location                                        mSize;
+    Location                                        mSizeDiv4;
 
-    Node(Location const &aCenter, Location const& aSize) : mCountTotal(0u), mCountHere(0u), mCenter(aCenter), mSize(aSize) {}
+    Node(Location const &aCenter, Location const& aSize) : mCountTotal(0u), mCountHere(0u), mCenter(aCenter), mSizeDiv4(aSize / 4.0) {}
 
     std::pair<uint32_t, Location> getChildIndexCenter(Location const &aTarget) const {
       uint32_t index = 0u;
       Location location = mCenter;
       for(uint32_t i = 0u; i < tDimensions; ++i) {
-        auto diff = mSize[i] / 4.0;
+        auto diff = mSizeDiv4[i];
         if(aTarget[i] >= mCenter[i]) {
           index += 1u << i;
           location[i] += diff;
@@ -278,10 +278,12 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
     auto newBoundsMin = mBoundsMin;
     for(uint32_t dim = 0u; dim < tDimensions; ++dim) {
       if(i && (1u << dim)) {
-        newBoundsMin[dim] -= mTargetSize[dim] / 2.0;
-        newBoundsMax[dim] += mTargetSize[dim] * 1.5;
+        newBoundsMin[dim] -= mTargetSizeDiv2[dim];
+        newBoundsMax[dim] += size[dim] - mTargetSizeDiv2[dim];
       }
-      else {} // nothing to do
+      else {
+        newBoundsMax[dim] += size[dim];
+      }
     }
     buildTree(i, (newBoundsMin + newBoundsMax) / 2u, newBoundsMax - newBoundsMin, aData);
   }
@@ -311,7 +313,11 @@ std::cout << "] ";
     else if(std::holds_alternative<typename Node::Payload>(branch->mContents)) {
       auto &payload = std::get<typename Node::Payload>(branch->mContents);
       for(uint32_t i = 0u; i < branch->mCountHere; ++i) {
-std::cout << payload[i].mPayload << ' ';
+std::cout << payload[i].mPayload << ':';
+for(uint32_t j = 0u; j < tDimensions; ++j) {
+  std::cout << (payload[i].mLocation[j] >= branch->mCenter[j] ? '1' : '0');
+}
+std::cout << ' ';
       }
     }
   }
