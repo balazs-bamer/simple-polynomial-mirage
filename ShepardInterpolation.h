@@ -172,8 +172,9 @@ public:
     tPayload mPayload;
   };
 
-  static constexpr uint32_t csChildCount = 1u << tDimensions;
-  static constexpr uint32_t csMaxLevels  = 50u;
+  static constexpr uint32_t csChildCount        = 1u << tDimensions;
+  static constexpr uint32_t csMaxLevels         = 50u;
+  static constexpr tCoortdinate csInflateBounds = 1.01;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
@@ -261,8 +262,11 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
       mBoundsMax = Location::max(mBoundsMax, item.mLocation);
     }
   }
+  auto size = (mBoundsMax - mBoundsMin) * csInflateBounds;
+  auto center = (mBoundsMax + mBoundsMin) / 2.0;
+  mBoundsMin = center - size / 2.0;
+  mBoundsMax = center + size / 2.0;
 
-  auto size = mBoundsMax - mBoundsMin;
   buildTree(0u, (mBoundsMin + mBoundsMax) / 2u, size, aData);
   calculateTargetLevelFromChild0();
   mTargetSize = size / ::pow(2.0, mTargetLevelInChild0);
