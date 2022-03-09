@@ -293,7 +293,7 @@ template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t t
 tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::interpolate(Location const &aLocation) const {
   auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
   mInterpolatorQueue.emplace_back(branch);
-std::cout << " [center: ";
+std::cout << " [levelDiff: " << levelDiff << " center: ";
 for(uint32_t i = 0u; i < tDimensions; ++i) {
   std::cout << static_cast<int32_t>(::round(branch->mCenter[i])) << ' ';
 }
@@ -440,9 +440,13 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calcula
     }
     average /= count;
     if(average >= cmSamplesToConsider) {
+std::cout << "+average: " << average << " level: " << level << '\n';
       mTargetLevelInChild0 = level;
     }
-    else {} // Nothing to do
+    else {
+std::cout << "-average: " << average << " level: " << level << '\n';
+
+    } // Nothing to do
     ++level;
   }
 }
@@ -450,9 +454,9 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calcula
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
 std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::Node*, uint32_t>
 ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNodeLevelDiff(uint32_t const aWhichRoot, Location const& aLoc) const {
-  uint32_t actualTargetLevel = mTargetLevelInChild0 + (aWhichRoot == 0u ? 0u : 1u);
+  uint32_t level = (aWhichRoot == 0u ? 0u : 1u);
+  uint32_t actualTargetLevel = mTargetLevelInChild0 + level;
   auto branch = mRoots[aWhichRoot].get();
-  uint32_t level = 0u;
   uint32_t levelDiff = actualTargetLevel;
   Node* result = branch;
 std::cout << "  (WhichRoot:" << aWhichRoot << " TCs:";
@@ -470,6 +474,7 @@ std::cout << " -" << branch->mCountTotal;
       auto const& children = std::get<typename Node::Children>(branch->mContents);
       auto [childIndex, childCenter] = branch->getChildIndexCenter(aLoc);
       branch = children[childIndex].get();
+      ++level;
     }
     else {
       branch = nullptr;
