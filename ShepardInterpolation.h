@@ -36,6 +36,8 @@ public:
   tCoordinate& operator[](uint32_t const aIndex) { return mArray[aIndex]; }
   tCoordinate const& operator[](uint32_t const aIndex) const { return mArray[aIndex]; }
 
+  static constexpr CoefficientWise zero() { return CoefficientWise(0.0); }
+
   CoefficientWise operator+(CoefficientWise const& aOther) const {
     CoefficientWise result;
     for(uint32_t i = 0u; i < tSize; ++i) {
@@ -170,9 +172,9 @@ public:
     tPayload mPayload;
   };
 
-  static constexpr uint32_t csChildCount       = 1u << tDimensions;
-  static constexpr uint32_t csMaxLevels        = 50u;
-  static constexpr tCoordinate csInflateBounds = 1.01;
+  static constexpr uint32_t csChildCount         = 1u << tDimensions;
+  static constexpr uint32_t csMaxLevels          = 50u;
+  static constexpr tCoordinate csInflateBounds   = 1.01;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
@@ -212,6 +214,7 @@ private:
   Location                                        mBoundsMin;
   Location                                        mBoundsMax;
   uint32_t const                                  cmSamplesToConsider;
+  tCoordinate                                     cmShepardExponentMod;
   uint32_t                                        mTargetLevelInChild0;  // Where average of total count >= cmSamplesToConsider
   Location                                        mTargetSize;
   Location                                        mTargetSizeDiv2;
@@ -227,7 +230,8 @@ public:
   ShepardInterpolation& operator=(ShepardInterpolation const &) = delete;
   ShepardInterpolation& operator=(ShepardInterpolation &&) = delete;
 
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider);
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent);
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider) : ShepardInterpolation(aData, aSamplesToConsider, tDimensions * 2.0) {}
   uint32_t getTargetLevel()                    const { return mTargetLevelInChild0; }
   uint32_t getLevelCount()                     const { return mNodesPerLevel.size(); }
   uint32_t getNodeCount(uint32_t const aLevel) const { return mNodesPerLevel[aLevel]; }
@@ -245,10 +249,11 @@ private:
 };
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider)
+ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent)
   : mBoundsMin ( std::numeric_limits<tCoordinate>::max())
   , mBoundsMax (-std::numeric_limits<tCoordinate>::max())
   , cmSamplesToConsider(aSamplesToConsider)
+  , cmShepardExponentMod(-0.5 * aShepardExponent)
   , mTargetLevelInChild0(0u) {
   if(aData.size() < aSamplesToConsider || aSamplesToConsider == 0u) {
     throw std::invalid_argument("ShepardInterpolation: invalid constructor arguments.");
@@ -291,6 +296,8 @@ template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t t
 tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::interpolate(Location const &aLocation) const {
   auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
   mInterpolatorQueue.emplace_back(branch);
+  tCoordinate weightSum = 0.0;
+  tPayload sampleSum = tPayload::zero();
   while(mInterpolatorQueue.size() > 0u) {
     branch = mInterpolatorQueue.back();
     mInterpolatorQueue.pop_back();
@@ -306,11 +313,19 @@ tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::int
     else if(std::holds_alternative<typename Node::Payload>(branch->mContents)) {
       auto &payload = std::get<typename Node::Payload>(branch->mContents);
       for(uint32_t i = 0u; i < branch->mCountHere; ++i) {
-        // TODO
+        tCoordinate weight = 0.0;
+        auto const& sample = payload[i].mLocation;
+        for(uint32_t d = 0u; d < tDimensions; ++d) {
+          auto diff = sample[d] - aLocation[d];
+          weight += diff * diff;
+        }
+        weight = ::pow(weight, cmShepardExponentMod);
+        weightSum += weight;
+        sampleSum += weight * payload[i].mPayload;
       }
     }
   }
-  return tPayload(0); // TODO
+  return sampleSum / weightSum;
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
