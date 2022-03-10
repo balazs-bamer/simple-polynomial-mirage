@@ -288,6 +288,39 @@ TEST(angle2apparentMirrorDepth, temp2height) {
 
 /* TODO test
 
+  using Data = CoefficientWise<double, 1u>;
+  using ShepIntpol = ShepardInterpolation<double, 2u, Data, 3>;
+  std::vector<ShepIntpol::Data> data;
+  uint32_t number = 0u;
+  for(uint32_t i = 0u; i < 60u; ++i) {
+    typename ShepIntpol::Data item;
+    item.mLocation[0] = number;
+    auto sum = number * number;
+    number = (number + 81u) % 127u;
+    item.mLocation[1] = number;
+    sum += number * number;
+    number = (number + 81u) % 127u;
+    item.mPayload = {static_cast<double>(sum)};
+    data.push_back(item);
+  }
+  ShepIntpol shep(data, 3u, argc);
+  std::cout << "TL: " << shep.getTargetLevel() << '\n';
+  double diffSum = 0.0;
+  double valSum = 0.0;
+  for(uint32_t i = 0u; i < 127u; ++i) {
+    for(uint32_t j = 0u; j < 127u; ++j) {
+      typename ShepIntpol::Location loc{i, j};
+      auto v = i*i+j*j;
+      valSum += v;
+      auto d = v - shep.interpolate(loc)[0];
+      diffSum += d * d;
+//    std::cout << "dftc: " << shep.getDistanceFromTargetCenter(loc) << " diffInt: " << d << '\n';
+    }
+  }
+  auto diffAvg = ::sqrt(diffSum) / 127.0 / 127.0;
+  auto valAvg = valSum / 127.0 / 127.0;
+  std::cout << "err: " << diffAvg/valAvg << '\n';
+
   ShepardRayBending::Gather g;
   g.mAsphalt = false;
   g.mCollection.emplace_back(1.0, 2.0, 2.0/::sqrt(0.1*0.1+2.0*2.0));

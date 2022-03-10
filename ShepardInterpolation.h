@@ -247,6 +247,7 @@ public:
   uint32_t getItemCount(uint32_t const aLevel) const { return mItemsPerLevel[aLevel]; }
 
   // TODO Octave output of interpolated function.
+  // TODO RRMSE for vector of test points.
   tPayload interpolate(Location const& aLocation) const;
   tCoordinate getDistanceFromTargetCenter(Location const& aLocation) const;
 

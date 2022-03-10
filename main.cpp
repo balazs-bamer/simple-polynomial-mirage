@@ -19,7 +19,7 @@ void test(char const * const aName, std::vector<double> const& aSamplesX, std::f
 }
 
 int main(int argc, char **argv) {
-  using Data = CoefficientWise<double, 1u>;
+/*  using Data = CoefficientWise<double, 1u>;
   using ShepIntpol = ShepardInterpolation<double, 2u, Data, 3>;
   std::vector<ShepIntpol::Data> data;
   uint32_t number = 0u;
@@ -50,11 +50,11 @@ int main(int argc, char **argv) {
   }
   auto diffAvg = ::sqrt(diffSum) / 127.0 / 127.0;
   auto valAvg = valSum / 127.0 / 127.0;
-  std::cout << "err: " << diffAvg/valAvg << '\n';
+  std::cout << "err: " << diffAvg/valAvg << '\n';*/
 
   // TODO Octave output of interpolated function.
 
-  /*ShepardRayBending t28(28.0);
+  ShepardRayBending t28(28.0);
 
   std::vector<double> angles({89.6, 89.65, 89.7, 89.75, 89.8, 89.85, 89.9, 89.95});
 
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   test("height1dist200dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 200).second; });
   test("height1dist300height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 300).first; });
   test("height1dist300dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 300).second; });
-*/  
+
 /*
   std::vector<double> heights({0.0005, 0.0007, 0.001, 0.0015, 0.002, 0.0035, 0.005, 0.007, 0.01, 0.02, 0.03, 0.05, 0.07, 0.1, 0.13, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7, 0.8, 0.89});
   std::vector<double> inclinations;
