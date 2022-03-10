@@ -136,7 +136,7 @@ public:
 
   std::pair<double, double> getHeightDirection(double const aHeight, double const aDirection, double const aDistance) {
     auto result = mShepardBending->interpolate({aHeight, aDirection, aDistance});
-    return std::make_pair(result[csIndexPayloadHeigh], result[csIndexPayloadDir]);
+    return std::make_pair(result[csIndexPayloadHeight], result[csIndexPayloadDir]);
   }
 
 private:

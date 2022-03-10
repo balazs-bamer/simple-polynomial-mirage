@@ -239,7 +239,7 @@ TEST(shepardInterpolation, levelFew_dim2_random40_data2d) {
 }
 
 TEST(shepardInterpolation, levelFew_dim3_random40_data3d) {
-  using ShepIntpol = ShepardInterpolation<float, 3u, uint32_t, 3>;
+  using ShepIntpol = ShepardInterpolation<float, 3u, CoefficientWise<double, 1u>, 3>;
   std::vector<ShepIntpol::Data> data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 97u; ++i) {
@@ -250,7 +250,7 @@ TEST(shepardInterpolation, levelFew_dim3_random40_data3d) {
     number = (number + 11u) % 41u;
     item.mLocation[2] = number;
     number = (number + 11u) % 41u;
-    item.mPayload = i;
+    item.mPayload[0] = i;
     data.push_back(item);
   }
   ShepIntpol shep(data, 3u);

@@ -216,20 +216,17 @@ std::vector<uint32_t> ShepardRayBending::getRandomIndices(uint32_t const aFromCo
   return result;
 }
 
-std::unique_ptr<ActualShepard> ShepardRayBending::toShepard(std::deque<Relation> &aData) {
-  struct Data {
-    Location mLocation;
-    tPayload mPayload;
-  };
+std::unique_ptr<typename ShepardRayBending::ActualShepard> ShepardRayBending::toShepard(std::deque<Relation> &aData) {
   std::vector<typename ActualShepard::Data> data;
   data.reserve(aData.size());
   for(auto relation : aData) {
-    data.mLocation[csIndexLocationStartHeight] = relation.mStartHeight;
-    data.mLocation[csIndexLocationStartDir] = relation.mStartAngleFromHoriz;
-    data.mLocation[csIndexLocationHorizDisp] = relation.mHorizDisp;
-    data.mPayload[csIndexPayloadHeight]  = relation.mEndHeight;
-    data.mPayload[csIndexPayloadDir]  = relation.mEndAngleFromHoriz;
-    data.push_back(relation.*aMember);
+    typename ActualShepard::Data item;
+    item.mLocation[csIndexLocationStartHeight] = relation.mStartHeight;
+    item.mLocation[csIndexLocationStartDir] = relation.mStartAngleFromHoriz;
+    item.mLocation[csIndexLocationHorizDisp] = relation.mHorizDisp;
+    item.mPayload[csIndexPayloadHeight]  = relation.mEndHeight;
+    item.mPayload[csIndexPayloadDir]  = relation.mEndAngleFromHoriz;
+    data.push_back(item);
   }
-  return std::make_unique<ActualShepard>(data, chShepardExponent);
+  return std::make_unique<ActualShepard>(data, csShepardExponent);
 }
