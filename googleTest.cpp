@@ -254,7 +254,7 @@ TEST(shepardInterpolation, levelFew_dim3_random40_data3d) {
     data.push_back(item);
   }
   ShepIntpol shep(data, 3u);
-  EXPECT_TRUE(shep.getTargetLevel() == 2u);
+  EXPECT_TRUE(shep.getTargetLevel() == 3u);
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Location loc;
     loc[0] = number;
