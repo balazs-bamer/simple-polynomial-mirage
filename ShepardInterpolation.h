@@ -170,8 +170,9 @@ public:
     tPayload mPayload;
   };
 
-  static constexpr uint32_t csChildCount = 1u << tDimensions;
-  static constexpr uint32_t csMaxLevels  = 50u;
+  static constexpr uint32_t csChildCount       = 1u << tDimensions;
+  static constexpr uint32_t csMaxLevels        = 50u;
+  static constexpr tCoordinate csInflateBounds = 1.01;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
@@ -186,15 +187,15 @@ private:
     uint32_t                                        mCountHere;
     std::variant<std::monostate, Children, Payload> mContents;
     Location                                        mCenter;
-    Location                                        mSize;
+    Location                                        mSizeDiv4;
 
-    Node(Location const &aCenter, Location const& aSize) : mCountTotal(0u), mCountHere(0u), mCenter(aCenter), mSize(aSize) {}
+    Node(Location const &aCenter, Location const& aSize) : mCountTotal(0u), mCountHere(0u), mCenter(aCenter), mSizeDiv4(aSize / 4.0) {}
 
     std::pair<uint32_t, Location> getChildIndexCenter(Location const &aTarget) const {
       uint32_t index = 0u;
       Location location = mCenter;
       for(uint32_t i = 0u; i < tDimensions; ++i) {
-        auto diff = mSize[i] / 4.0;
+        auto diff = mSizeDiv4[i];
         if(aTarget[i] >= mCenter[i]) {
           index += 1u << i;
           location[i] += diff;
@@ -259,8 +260,11 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
       mBoundsMax = Location::max(mBoundsMax, item.mLocation);
     }
   }
+  auto size = (mBoundsMax - mBoundsMin) * csInflateBounds;
+  auto center = (mBoundsMax + mBoundsMin) / 2.0;
+  mBoundsMin = center - size / 2.0;
+  mBoundsMax = center + size / 2.0;
 
-  auto size = mBoundsMax - mBoundsMin;
   buildTree(0u, (mBoundsMin + mBoundsMax) / 2u, size, aData);
   calculateTargetLevelFromChild0();
   mTargetSize = size / ::pow(2.0, mTargetLevelInChild0);
@@ -272,10 +276,12 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
     auto newBoundsMin = mBoundsMin;
     for(uint32_t dim = 0u; dim < tDimensions; ++dim) {
       if(i && (1u << dim)) {
-        newBoundsMin[dim] -= mTargetSize[dim] / 2.0;
-        newBoundsMax[dim] += mTargetSize[dim] * 1.5;
+        newBoundsMin[dim] -= mTargetSizeDiv2[dim];
+        newBoundsMax[dim] += size[dim] - mTargetSizeDiv2[dim];
       }
-      else {} // nothing to do
+      else {
+        newBoundsMax[dim] += size[dim];
+      }
     }
     buildTree(i, (newBoundsMin + newBoundsMax) / 2u, newBoundsMax - newBoundsMin, aData);
   }
@@ -433,9 +439,9 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calcula
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
 std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::Node*, uint32_t>
 ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNodeLevelDiff(uint32_t const aWhichRoot, Location const& aLoc) const {
-  uint32_t actualTargetLevel = mTargetLevelInChild0 + (aWhichRoot == 0u ? 0u : 1u);
+  uint32_t level = (aWhichRoot == 0u ? 0u : 1u);
+  uint32_t actualTargetLevel = mTargetLevelInChild0 + level;
   auto branch = mRoots[aWhichRoot].get();
-  uint32_t level = 0u;
   uint32_t levelDiff = actualTargetLevel;
   Node* result = branch;
   while(branch != nullptr && level <= actualTargetLevel) {
@@ -448,6 +454,7 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNod
       auto const& children = std::get<typename Node::Children>(branch->mContents);
       auto [childIndex, childCenter] = branch->getChildIndexCenter(aLoc);
       branch = children[childIndex].get();
+      ++level;
     }
     else {
       branch = nullptr;
