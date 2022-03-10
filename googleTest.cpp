@@ -172,8 +172,8 @@ std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   EXPECT_TRUE(shep.getItemCount(8u) == 0u);
   EXPECT_TRUE(shep.getNodeCount(9u) == 2u);
   EXPECT_TRUE(shep.getItemCount(9u) == 4u);
-  EXPECT_TRUE(shep.getDistanceFromTargetCenter(0.0) == 0.0);
-  EXPECT_TRUE(shep.getDistanceFromTargetCenter(1.0) == 0.0);
+  EXPECT_TRUE(shep.getDistanceFromTargetCenter(0.0) < 1.0);
+  EXPECT_TRUE(shep.getDistanceFromTargetCenter(1.0) < 1.0);
 }
 
 TEST(shepardInterpolation, levelFew_dim1_random40) {
@@ -201,7 +201,7 @@ std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Location loc;
     loc[0] = number;
-    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) == 0.0);
+    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) < 1.0);
     number = (number + 41u) % 64u;
   }
 }
@@ -261,7 +261,7 @@ std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
     number = (number + 41u) % 64u;
     loc[1] = number;
     number = (number + 41u) % 64u;
-    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) == 0.0);
+    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) < 1.0);
   }
 }
 
@@ -307,7 +307,7 @@ std::cout << number << "-> ";
     number = (number + 67u) % 97u;
     shep.interpolate(loc);
 std::cout << '\n';
-//    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) == 0.0);
+    EXPECT_TRUE(shep.getDistanceFromTargetCenter(loc) < 1.0);
   }
 }
 
