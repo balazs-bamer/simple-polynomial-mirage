@@ -35,15 +35,10 @@ private:
 
   static constexpr uint32_t csRayTraceCountAsphalt          = 101u;
   static constexpr uint32_t csRayTraceCountBending          = 101u;
-  static constexpr uint32_t csPolynomDegreeHeight           =   5u;  // Perhaps 11 not too slow
-  static constexpr uint32_t csPolynomDegreeDirection        =   5u;
-  static constexpr uint32_t csPolynomDegreeHorizDisp        =   5u;
+  static constexpr uint32_t csShepardInPlace                =   4u;
+  static constexpr uint32_t csShepardExponent               =   6u;
   static constexpr uint32_t csSamplePointsOnRay             =  23u;  // Perhaps 31 not too slow, now 4 mins by me.
   static constexpr double   csRelativeRandomRadius          =   0.25;
-
-  // TODO first height points are definitely wrong:
-  // height1dist300height_x = [8.96000000000e+01, 8.96500000000e+01, 8.97000000000e+01, 8.97500000000e+01, 8.98000000000e+01, 8.98500000000e+01, 8.99000000000e+01, 8.99500000000e+01];
-  // height1dist300height_y = [2.30840279548e+00, 7.59260543761e-01, 2.12387699473e-01, 4.77512281685e-02, 7.86320020615e-03, 8.00328782638e-04, 3.49354047276e-05, 2.24455916043e-07];
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
@@ -54,6 +49,12 @@ private:
   static constexpr double   csAlmostHorizontal              =   (cgPi / 2.0) * 0.9999;
   static constexpr double   csAsphaltRayAngleLimit          =   (cgPi / 4.0);
   static constexpr double   csEpsilon                       =   0.00001;
+    
+  static constexpr uint32_t csIndexLocationStartHeight = 0u;
+  static constexpr uint32_t csIndexLocationStartDir    = 1u;
+  static constexpr uint32_t csIndexLocationHorizDisp   = 2u;
+  static constexpr uint32_t csIndexPayloadHeight       = 0u;
+  static constexpr uint32_t csIndexPayloadDir          = 1u;
 
 public: // TODO private when ready
   // Used to gather data from one half ray bending trace.
@@ -106,6 +107,9 @@ private:
     Static();
   };
 
+  using HeightDirection = CoefficientWise<double, 2u>;
+  using ActualShepard = ShepardInterpolation<double, 3u, HeightDirection, csShepardInPlace>;
+
   double mTempDiffSurface;
   double mHeightLimit;
   double mB;
@@ -115,12 +119,9 @@ private:
   mutable std::minstd_rand                       mRandomEngine;
   mutable std::uniform_real_distribution<double> mRandomDistribution;
 
-  std::unique_ptr<PolynomApprox>                 mPolyBendingHeight;
-  std::unique_ptr<PolynomApprox>                 mPolyBendingAngleFromHoriz;
-  std::unique_ptr<PolynomApprox>                 mPolyAsphaltDownHeight;
-  std::unique_ptr<PolynomApprox>                 mPolyAsphaltDownAngleFromHoriz;
-  std::unique_ptr<PolynomApprox>                 mPolyAsphaltUpHeight;
-  std::unique_ptr<PolynomApprox>                 mPolyAsphaltUpAngleFromHoriz;
+  std::unique_ptr<ActualShepard>                 mShepardBending;
+  std::unique_ptr<ActualShepard>                 mShepardAsphaltDown;
+  std::unique_ptr<ActualShepard>                 mShepardAsphaltUp;
 
 public:
   ShepardRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
@@ -134,8 +135,8 @@ public:
   double getRefractionAtHeight(double const aHeight)           const { return getRefractionAtTempRise(getTempRiseAtHeight(aHeight)); }
 
   std::pair<double, double> getHeightDirection(double const aHeight, double const aDirection, double const aDistance) {
-    return std::make_pair(mPolyBendingHeight->eval(std::initializer_list<double>{aHeight, aDirection, aDistance}),
-                          mPolyBendingAngleFromHoriz->eval(std::initializer_list<double>{aHeight, aDirection, aDistance}));
+    auto result = mShepardBending->interpolate({aHeight, aDirection, aDistance});
+    return std::make_pair(result[csIndexPayloadHeigh], result[csIndexPayloadDir]);
   }
 
 private:
@@ -147,7 +148,7 @@ public:  // TODO private when ready
   void                                  addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const;
   void                                  addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const;
   std::vector<uint32_t>                 getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const;
-  static std::unique_ptr<PolynomApprox> toShepard(std::deque<Relation> &aData, double Relation::* const aMember);
+  static std::unique_ptr<ActualShepard> toShepard(std::deque<Relation> &aData);
 };
 
 #endif

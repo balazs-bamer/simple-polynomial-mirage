@@ -60,10 +60,8 @@ std::cout << "ready 1: critical inclination\n";
     inclination += increment;
   }
 std::cout << "ready 2: bending trace\n";
-  mPolyBendingHeight         = std::move(toShepard(samplesBending, &Relation::mEndHeight));
-std::cout << "ready 3: mPolyBendingHeight\n";
-  mPolyBendingAngleFromHoriz = std::move(toShepard(samplesBending, &Relation::mEndAngleFromHoriz));
-std::cout << "ready 4: mPolyBendingAngleFromHoriz\n";
+  mShepardBending = std::move(toShepard(samplesBending));
+std::cout << "ready 3: mShepardBending\n";
 
   mCriticalInclination -= 2.0 * csEpsilon;
   increment = (mCriticalInclination - csAsphaltRayAngleLimit) / (csRayTraceCountAsphalt - 1u);
@@ -81,15 +79,11 @@ std::cout << "ready 4: mPolyBendingAngleFromHoriz\n";
     }
     inclination += increment;
   }
-std::cout << "ready 5: asphalt trace\n";
-  mPolyAsphaltDownHeight         = std::move(toShepard(samplesAsphaltDown, &Relation::mEndHeight));
-std::cout << "ready 6: mPolyAsphaltDownHeight\n";
-  mPolyAsphaltDownAngleFromHoriz = std::move(toShepard(samplesAsphaltDown, &Relation::mEndAngleFromHoriz));
-std::cout << "ready 7: mPolyAsphaltDownAngleFromHoriz\n";
-  mPolyAsphaltUpHeight           = std::move(toShepard(samplesAsphaltUp,   &Relation::mEndHeight));
-std::cout << "ready 8: mPolyAsphaltUpHeight\n";
-  mPolyAsphaltUpAngleFromHoriz   = std::move(toShepard(samplesAsphaltUp,   &Relation::mEndAngleFromHoriz));
-std::cout << "ready 9: mPolyAsphaltUpAngleFromHoriz\n";
+std::cout << "ready 4: asphalt trace\n";
+  mShepardAsphaltDown = std::move(toShepard(samplesAsphaltDown));
+std::cout << "ready 5: mShepardAsphaltDown\n";
+  mShepardAsphaltUp   = std::move(toShepard(samplesAsphaltUp));
+std::cout << "ready 6: mShepardAsphaltUp\n";
 }
 
 ShepardRayBending::Gather ShepardRayBending::traceHalf(double const aInclination0) const {
@@ -222,20 +216,20 @@ std::vector<uint32_t> ShepardRayBending::getRandomIndices(uint32_t const aFromCo
   return result;
 }
 
-std::unique_ptr<PolynomApprox> ShepardRayBending::toShepard(std::deque<Relation> &aData, double Relation::* const aMember) {
-  std::vector<double> heights;
-  std::vector<double> directions;
-  std::vector<double> horizDisps;
-  std::vector<double> outputs;
-  heights.reserve(aData.size());
-  directions.reserve(aData.size());
-  horizDisps.reserve(aData.size());
-  outputs.reserve(aData.size());
+std::unique_ptr<ActualShepard> ShepardRayBending::toShepard(std::deque<Relation> &aData) {
+  struct Data {
+    Location mLocation;
+    tPayload mPayload;
+  };
+  std::vector<typename ActualShepard::Data> data;
+  data.reserve(aData.size());
   for(auto relation : aData) {
-    heights.push_back(relation.mStartHeight);
-    directions.push_back(relation.mStartAngleFromHoriz);
-    horizDisps.push_back(relation.mHorizDisp);
-    outputs.push_back(relation.*aMember);
+    data.mLocation[csIndexLocationStartHeight] = relation.mStartHeight;
+    data.mLocation[csIndexLocationStartDir] = relation.mStartAngleFromHoriz;
+    data.mLocation[csIndexLocationHorizDisp] = relation.mHorizDisp;
+    data.mPayload[csIndexPayloadHeight]  = relation.mEndHeight;
+    data.mPayload[csIndexPayloadDir]  = relation.mEndAngleFromHoriz;
+    data.push_back(relation.*aMember);
   }
-  return std::make_unique<PolynomApprox>(outputs, std::initializer_list<PolynomApprox::Var>{{heights.data(), csPolynomDegreeHeight}, {directions.data(), csPolynomDegreeDirection}, {horizDisps.data(), csPolynomDegreeHorizDisp}});
+  return std::make_unique<ActualShepard>(data, chShepardExponent);
 }
