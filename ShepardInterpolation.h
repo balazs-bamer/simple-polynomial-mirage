@@ -36,7 +36,7 @@ public:
   tCoordinate& operator[](uint32_t const aIndex) { return mArray[aIndex]; }
   tCoordinate const& operator[](uint32_t const aIndex) const { return mArray[aIndex]; }
 
-  static constexpr CoefficientWise zero() { return CoefficientWise(0.0); }
+  static constexpr CoefficientWise Zero() { return CoefficientWise(0.0); }
 
   CoefficientWise operator+(CoefficientWise const& aOther) const {
     CoefficientWise result;
@@ -130,6 +130,13 @@ public:
     return *this;
   }
 
+  CoefficientWise& operator+=(CoefficientWise const& aOther) {
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      mArray[i] += aOther[i];
+    }
+    return *this;
+  }
+
   tCoordinate norm() const {
     tCoordinate result = 0.0;
     for(uint32_t i = 0u; i < tSize; ++i) {
@@ -172,9 +179,10 @@ public:
     tPayload mPayload;
   };
 
-  static constexpr uint32_t csChildCount         = 1u << tDimensions;
-  static constexpr uint32_t csMaxLevels          = 50u;
-  static constexpr tCoordinate csInflateBounds   = 1.01;
+  static constexpr uint32_t    csChildCount          = 1u << tDimensions;
+  static constexpr uint32_t    csMaxLevels           = 50u;
+  static constexpr tCoordinate csInflateBounds       = 1.01;
+  static constexpr tCoordinate csTargetEpsilonFactor = 0.01;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
@@ -219,6 +227,7 @@ private:
   Location                                        mTargetSize;
   Location                                        mTargetSizeDiv2;
   Location                                        mTargetSizeDiv4;
+  tCoordinate                                     mTargetEpsilonSquared;
   std::vector<uint32_t>                           mNodesPerLevel;
   std::vector<uint32_t>                           mItemsPerLevel;
   mutable std::vector<Node*>                      mInterpolatorQueue;  // Just to avoid frequent allocations
@@ -237,6 +246,7 @@ public:
   uint32_t getNodeCount(uint32_t const aLevel) const { return mNodesPerLevel[aLevel]; }
   uint32_t getItemCount(uint32_t const aLevel) const { return mItemsPerLevel[aLevel]; }
 
+  // TODO Octave output of interpolated function.
   tPayload interpolate(Location const& aLocation) const;
   tCoordinate getDistanceFromTargetCenter(Location const& aLocation) const;
 
@@ -275,6 +285,8 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
   mTargetSize = size / ::pow(2.0, mTargetLevelInChild0);
   mTargetSizeDiv2 = mTargetSize / 2.0;
   mTargetSizeDiv4 = mTargetSize / 4.0;
+  auto tmp = mTargetSize.norm() * csTargetEpsilonFactor;
+  mTargetEpsilonSquared = tmp * tmp;
 
   for(uint32_t i = 1u; i < csChildCount; ++i) {
     auto newBoundsMax = mBoundsMax;
@@ -297,7 +309,9 @@ tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::int
   auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
   mInterpolatorQueue.emplace_back(branch);
   tCoordinate weightSum = 0.0;
-  tPayload sampleSum = tPayload::zero();
+  tPayload sampleSum = tPayload::Zero();
+  tPayload result;
+  bool ready = false;
   while(mInterpolatorQueue.size() > 0u) {
     branch = mInterpolatorQueue.back();
     mInterpolatorQueue.pop_back();
@@ -313,19 +327,27 @@ tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::int
     else if(std::holds_alternative<typename Node::Payload>(branch->mContents)) {
       auto &payload = std::get<typename Node::Payload>(branch->mContents);
       for(uint32_t i = 0u; i < branch->mCountHere; ++i) {
-        tCoordinate weight = 0.0;
-        auto const& sample = payload[i].mLocation;
+        tCoordinate diff = 0.0;
+        auto const& sample = payload[i];
         for(uint32_t d = 0u; d < tDimensions; ++d) {
-          auto diff = sample[d] - aLocation[d];
-          weight += diff * diff;
+          auto diffScal = sample.mLocation[d] - aLocation[d];
+          diff += diffScal * diffScal;
         }
-        weight = ::pow(weight, cmShepardExponentMod);
-        weightSum += weight;
-        sampleSum += weight * payload[i].mPayload;
+        if(diff < mTargetEpsilonSquared) {
+          result = sample.mPayload;
+          ready = true;
+          mInterpolatorQueue.clear();
+          break;
+        }
+        else {
+          auto weight = ::pow(diff, cmShepardExponentMod);
+          weightSum += weight;
+          sampleSum += sample.mPayload * weight;
+        }
       }
     }
   }
-  return sampleSum / weightSum;
+  return ready ? result : sampleSum / weightSum;
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
