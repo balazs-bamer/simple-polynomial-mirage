@@ -511,7 +511,7 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNod
   }
   uint32_t index = 0u;
   for(uint32_t i = 0u; i < tDimensions; ++i) {
-    if(::abs(fromCenter[i]) >= mTargetSizeDiv4[i]) {
+    if(std::abs(fromCenter[i]) >= mTargetSizeDiv4[i]) {
       index += 1u << i;
     }
     else {} // nothing to do

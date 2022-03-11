@@ -82,7 +82,7 @@ PolynomApprox::PolynomApprox(uint32_t const aSampleCount, double const * const a
       x.push_back(var.mSamples[i]);
     }
     auto desired = aSamplesY[i];
-    auto diff = desired - eval(x);
+    auto diff = desired - eval(x);  // TODO find out why does not compile for Anna
     diffs += diff * diff;
     desireds += desired * desired;
   }
