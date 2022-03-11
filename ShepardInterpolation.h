@@ -519,4 +519,4 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNod
   return getTargetNodeLevelDiff(index, aLocation);
 }
 
-#endif // SHEPARD_H
+#endif  // SHEPARD_H
