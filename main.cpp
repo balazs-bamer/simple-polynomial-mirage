@@ -19,20 +19,34 @@ void test(char const * const aName, std::vector<double> const& aSamplesX, std::f
 }
 
 int main(int argc, char **argv) {
+  if(argc < 5) { return 1; }
+  double bias = std::stod(std::string(argv[1]));
+  std::cout << "bias: " << bias << '\n';
+  double delta = std::stod(std::string(argv[2]));
+  std::cout << "delta: " << delta << '\n';
+  uint32_t toConsider = std::stoul(std::string(argv[3]));
+  std::cout << "toConsider: " << toConsider << '\n';
+  double shepardExponent = std::stod(std::string(argv[4]));
+  std::cout << "shepExp: " << shepardExponent << '\n';
   using Data = CoefficientWise<double, 1u>;
-  using ShepIntpol = ShepardInterpolation<double, 1u, Data, 3>;
+  using ShepIntpol = ShepardInterpolation<double, 1u, Data, 4>;
   std::vector<ShepIntpol::Data> data;
   double number = 0.0;
-  double const delta = 0.31;
   uint32_t max = 100u;
   for(; number < max; number += delta) {
     typename ShepIntpol::Data item;
     item.mLocation[0] = number;
-    auto sum = number * number;
+    // auto sum = number * number + bias; // relerr<0.007 if bias: 4321 delta: 2.3 toConsider: 4 shepExp: 3 TL: 3
+    auto sum = std::sin(number / 7) + bias; // biaserr<0.05 if bias: 2 delta: 2.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.006 unbiaserr<0.06 if bias: 12 delta: 2.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.003 unbiaserr<0.033 if bias: 22 delta: 2.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.002 unbiaserr<0.04 if bias: 42 delta: 2.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.002 unbiaserr<0.033 if bias: 22 delta: 1.3 toConsider: 4 shepExp: 3
+// biaserr is what seen on biased relative error graph
     item.mPayload = {static_cast<double>(sum)};
     data.push_back(item);
   }
-  ShepIntpol shep(data, 19u, argc);
+  ShepIntpol shep(data, toConsider, shepardExponent);
   std::cout << "TL: " << shep.getTargetLevel() << '\n';
   double diffSum = 0.0;
   double valSum = 0.0;
@@ -40,9 +54,10 @@ int main(int argc, char **argv) {
   std::cout << "diff=[";
   for(double i = 0u; i < max; i+=d2) {
     typename ShepIntpol::Location loc{i};
-    auto v = i*i;
+    // auto v = i*i + bias;
+    auto v = std::sin(i / 7) + bias;
     valSum += v;
-    auto d = shep.interpolate(loc)[0];
+    auto d = (v == 0.0 ? 1.0 : shep.interpolate(loc)[0] / v);
     diffSum += d * d;
     std::cout << d << (i < max - d2 ? ", " : "];\n");
   }

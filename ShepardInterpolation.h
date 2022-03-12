@@ -482,7 +482,7 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNod
   auto branch = mRoots[aWhichRoot].get();
   uint32_t levelDiff = actualTargetLevel;
   Node* result = branch;
-  while(branch != nullptr && level <= actualTargetLevel) {
+  while(branch != nullptr && level < actualTargetLevel) {
     if(branch->mCountTotal >= cmSamplesToConsider) {
       result = branch;
       levelDiff = actualTargetLevel - level;
