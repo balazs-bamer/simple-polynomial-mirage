@@ -170,7 +170,7 @@ public:
   }
 };
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
 class ShepardInterpolation final {
 public:
   using Location = CoefficientWise<tCoordinate, tDimensions>;
@@ -179,13 +179,25 @@ public:
     tPayload mPayload;
   };
 
-  static constexpr uint32_t    csChildCount          = 1u << tDimensions;
-  static constexpr uint32_t    csMaxLevels           = 50u;
-  static constexpr tCoordinate csInflateBounds       = 1.01;
-  static constexpr tCoordinate csTargetEpsilonFactor = 0.01;
+  static constexpr size_t getAverageCount() {
+    size_t result = 1u;
+    for(size_t d = 0; d < tDimensions; ++d) {
+      result *= tAverageCount1d;
+    }
+    return result;
+  }
+
+  static constexpr size_t      csAverageCount               = getAverageCount();
+  static constexpr uint32_t    csChildCount                 = 1u << tDimensions;
+  static constexpr uint32_t    csMaxLevels                  = 50u;
+  static constexpr tCoordinate csInflateBounds              = 1.01;
+  static constexpr tCoordinate csTargetEpsilonFactor        = 0.01;
+  static constexpr tCoordinate csDefaultShepardExponent     = 3.0;
+  static constexpr tCoordinate csDefaultAverageRelativeSize = 0.5;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
+  static_assert(tAverageCount1d > 0u && tAverageCount1d <= 5u && csAverageCount <= 1024u);
 
 private:
   struct Node final {
@@ -231,6 +243,7 @@ private:
   std::vector<uint32_t>                           mNodesPerLevel;
   std::vector<uint32_t>                           mItemsPerLevel;
   mutable std::vector<Node*>                      mInterpolatorQueue;  // Just to avoid frequent allocations
+  std::array<Location, csAverageCount>            mAverageLocations;
 
 public:
   ShepardInterpolation() = delete;
@@ -239,8 +252,9 @@ public:
   ShepardInterpolation& operator=(ShepardInterpolation const &) = delete;
   ShepardInterpolation& operator=(ShepardInterpolation &&) = delete;
 
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent);
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider) : ShepardInterpolation(aData, aSamplesToConsider, tDimensions * 2.0) {}
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent, tCoordinate const aAverageRelativeSize);
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent) : ShepardInterpolation(aData, aSamplesToConsider, aShepardExponent, csDefaultAverageRelativeSize) {}
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider) : ShepardInterpolation(aData, aSamplesToConsider, csDefaultShepardExponent, csDefaultAverageRelativeSize) {}
   uint32_t getTargetLevel()                    const { return mTargetLevelInChild0; }
   uint32_t getLevelCount()                     const { return mNodesPerLevel.size(); }
   uint32_t getNodeCount(uint32_t const aLevel) const { return mNodesPerLevel[aLevel]; }
@@ -259,8 +273,8 @@ private:
   std::pair<Node*, uint32_t> getTargetNodeLevelDiff(Location const& aLoc) const;
 };
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent)
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
+ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent, tCoordinate const aAverageRelativeSize)
   : mBoundsMin ( std::numeric_limits<tCoordinate>::max())
   , mBoundsMax (-std::numeric_limits<tCoordinate>::max())
   , cmSamplesToConsider(aSamplesToConsider)
@@ -303,16 +317,35 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::ShepardInter
     }
     buildTree(i, (newBoundsMin + newBoundsMax) / 2u, newBoundsMax - newBoundsMin, aData);
   }
+
+  if constexpr(tAverageCount1d > 1u) {
+    auto increment = mTargetSizeDiv2 * (aAverageRelativeSize / (tAverageCount1d - 1u));
+    auto start = mTargetSizeDiv4 * -aAverageRelativeSize;
+    for(size_t i = 0u; i < csAverageCount; ++i) {
+      auto soFar = i;
+      for(uint32_t d = 0u; d < tDimensions; ++d) {
+        auto where = soFar % tAverageCount1d;
+        mAverageLocations[i][d] = start[d] + increment[d] * where;
+        soFar /= tAverageCount1d;
+      }
+    }
+  }
+  else {
+    mAverageLocations[0] = Location::Zero();
+  }
 }
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::interpolate(Location const &aLocation) const {
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
+tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::interpolate(Location const &aLocation) const {
   auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
   mInterpolatorQueue.emplace_back(branch);
-  tCoordinate weightSum = 0.0;
-  tPayload sampleSum = tPayload::Zero();
-  tPayload result;
-  bool ready = false;
+  std::array<bool,        csAverageCount> readys;
+  std::array<tPayload,    csAverageCount> results;
+  std::array<tPayload,    csAverageCount> sampleSums;
+  std::array<tCoordinate, csAverageCount> weightSums;
+  std::fill(sampleSums.begin(), sampleSums.end(), tPayload::Zero());
+  std::fill(weightSums.begin(), weightSums.end(), 0.0);
+  std::fill(readys.begin(),     readys.end(),    false);
   while(mInterpolatorQueue.size() > 0u) {
     branch = mInterpolatorQueue.back();
     mInterpolatorQueue.pop_back();
@@ -327,32 +360,45 @@ tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::int
     }
     else if(std::holds_alternative<typename Node::Payload>(branch->mContents)) {
       auto &payload = std::get<typename Node::Payload>(branch->mContents);
-      for(uint32_t i = 0u; i < branch->mCountHere; ++i) {
-        tCoordinate diff = 0.0;
-        auto const& sample = payload[i];
-        for(uint32_t d = 0u; d < tDimensions; ++d) {
-          auto diffScal = sample.mLocation[d] - aLocation[d];
-          diff += diffScal * diffScal;
-        }
-        if(diff < mTargetEpsilonSquared) {
-          result = sample.mPayload;
-          ready = true;
-          mInterpolatorQueue.clear();
-          break;
-        }
-        else {
-          auto weight = ::pow(diff, cmShepardExponentMod);
-          weightSum += weight;
-          sampleSum += sample.mPayload * weight;
+      for(uint32_t s = 0u; s < branch->mCountHere; ++s) {
+        auto const& sample = payload[s];
+        for(uint32_t a = 0u; a < csAverageCount; ++a) {
+          tCoordinate diff = 0.0;
+          auto const& disp = mAverageLocations[a];
+          for(uint32_t d = 0u; d < tDimensions; ++d) {
+            auto diffScal = sample.mLocation[d] - (aLocation[d] + disp[d]);
+            diff += diffScal * diffScal;
+          }
+          if(diff < mTargetEpsilonSquared) {
+            results[a] = sample.mPayload;
+            readys[a] = true;
+          }
+          else {
+            if(!readys[a]) {
+              auto weight = ::pow(diff, cmShepardExponentMod);
+              weightSums[a] += weight;
+              sampleSums[a] += sample.mPayload * weight;
+            }
+            else {} // nothing to do
+          }
         }
       }
     }
   }
-  return ready ? result : sampleSum / weightSum;
+  tPayload result = tPayload::Zero();
+  for(uint32_t a = 0u; a < csAverageCount; ++a) {
+    if(readys[a]) {
+      result += results[a];
+    }
+    else {
+      result += sampleSums[a] / weightSums[a];
+    }
+  }
+  return result / csAverageCount;
 }
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-tCoordinate ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getDistanceFromTargetCenter(Location const& aLocation) const {
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
+tCoordinate ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::getDistanceFromTargetCenter(Location const& aLocation) const {
   tCoordinate result;
   auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
   if(levelDiff > 0u) {
@@ -364,8 +410,8 @@ tCoordinate ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::
   return result;
 }
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::buildTree(size_t const aWhichRoot, Location const aCenter, Location const aSize, std::vector<Data> const& aData) {
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
+void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::buildTree(size_t const aWhichRoot, Location const aCenter, Location const aSize, std::vector<Data> const& aData) {
   mRoots[aWhichRoot] = std::move(std::make_unique<Node>(aCenter, aSize));
   auto root = mRoots[aWhichRoot].get();
   for(auto const &item : aData) {
@@ -373,8 +419,8 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::buildTr
   }
 }
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem, uint32_t const aLevel) {
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
+void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem, uint32_t const aLevel) {
   Node * branch   = aBranch;
   Location center = aCenter;
   Location size   = aSize;
@@ -424,8 +470,8 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::addLeaf
   }
 }
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calculateTargetLevelFromChild0() {
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
+void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::calculateTargetLevelFromChild0() {
   struct Item {
     Node*    mNode;
     uint32_t mLevel;
@@ -474,9 +520,9 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::calcula
   }
 }
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::Node*, uint32_t>
-ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNodeLevelDiff(uint32_t const aWhichRoot, Location const& aLoc) const {
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
+std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::Node*, uint32_t>
+ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::getTargetNodeLevelDiff(uint32_t const aWhichRoot, Location const& aLoc) const {
   uint32_t level = (aWhichRoot == 0u ? 0u : 1u);
   uint32_t actualTargetLevel = mTargetLevelInChild0 + level;
   auto branch = mRoots[aWhichRoot].get();
@@ -501,9 +547,9 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNod
   return std::pair(result, levelDiff);
 }
 
-template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace>
-std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::Node*, uint32_t>
-ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace>::getTargetNodeLevelDiff(Location const& aLocation) const {
+template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
+std::pair<typename ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::Node*, uint32_t>
+ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::getTargetNodeLevelDiff(Location const& aLocation) const {
   Location fromCenter;
   for(uint32_t i = 0u; i < tDimensions; ++i) {
     auto fromMin = aLocation[i] - mBoundsMin[i];

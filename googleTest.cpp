@@ -132,7 +132,7 @@ TEST(polynomApprox, 10y_x_x2__x3_xy) {
 #include <iostream>
 
 TEST(shepardInterpolation, level10_dim1_data10) {
-  using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 3>;
+  using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 3, 1>;
   std::vector<ShepIntpol::Data> data;
   for(uint32_t i = 0u; i < 10u; ++i) {
     typename ShepIntpol::Data item;
@@ -177,7 +177,7 @@ std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
 }
 
 TEST(shepardInterpolation, levelFew_dim1_random40) {
-  using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 3>;
+  using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 3, 1>;
   std::vector<ShepIntpol::Data> data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 40u; ++i) {
@@ -198,7 +198,7 @@ TEST(shepardInterpolation, levelFew_dim1_random40) {
 }
 
 TEST(shepardInterpolation, levelFew_dim2_random40_data1d) {
-  using ShepIntpol = ShepardInterpolation<float, 2u, uint32_t, 3>;
+  using ShepIntpol = ShepardInterpolation<float, 2u, uint32_t, 3, 1>;
   std::vector<ShepIntpol::Data> data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 40u; ++i) {
@@ -214,7 +214,7 @@ TEST(shepardInterpolation, levelFew_dim2_random40_data1d) {
 }
 
 TEST(shepardInterpolation, levelFew_dim2_random40_data2d) {
-  using ShepIntpol = ShepardInterpolation<float, 2u, uint32_t, 3>;
+  using ShepIntpol = ShepardInterpolation<float, 2u, uint32_t, 3, 1>;
   std::vector<ShepIntpol::Data> data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 40u; ++i) {
@@ -239,7 +239,7 @@ TEST(shepardInterpolation, levelFew_dim2_random40_data2d) {
 }
 
 TEST(shepardInterpolation, levelFew_dim3_random40_data3d) {
-  using ShepIntpol = ShepardInterpolation<float, 3u, CoefficientWise<double, 1u>, 3>;
+  using ShepIntpol = ShepardInterpolation<float, 3u, CoefficientWise<double, 1u>, 3, 1 >;
   std::vector<ShepIntpol::Data> data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 97u; ++i) {

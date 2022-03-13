@@ -36,7 +36,10 @@ private:
   static constexpr uint32_t csRayTraceCountAsphalt          = 101u;
   static constexpr uint32_t csRayTraceCountBending          = 101u;
   static constexpr uint32_t csShepardInPlace                =   4u;
+  static constexpr uint32_t csAverageCount1d                =   1u;
+  static constexpr uint32_t csSamplesToConsider             =   5u;
   static constexpr uint32_t csShepardExponent               =   6u;
+  static constexpr double   csAverageRelativeSize           =   0.5;
   static constexpr uint32_t csSamplePointsOnRay             =  23u;  // Perhaps 31 not too slow, now 4 mins by me.
   static constexpr double   csRelativeRandomRadius          =   0.25;
 
@@ -108,7 +111,7 @@ private:
   };
 
   using HeightDirection = CoefficientWise<double, 2u>;
-  using ActualShepard = ShepardInterpolation<double, 3u, HeightDirection, csShepardInPlace>;
+  using ActualShepard = ShepardInterpolation<double, 3u, HeightDirection, csShepardInPlace, csAverageCount1d>;
 
   double mTempDiffSurface;
   double mHeightLimit;

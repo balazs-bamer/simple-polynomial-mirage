@@ -228,5 +228,5 @@ std::unique_ptr<typename ShepardRayBending::ActualShepard> ShepardRayBending::to
     item.mPayload[csIndexPayloadDir]  = relation.mEndAngleFromHoriz;
     data.push_back(item);
   }
-  return std::make_unique<ActualShepard>(data, csShepardExponent);
+  return std::make_unique<ActualShepard>(data, csSamplesToConsider, csShepardExponent, csAverageRelativeSize);
 }
