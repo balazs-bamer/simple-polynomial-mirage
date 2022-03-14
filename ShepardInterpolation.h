@@ -18,6 +18,8 @@ private:
   std::array<tCoordinate, tSize> mArray;
 
 public:
+  using Scalar = tCoordinate;
+
   CoefficientWise() = default;
   CoefficientWise(tCoordinate const aInit) { std::fill(mArray.begin(), mArray.end(), aInit); }
 
@@ -312,8 +314,17 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount
   }
   else {} // nothing to do
 
-  tPayload valueMin(std::numeric_limits<tCoordinate>::max());
-  tPayload valueMax(-std::numeric_limits<tCoordinate>::max());
+
+  tPayload valueMin;
+  tPayload valueMax;
+  if constexpr(std::is_fundamental_v<tPayload>) {
+    valueMin = std::numeric_limits<tPayload>::max();
+    valueMax = -std::numeric_limits<tPayload>::max();
+  }
+  else {
+    valueMin = std::numeric_limits<typename tPayload::Scalar>::max();
+    valueMax = -std::numeric_limits<typename tPayload::Scalar>::max();
+  }
   for(auto const &item : aData) {
     for(size_t j = 0u; j < tDimensions; ++j) {
       mBoundsMin = Location::min(mBoundsMin, item.mLocation);
