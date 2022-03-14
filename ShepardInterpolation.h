@@ -217,7 +217,7 @@ public:
   static constexpr tCoordinate csTargetEpsilonFactor        =  0.01;
   static constexpr tCoordinate csDefaultAverageRelativeSize =  0.5;
   static constexpr tCoordinate csDefaultShepardExponent     =  3.0;
-  static constexpr tCoordinate csDefaultBiasSize            = 22.0;
+  static constexpr tCoordinate csDefaultBiasSize            = 13.0;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
@@ -465,7 +465,9 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverage
   mRoots[aWhichRoot] = std::move(std::make_unique<Node>(aCenter, aSize));
   auto root = mRoots[aWhichRoot].get();
   for(auto const &item : aData) {
-    addLeaf(root, aCenter, aSize, item, 0u);
+    auto biased = item;
+    biased.mPayload += mBias;
+    addLeaf(root, aCenter, aSize, biased, 0u);
   }
 }
 
@@ -486,9 +488,7 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverage
         branch->mContents = typename Node::Payload();
       }
       else {} // nothing to do
-      auto &place = std::get<typename Node::Payload>(branch->mContents)[branch->mCountHere];
-      place = aItem;
-      place.mPayload += mBias;
+      std::get<typename Node::Payload>(branch->mContents)[branch->mCountHere] = aItem;
       ++branch->mCountHere;
       break;
     }

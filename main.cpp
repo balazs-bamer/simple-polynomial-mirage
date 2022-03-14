@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
     item.mPayload = {static_cast<double>(sum)};
     data.push_back(item);
   }
-  ShepIntpol shep(data, toConsider, shepardExponent, avRelSize);
+  ShepIntpol shep(data, toConsider, avRelSize, shepardExponent, bias);
   std::cout << "TL: " << shep.getTargetLevel() << '\n';
   double diffSum = 0.0;
   double valSum = 0.0;
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 //  std::cout << "err: " << diffAvg/valAvg << '\n';
   */
   using Data = CoefficientWise<double, 1u>;
-  using ShepIntpol = ShepardInterpolation<double, 2u, Data, 3, 2>;
+  using ShepIntpol = ShepardInterpolation<double, 2u, Data, 3, 3>;
                                             // biaserr<0.0007 unbiaser<0.015 if bias: 17000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
                                             // biaserr<0.0008 unbiaser<0.015 if bias: 15000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
                                             // biaserr<0.0006 unbiaser<0.015 if bias: 19000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
@@ -90,7 +90,7 @@ int main(int argc, char **argv) {
       data.push_back(item);
     }
   }
-  ShepIntpol shep(data, toConsider, shepardExponent, avRelSize);
+  ShepIntpol shep(data, toConsider, avRelSize, shepardExponent, bias);
   std::cout << "TL: " << shep.getTargetLevel() << '\n';
   double diffSum = 0.0;
   double valSum = 0.0;
@@ -101,7 +101,7 @@ int main(int argc, char **argv) {
       typename ShepIntpol::Location loc{i, j};
       auto v = (i*i+j*j)/10.0;
       valSum += v;
-      auto d = (v == 0.0 ? 1.0 : shep.interpolate(loc)[0] / v);
+      auto d = /*(v == 0.0 ? 1.0 :*/ shep.interpolate(loc)[0]/* / v)*/;
       diffSum += d * d;
       std::cout << d << (j < limit - 1u ? ", " : (i < limit - 1u ? ";\n" : "];\n"));
     }
