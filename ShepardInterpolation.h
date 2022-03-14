@@ -9,6 +9,7 @@
 #include <vector>
 #include <variant>
 #include <stdexcept>
+#include <type_traits>
 
 
 template<typename tCoordinate, size_t tSize>
@@ -170,6 +171,26 @@ public:
   }
 };
 
+template<class> struct sfinaeTrue : std::true_type {};
+
+template<class tType>
+static auto testMin( int) -> sfinaeTrue<decltype(std::declval<tType>().min(std::declval<tType>(), std::declval<tType>()))>;
+
+template<class tType>
+static auto testMin(long) -> std::false_type;
+
+template<class tType>
+struct hasMin : decltype(testMin<tType>(0)){};
+
+template<class tType>
+static auto testMax( int) -> sfinaeTrue<decltype(std::declval<tType>().max(std::declval<tType>(), std::declval<tType>()))>;
+
+template<class tType>
+static auto testMax(long) -> std::false_type;
+
+template<class tType>
+struct hasMax : decltype(testMax<tType>(0)){};
+
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
 class ShepardInterpolation final {
 public:
@@ -188,12 +209,13 @@ public:
   }
 
   static constexpr size_t      csAverageCount               = getAverageCount();
-  static constexpr uint32_t    csChildCount                 = 1u << tDimensions;
-  static constexpr uint32_t    csMaxLevels                  = 50u;
-  static constexpr tCoordinate csInflateBounds              = 1.01;
-  static constexpr tCoordinate csTargetEpsilonFactor        = 0.01;
-  static constexpr tCoordinate csDefaultShepardExponent     = 3.0;
-  static constexpr tCoordinate csDefaultAverageRelativeSize = 0.5;
+  static constexpr uint32_t    csChildCount                 =  1u << tDimensions;
+  static constexpr uint32_t    csMaxLevels                  =  50u;
+  static constexpr tCoordinate csInflateBounds              =  1.01;
+  static constexpr tCoordinate csTargetEpsilonFactor        =  0.01;
+  static constexpr tCoordinate csDefaultAverageRelativeSize =  0.5;
+  static constexpr tCoordinate csDefaultShepardExponent     =  3.0;
+  static constexpr tCoordinate csDefaultBiasSize            = 22.0;
 
   static_assert(tDimensions > 0u && tDimensions <= 10u);
   static_assert(tInPlace > 1u && tInPlace <= 1024u);
@@ -233,8 +255,9 @@ private:
   std::array<std::unique_ptr<Node>, csChildCount> mRoots;
   Location                                        mBoundsMin;
   Location                                        mBoundsMax;
-  uint32_t const                                  cmSamplesToConsider;
-  tCoordinate                                     cmShepardExponentMod;
+  uint32_t const                                 cmSamplesToConsider;
+  tCoordinate const                              cmShepardExponentMod;
+  tPayload                                        mBias;
   uint32_t                                        mTargetLevelInChild0;  // Where average of total count >= cmSamplesToConsider
   Location                                        mTargetSize;
   Location                                        mTargetSizeDiv2;
@@ -252,9 +275,13 @@ public:
   ShepardInterpolation& operator=(ShepardInterpolation const &) = delete;
   ShepardInterpolation& operator=(ShepardInterpolation &&) = delete;
 
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent, tCoordinate const aAverageRelativeSize);
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent) : ShepardInterpolation(aData, aSamplesToConsider, aShepardExponent, csDefaultAverageRelativeSize) {}
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider) : ShepardInterpolation(aData, aSamplesToConsider, csDefaultShepardExponent, csDefaultAverageRelativeSize) {}
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent, tCoordinate const aBiasSize);
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent)
+    : ShepardInterpolation(aData, aSamplesToConsider, aAverageRelativeSize, aShepardExponent, csDefaultBiasSize) {}
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize)
+    : ShepardInterpolation(aData, aSamplesToConsider, aAverageRelativeSize, csDefaultShepardExponent, csDefaultBiasSize) {}
+  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider)
+    : ShepardInterpolation(aData, aSamplesToConsider, csDefaultAverageRelativeSize, csDefaultShepardExponent, csDefaultBiasSize) {}
   uint32_t getTargetLevel()                    const { return mTargetLevelInChild0; }
   uint32_t getLevelCount()                     const { return mNodesPerLevel.size(); }
   uint32_t getNodeCount(uint32_t const aLevel) const { return mNodesPerLevel[aLevel]; }
@@ -274,7 +301,7 @@ private:
 };
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
-ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aShepardExponent, tCoordinate const aAverageRelativeSize)
+ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent, tCoordinate const aBiasSize)
   : mBoundsMin ( std::numeric_limits<tCoordinate>::max())
   , mBoundsMax (-std::numeric_limits<tCoordinate>::max())
   , cmSamplesToConsider(aSamplesToConsider)
@@ -284,16 +311,28 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount
     throw std::invalid_argument("ShepardInterpolation: invalid constructor arguments.");
   }
   else {} // nothing to do
+
+  tPayload valueMin(std::numeric_limits<tCoordinate>::max());
+  tPayload valueMax(-std::numeric_limits<tCoordinate>::max());
   for(auto const &item : aData) {
     for(size_t j = 0u; j < tDimensions; ++j) {
       mBoundsMin = Location::min(mBoundsMin, item.mLocation);
       mBoundsMax = Location::max(mBoundsMax, item.mLocation);
+      if constexpr(hasMin<tPayload>() && hasMax<tPayload>()) {
+        valueMin = tPayload::min(valueMin, item.mPayload);
+        valueMax = tPayload::max(valueMax, item.mPayload);
+      }
+      else {
+        valueMin = std::min(valueMin, item.mPayload);
+        valueMax = std::max(valueMax, item.mPayload);
+      }
     }
   }
   auto size = (mBoundsMax - mBoundsMin) * csInflateBounds;
   auto center = (mBoundsMax + mBoundsMin) / 2.0;
   mBoundsMin = center - size / 2.0;
   mBoundsMax = center + size / 2.0;
+  mBias = (valueMax - valueMin) * aBiasSize - valueMin;
 
   buildTree(0u, (mBoundsMin + mBoundsMax) / 2u, size, aData);
   calculateTargetLevelFromChild0();
@@ -394,7 +433,7 @@ tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAve
       result += sampleSums[a] / weightSums[a];
     }
   }
-  return result / csAverageCount;
+  return result / csAverageCount - mBias;
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
@@ -436,7 +475,9 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverage
         branch->mContents = typename Node::Payload();
       }
       else {} // nothing to do
-      std::get<typename Node::Payload>(branch->mContents)[branch->mCountHere] = aItem;
+      auto &place = std::get<typename Node::Payload>(branch->mContents)[branch->mCountHere];
+      place = aItem;
+      place.mPayload += mBias;
       ++branch->mCountHere;
       break;
     }
