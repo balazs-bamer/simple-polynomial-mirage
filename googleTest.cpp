@@ -288,6 +288,99 @@ TEST(angle2apparentMirrorDepth, temp2height) {
 
 /* TODO test
 
+  if(argc < 6) { return 1; }
+  double bias = std::stod(std::string(argv[1]));
+  std::cout << "bias: " << bias << '\n';
+  double delta = std::stod(std::string(argv[2]));
+  std::cout << "delta: " << delta << '\n';
+  uint32_t toConsider = std::stoul(std::string(argv[3]));
+  std::cout << "toConsider: " << toConsider << '\n';
+  double shepardExponent = std::stod(std::string(argv[4]));
+  std::cout << "shepExp: " << shepardExponent << '\n';
+  double avRelSize = std::stod(std::string(argv[5]));
+  std::cout << "avRelSize: " << avRelSize << '\n';
+  using Data = CoefficientWise<double, 1u>;
+  using ShepIntpol = ShepardInterpolation<double, 1u, Data, 4, 3>;
+  std::vector<ShepIntpol::Data> data;
+  double number = 0.0;
+  double const max = 100.0;
+  for(double number = 0.0; number < max; number += delta) {
+    typename ShepIntpol::Data item;
+    item.mLocation[0] = number;
+    // auto sum = number * number;          // relerr<0.007 if bias: 4321 delta: 2.3 toConsider: 4 shepExp: 3 TL: 3
+    auto sum = std::sin(number / 7);        // biaserr<0.05 if bias: 2 delta: 2.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.006 unbiaserr<0.06 if bias: 12 delta: 2.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.003 unbiaserr<0.033 if bias: 22 delta: 2.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.002 unbiaserr<0.04 if bias: 42 delta: 2.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.002 unbiaserr<0.033 if bias: 22 delta: 1.3 toConsider: 4 shepExp: 3
+                                            // biaserr<0.002 unbiaserr<0.033 if bias: 22 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 2
+                                            // biaserr<0.0007 unbiaser<0.007 if bias: 22 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
+                                            // biaserr<0.0007 unbiaser<0.007 if bias: 22 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 4
+                                            // optimal bias = |vertspan| * 22
+// biaserr is what seen on biased relative error graph
+    item.mPayload = {static_cast<double>(sum)};
+    data.push_back(item);
+  }
+  ShepIntpol shep(data, toConsider, avRelSize, shepardExponent, bias);
+  std::cout << "TL: " << shep.getTargetLevel() << '\n';
+  double diffSum = 0.0;
+  double valSum = 0.0;
+  double d2 = 0.25;
+  std::cout << "diff=[";
+  for(double i = 0u; i < max; i+=d2) {
+    typename ShepIntpol::Location loc{i};
+    // auto v = i*i;
+    auto v = std::sin(i / 7);
+    valSum += v;
+    auto d = (v == 0.0 ? 1.0 : shep.interpolate(loc)[0] / v);
+    diffSum += d * d;
+    std::cout << d << (i < max - d2 ? ", " : "];\n");
+  }
+  auto diffAvg = std::sqrt(diffSum) / max / max;
+  auto valAvg = valSum / max / max;
+//  std::cout << "err: " << diffAvg/valAvg << '\n';
+
+
+  using Data = CoefficientWise<double, 1u>;
+  using ShepIntpol = ShepardInterpolation<double, 2u, Data, 6, 3>;
+                                            // biaserr<0.0007 unbiaser<0.015 if bias: 17000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
+                                            // biaserr<0.0008 unbiaser<0.015 if bias: 15000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
+                                            // biaserr<0.0006 unbiaser<0.015 if bias: 19000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
+                                            // biaserr<0.0006 unbiaser<0.015 if bias: 19000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 2
+                                            // optimal bias = |vertspan| * 22
+  std::vector<ShepIntpol::Data> data;
+  double const max = 64.0;
+  for(double n1 = 0.0; n1 < max; n1 += delta) {
+    for(double n2 = 0.0; n2 < max; n2 += delta) {
+      typename ShepIntpol::Data item;
+      item.mLocation[0] = n1;
+      item.mLocation[1] = n2 * 10.0;
+      auto sum = (n1 * n1 + n2 * n2) / 10.0;
+      item.mPayload = {sum};
+      data.push_back(item);
+    }
+  }
+  ShepIntpol shep(data, toConsider, avRelSize, shepardExponent, bias);
+  std::cout << "TL: " << shep.getTargetLevel() << '\n';
+  double diffSum = 0.0;
+  double valSum = 0.0;
+  std::cout << "diff=[";
+  uint32_t limit = 64u;
+  for(uint32_t i = 0u; i < limit; ++i) {
+    for(uint32_t j = 0u; j < limit; ++j) {
+      typename ShepIntpol::Location loc{i, j * 10.0};
+      auto v = (i*i+j*j)/10.0;
+      valSum += v;
+      auto d = (v == 0.0 ? 1.0 : shep.interpolate(loc)[0] / v);
+      diffSum += d * d;
+      std::cout << d << (j < limit - 1u ? ", " : (i < limit - 1u ? ";\n" : "];\n"));
+    }
+  }
+  auto diffAvg = std::sqrt(diffSum) / limit / limit;
+  auto valAvg = valSum / limit / limit;
+  std::cout << "err: " << diffAvg/valAvg << '\n';
+
+
   using Data = CoefficientWise<double, 1u>;
   using ShepIntpol = ShepardInterpolation<double, 2u, Data, 3>;
   std::vector<ShepIntpol::Data> data;
@@ -320,6 +413,7 @@ TEST(angle2apparentMirrorDepth, temp2height) {
   auto diffAvg = ::sqrt(diffSum) / 127.0 / 127.0;
   auto valAvg = valSum / 127.0 / 127.0;
   std::cout << "err: " << diffAvg/valAvg << '\n';
+
 
   ShepardRayBending::Gather g;
   g.mAsphalt = false;

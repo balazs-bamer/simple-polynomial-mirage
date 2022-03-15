@@ -173,26 +173,41 @@ ShepardRayBending::Intermediate ShepardRayBending::toRayPath(Gather const aRaws)
   return result;
 }
 
+#include<iostream>
+
 void ShepardRayBending::addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
-  auto indices = getRandomIndices(aLot.size(), csSamplePointsOnRay);
-  for(uint32_t i = 1u; i < indices.size(); ++i) {
-    for(uint32_t j = 0u; j < i; ++j) {          // j -> i
-      auto from = indices[j];
-      auto to = indices[i];
-      aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[to].mHorizDisp - aLot[from].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
+  auto valid = std::find_if(aLot.begin() + 1u, aLot.end(), [](auto &x){return x.mHorizDisp == 0.0; }) - aLot.begin();
+  if(valid > 3u) {
+    auto indices = getRandomIndices(valid, static_cast<uint32_t>(aLot[valid - 1u].mHorizDisp * csDispSampleFactor));
+std::cout << "s: " << aLot.size() << " n: " << valid << " x: " << aLot[valid-1].mHorizDisp << " d=[";
+for(int k = 0; k < indices.size(); ++k) {
+  std::cout << aLot[indices[k]].mHorizDisp << ", ";
+}
+std::cout << '\n';
+    for(uint32_t i = 1u; i < indices.size(); ++i) {
+      for(uint32_t j = 0u; j < i; ++j) {          // j -> i
+        auto from = indices[j];
+        auto to = indices[i];
+        aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[to].mHorizDisp - aLot[from].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
+      }
     }
   }
+  else {} // nothing to do
 }
 
 void ShepardRayBending::addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
-  auto indices = getRandomIndices(aLot.size(), csSamplePointsOnRay);
-  for(uint32_t i = 1u; i < indices.size(); ++i) {
-    for(uint32_t j = 0u; j < i; ++j) {          // j -> i
-      auto to = indices[j];
-      auto from = indices[i];
-      aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[from].mHorizDisp - aLot[to].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
+  auto valid = std::find_if(aLot.begin() + 1u, aLot.end(), [](auto &x){return x.mHorizDisp == 0.0; }) - aLot.begin();
+  if(valid > 3u) {
+    auto indices = getRandomIndices(valid, static_cast<uint32_t>(aLot[valid - 1u].mHorizDisp * csDispSampleFactor));
+    for(uint32_t i = 1u; i < indices.size(); ++i) {
+      for(uint32_t j = 0u; j < i; ++j) {          // j -> i
+        auto to = indices[j];
+        auto from = indices[i];
+        aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[from].mHorizDisp - aLot[to].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
+      }
     }
   }
+  else {} // nothing to do
 }
 
 std::vector<uint32_t> ShepardRayBending::getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const {

@@ -40,7 +40,7 @@ private:
   static constexpr uint32_t csSamplesToConsider             =   5u;
   static constexpr uint32_t csShepardExponent               =   6u;
   static constexpr double   csAverageRelativeSize           =   0.5;
-  static constexpr uint32_t csSamplePointsOnRay             =  23u;  // Perhaps 31 not too slow, now 4 mins by me.
+  static constexpr double   csDispSampleFactor              =   0.1;  // up to 0.4
   static constexpr double   csRelativeRandomRadius          =   0.25;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
