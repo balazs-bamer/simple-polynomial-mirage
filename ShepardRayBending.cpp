@@ -52,7 +52,7 @@ std::cout << "ready 1: critical inclination\n";
   for(uint32_t i = 0u; i < csRayTraceCountBending; ++i) {
     auto rayPath = toRayPath(traceHalf(inclination));
     if(!rayPath.mAsphalt) {
-      addForward(samplesBending, rayPath.mCollection);
+      addForward(samplesBending, rayPath.mCollection, csDispSampleFactorBending);
     }
     else {
       throw std::runtime_error("Should not hit asphalt in bending region.");
@@ -68,11 +68,11 @@ std::cout << "ready 3: mShepardBending\n";
   inclination = csAsphaltRayAngleLimit;
   std::deque<Relation> samplesAsphaltDown;
   std::deque<Relation> samplesAsphaltUp;
-  for(uint32_t i = 0u; i < csRayTraceCountAsphalt; ++i) {              // TODO consider uneven distribution.
+  for(uint32_t i = 0u; i < csRayTraceCountAsphalt; ++i) {
     auto rayPath = toRayPath(traceHalf(inclination));
     if(rayPath.mAsphalt) {
-      addForward(samplesAsphaltDown, rayPath.mCollection);
-      addReverse(samplesAsphaltUp, rayPath.mCollection);
+      addForward(samplesAsphaltDown, rayPath.mCollection, csDispSampleFactorAsphalt);
+      addReverse(samplesAsphaltUp, rayPath.mCollection, csDispSampleFactorAsphalt);
     }
     else {
       throw std::runtime_error("Should hit asphalt outside bending region.");
@@ -175,15 +175,10 @@ ShepardRayBending::Intermediate ShepardRayBending::toRayPath(Gather const aRaws)
 
 #include<iostream>
 
-void ShepardRayBending::addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
+void ShepardRayBending::addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const {
   auto valid = std::find_if(aLot.begin() + 1u, aLot.end(), [](auto &x){return x.mHorizDisp == 0.0; }) - aLot.begin();
   if(valid > 3u) {
-    auto indices = getRandomIndices(valid, static_cast<uint32_t>(aLot[valid - 1u].mHorizDisp * csDispSampleFactor));
-std::cout << "s: " << aLot.size() << " n: " << valid << " x: " << aLot[valid-1].mHorizDisp << " d=[";
-for(int k = 0; k < indices.size(); ++k) {
-  std::cout << aLot[indices[k]].mHorizDisp << ", ";
-}
-std::cout << '\n';
+    auto indices = getRandomIndices(valid, static_cast<uint32_t>(aLot[valid - 1u].mHorizDisp * aDispSampleFactor));
     for(uint32_t i = 1u; i < indices.size(); ++i) {
       for(uint32_t j = 0u; j < i; ++j) {          // j -> i
         auto from = indices[j];
@@ -195,10 +190,10 @@ std::cout << '\n';
   else {} // nothing to do
 }
 
-void ShepardRayBending::addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const {
+void ShepardRayBending::addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const {
   auto valid = std::find_if(aLot.begin() + 1u, aLot.end(), [](auto &x){return x.mHorizDisp == 0.0; }) - aLot.begin();
   if(valid > 3u) {
-    auto indices = getRandomIndices(valid, static_cast<uint32_t>(aLot[valid - 1u].mHorizDisp * csDispSampleFactor));
+    auto indices = getRandomIndices(valid, static_cast<uint32_t>(aLot[valid - 1u].mHorizDisp * aDispSampleFactor));
     for(uint32_t i = 1u; i < indices.size(); ++i) {
       for(uint32_t j = 0u; j < i; ++j) {          // j -> i
         auto to = indices[j];

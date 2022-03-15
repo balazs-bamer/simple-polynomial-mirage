@@ -112,7 +112,10 @@ int main(int argc, char **argv) {
 
   ShepardRayBending t28(28.0);
 
-  std::vector<double> angles({89.6, 89.65, 89.7, 89.75, 89.8, 89.85, 89.9, 89.95});
+  std::vector<double> angles;
+  for(auto i = 89.6; i <= 89.95; i += 0.05) {
+    angles.push_back(i);
+  }
 
   test("height1dist50height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 50).first; });
   test("height1dist50dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 50).second; });

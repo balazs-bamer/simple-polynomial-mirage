@@ -33,14 +33,15 @@ private:
   static constexpr double   csDelta[csTempProfilePointCount]       = { 1.4,   1.4,   1.5,   1.5,   1.6,   1.6,   1.6,   1.6   };
   static constexpr double   csDeltaFallback                 = 1.2;
 
-  static constexpr uint32_t csRayTraceCountAsphalt          = 101u;
-  static constexpr uint32_t csRayTraceCountBending          = 101u;
+  static constexpr uint32_t csRayTraceCountAsphalt          = 197u;
+  static constexpr uint32_t csRayTraceCountBending          = 197u;
   static constexpr uint32_t csShepardInPlace                =   4u;
   static constexpr uint32_t csAverageCount1d                =   1u;
   static constexpr uint32_t csSamplesToConsider             =   5u;
   static constexpr uint32_t csShepardExponent               =   6u;
   static constexpr double   csAverageRelativeSize           =   0.5;
-  static constexpr double   csDispSampleFactor              =   0.1;  // up to 0.4
+  static constexpr double   csDispSampleFactorBending       =   0.4;  // pieces / horizDsip(m), up to 0.4
+  static constexpr double   csDispSampleFactorAsphalt       =  40.0;  // pieces / horizDsip(m), up to 40
   static constexpr double   csRelativeRandomRadius          =   0.25;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
@@ -148,8 +149,8 @@ private:
 
 public:  // TODO private when ready
   static Intermediate                   toRayPath(Gather const aRaws);
-  void                                  addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const;
-  void                                  addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot) const;
+  void                                  addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const;
+  void                                  addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const;
   std::vector<uint32_t>                 getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const;
   static std::unique_ptr<ActualShepard> toShepard(std::deque<Relation> &aData);
 };
