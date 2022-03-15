@@ -140,6 +140,27 @@ public:
     return *this;
   }
 
+  CoefficientWise& operator-=(CoefficientWise const& aOther) {
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      mArray[i] -= aOther[i];
+    }
+    return *this;
+  }
+
+  CoefficientWise& operator*=(CoefficientWise const& aOther) {
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      mArray[i] *= aOther[i];
+    }
+    return *this;
+  }
+
+  CoefficientWise& operator/=(CoefficientWise const& aOther) {
+    for(uint32_t i = 0u; i < tSize; ++i) {
+      mArray[i] /= aOther[i];
+    }
+    return *this;
+  }
+
   tCoordinate norm() const {
     tCoordinate result = 0.0;
     for(uint32_t i = 0u; i < tSize; ++i) {
@@ -259,6 +280,7 @@ private:
   Location                                        mBoundsMax;
   uint32_t const                                 cmSamplesToConsider;
   tCoordinate const                              cmShepardExponentMod;
+  Location                                        mLocationScale;
   tPayload                                        mBias;
   uint32_t                                        mTargetLevelInChild0;  // Where average of total count >= cmSamplesToConsider
   Location                                        mTargetSize;
@@ -314,7 +336,6 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount
   }
   else {} // nothing to do
 
-
   tPayload valueMin;
   tPayload valueMax;
   if constexpr(std::is_fundamental_v<tPayload>) {
@@ -325,19 +346,34 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount
     valueMin = std::numeric_limits<typename tPayload::Scalar>::max();
     valueMax = -std::numeric_limits<typename tPayload::Scalar>::max();
   }
+  Location means = Location::Zero();
   for(auto const &item : aData) {
-    for(size_t j = 0u; j < tDimensions; ++j) {
-      mBoundsMin = Location::min(mBoundsMin, item.mLocation);
-      mBoundsMax = Location::max(mBoundsMax, item.mLocation);
-      if constexpr(hasMin<tPayload>() && hasMax<tPayload>()) {
-        valueMin = tPayload::min(valueMin, item.mPayload);
-        valueMax = tPayload::max(valueMax, item.mPayload);
-      }
-      else {
-        valueMin = std::min(valueMin, item.mPayload);
-        valueMax = std::max(valueMax, item.mPayload);
-      }
+    if constexpr(hasMin<tPayload>() && hasMax<tPayload>()) {
+      valueMin = tPayload::min(valueMin, item.mPayload);
+      valueMax = tPayload::max(valueMax, item.mPayload);
     }
+    else {
+      valueMin = std::min(valueMin, item.mPayload);
+      valueMax = std::max(valueMax, item.mPayload);
+    }
+    // TODO do for 1d?
+    means += item.mLocation;   // TODO perhaps compensating sum
+  }
+
+  means /= aData.size();
+  Location variances = Location::Zero();
+  for(auto const &item : aData) {
+    auto diff = item.mLocation - means;
+    variances += diff * diff;            // TODO perhaps compensating sum
+  }
+  variances /= aData.size() - 1u;
+  for(uint32_t d = 0u; d < tDimensions; ++d) {
+    mLocationScale[d] = 1.0 / std::sqrt(variances[d]);
+  }
+
+  for(auto const &item : aData) {
+    mBoundsMin = Location::min(mBoundsMin, item.mLocation * mLocationScale);
+    mBoundsMax = Location::max(mBoundsMax, item.mLocation * mLocationScale);
   }
   auto size = (mBoundsMax - mBoundsMin) * csInflateBounds;
   auto center = (mBoundsMax + mBoundsMin) / 2.0;
@@ -387,7 +423,8 @@ ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
 tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::interpolate(Location const &aLocation) const {
-  auto[branch, levelDiff] = getTargetNodeLevelDiff(aLocation);
+  auto location = aLocation * mLocationScale;
+  auto[branch, levelDiff] = getTargetNodeLevelDiff(location);
   mInterpolatorQueue.emplace_back(branch);
   std::array<bool,        csAverageCount> readys;
   std::array<tPayload,    csAverageCount> results;
@@ -416,7 +453,7 @@ tPayload ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAve
           tCoordinate diff = 0.0;
           auto const& disp = mAverageLocations[a];
           for(uint32_t d = 0u; d < tDimensions; ++d) {
-            auto diffScal = sample.mLocation[d] - (aLocation[d] + disp[d]);
+            auto diffScal = sample.mLocation[d] - (location[d] + disp[d]);
             diff += diffScal * diffScal;
           }
           if(diff < mTargetEpsilonSquared) {
@@ -466,6 +503,7 @@ void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverage
   auto root = mRoots[aWhichRoot].get();
   for(auto const &item : aData) {
     auto biased = item;
+    biased.mLocation *= mLocationScale;
     biased.mPayload += mBias;
     addLeaf(root, aCenter, aSize, biased, 0u);
   }

@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 //  std::cout << "err: " << diffAvg/valAvg << '\n';
   */
   using Data = CoefficientWise<double, 1u>;
-  using ShepIntpol = ShepardInterpolation<double, 2u, Data, 3, 3>;
+  using ShepIntpol = ShepardInterpolation<double, 2u, Data, 6, 3>;
                                             // biaserr<0.0007 unbiaser<0.015 if bias: 17000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
                                             // biaserr<0.0008 unbiaser<0.015 if bias: 15000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
                                             // biaserr<0.0006 unbiaser<0.015 if bias: 19000 delta: 2.3 toConsider: 4 shepExp: 3 avgRelS: 0.25 avgCnt1d: 3
@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     for(double n2 = 0.0; n2 < max; n2 += delta) {
       typename ShepIntpol::Data item;
       item.mLocation[0] = n1;
-      item.mLocation[1] = n2;
+      item.mLocation[1] = n2 * 10.0;
       auto sum = (n1 * n1 + n2 * n2) / 10.0;
       item.mPayload = {sum};
       data.push_back(item);
@@ -98,10 +98,10 @@ int main(int argc, char **argv) {
   uint32_t limit = 64u;
   for(uint32_t i = 0u; i < limit; ++i) {
     for(uint32_t j = 0u; j < limit; ++j) {
-      typename ShepIntpol::Location loc{i, j};
+      typename ShepIntpol::Location loc{i, j * 10.0};
       auto v = (i*i+j*j)/10.0;
       valSum += v;
-      auto d = /*(v == 0.0 ? 1.0 :*/ shep.interpolate(loc)[0]/* / v)*/;
+      auto d = (v == 0.0 ? 1.0 : shep.interpolate(loc)[0] / v);
       diffSum += d * d;
       std::cout << d << (j < limit - 1u ? ", " : (i < limit - 1u ? ";\n" : "];\n"));
     }
