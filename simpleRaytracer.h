@@ -25,7 +25,7 @@ public:
 class Medium final {
 private:
   ShepardRayBending mHotPlate;
-  Object const&        mObject;
+  Object const&     mObject;
 
 public:
   Medium(double const aTempDiff, Object const &aObject) : mHotPlate(aTempDiff), mObject(aObject) {}

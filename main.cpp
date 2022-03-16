@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
   auto valAvg = valSum / limit / limit;
   std::cout << "err: " << diffAvg/valAvg << '\n';*/
 
-  ShepardRayBending t28(28.0);
+/*  ShepardRayBending t28(28.0);
 
   std::vector<double> angles;
   for(auto i = 89.6; i <= 89.95; i += 0.025) {
@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
   test("height1dist200dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 200).second; });
   test("height1dist300height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 300).first; });
   test("height1dist300dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 300).second; });
-
+*/
 /*
   std::vector<double> heights({0.0005, 0.0007, 0.001, 0.0015, 0.002, 0.0035, 0.005, 0.007, 0.01, 0.02, 0.03, 0.05, 0.07, 0.1, 0.13, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7, 0.8, 0.89});
   std::vector<double> inclinations;
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   }
   test("tempAtHeight", heights, [&t28](auto aHeight){ return t28.getTempRiseAtHeight(aHeight); });
 */
-  /*
+
   // TODO parse args
   // Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight)
   Object object(argv[1], 1000.0, 1.8, 2.0, 1.5); // Top is 2.3
@@ -153,6 +153,6 @@ int main(int argc, char **argv) {
   //    uint32_t const aSubSample, Medium const &aMedium)
 //  Image image(0.0, 1.1, 0.0, 0.03*1000.0/(1.0+3.0+1.8), 0.03/40, 80, 40, 1, medium);
   Image image(0.0, 1.05, 0.0, 0.03*1000.0/8, 0.03/8000, 3000, 8000, 4, medium);
-  image.process(argv[2]);*/
+  image.process(argv[2]);
   return 0;
 }
