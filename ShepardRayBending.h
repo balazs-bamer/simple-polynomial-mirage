@@ -33,15 +33,15 @@ private:
   static constexpr double   csDelta[csTempProfilePointCount]       = { 1.4,   1.4,   1.5,   1.5,   1.6,   1.6,   1.6,   1.6   };
   static constexpr double   csDeltaFallback                 = 1.2;
 
-  static constexpr uint32_t csRayTraceCountAsphalt          = 197u;
+  static constexpr uint32_t csRayTraceCountAsphalt          =   7u; //
   static constexpr uint32_t csRayTraceCountBending          = 197u;
   static constexpr uint32_t csShepardInPlace                =   8u;
   static constexpr uint32_t csAverageCount1d                =   1u;
   static constexpr uint32_t csSamplesToConsider             =   8u;
   static constexpr uint32_t csShepardExponent               =   3u;
   static constexpr double   csAverageRelativeSize           =   0.25;
-  static constexpr double   csDispSampleFactorBending       =   0.2;  // pieces / horizDsip(m), up to 0.4
-  static constexpr double   csDispSampleFactorAsphalt       =  20.0;  // pieces / horizDsip(m), up to 40
+  static constexpr double   csDispSampleFactorBending       =   0.2;     // pieces / horizDsip(m), up to 0.4
+  static constexpr double   csDispSampleFactorAsphalt       =   2.0;  // // pieces / horizDsip(m), up to 40
   static constexpr double   csRelativeRandomRadius          =   0.25;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;

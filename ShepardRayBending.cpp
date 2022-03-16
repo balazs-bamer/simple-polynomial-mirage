@@ -58,10 +58,12 @@ std::cout << "ready 1: critical inclination\n";
       throw std::runtime_error("Should not hit asphalt in bending region.");
     }
     inclination += increment;
+std::cout << static_cast<int>(static_cast<double>(i) / csRayTraceCountBending * 100.0) << ' ' << std::flush;
   }
+std::cout << "\nready 2: trace bending fw: " << samplesForward.size() << std::endl;
   mShepardBending = std::make_unique<ActualShepard>(samplesForward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
   samplesForward.clear();
-std::cout << "ready 2: mShepardBending\n";
+std::cout << "ready 3: mShepardBending" << std::endl;
 
   typename ActualShepard::DataTransfer samplesBackward;
   mCriticalInclination -= 2.0 * csEpsilon;
@@ -77,13 +79,15 @@ std::cout << "ready 2: mShepardBending\n";
       throw std::runtime_error("Should hit asphalt outside bending region.");
     }
     inclination += increment;
+std::cout << static_cast<int>(static_cast<double>(i) / csRayTraceCountAsphalt * 100.0) << ' ' << std::flush;
   }
+std::cout << "\nready 4: trace asphalt fw: " << samplesForward.size() << " bw: " << samplesBackward.size() << std::endl;
   mShepardAsphaltDown = std::make_unique<ActualShepard>(samplesForward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
-  mShepardAsphaltUp   = std::make_unique<ActualShepard>(samplesBackward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
   samplesForward.clear();
+std::cout << "ready 5: mShepardAsphaltDown" << std::endl;
+  mShepardAsphaltUp   = std::make_unique<ActualShepard>(samplesBackward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
   samplesBackward.clear();
-std::cout << "ready 3: mShepardAsphaltDown\n";
-std::cout << "ready 4: mShepardAsphaltUp\n";
+std::cout << "ready 6: mShepardAsphaltUp" << std::endl;
 }
 
 ShepardRayBending::Gather ShepardRayBending::traceHalf(double const aInclination0) const {

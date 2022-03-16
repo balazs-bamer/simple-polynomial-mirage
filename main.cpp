@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
   ShepardRayBending t28(28.0);
 
   std::vector<double> angles;
-  for(auto i = 89.6; i <= 89.95; i += 0.05) {
+  for(auto i = 89.6; i <= 89.95; i += 0.025) {
     angles.push_back(i);
   }
 
