@@ -35,13 +35,13 @@ private:
 
   static constexpr uint32_t csRayTraceCountAsphalt          = 197u;
   static constexpr uint32_t csRayTraceCountBending          = 197u;
-  static constexpr uint32_t csShepardInPlace                =   4u;
+  static constexpr uint32_t csShepardInPlace                =   8u;
   static constexpr uint32_t csAverageCount1d                =   1u;
-  static constexpr uint32_t csSamplesToConsider             =   5u;
-  static constexpr uint32_t csShepardExponent               =   6u;
-  static constexpr double   csAverageRelativeSize           =   0.5;
-  static constexpr double   csDispSampleFactorBending       =   0.4;  // pieces / horizDsip(m), up to 0.4
-  static constexpr double   csDispSampleFactorAsphalt       =  40.0;  // pieces / horizDsip(m), up to 40
+  static constexpr uint32_t csSamplesToConsider             =   8u;
+  static constexpr uint32_t csShepardExponent               =   3u;
+  static constexpr double   csAverageRelativeSize           =   0.25;
+  static constexpr double   csDispSampleFactorBending       =   0.2;  // pieces / horizDsip(m), up to 0.4
+  static constexpr double   csDispSampleFactorAsphalt       =  20.0;  // pieces / horizDsip(m), up to 40
   static constexpr double   csRelativeRandomRadius          =   0.25;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
@@ -75,21 +75,6 @@ public: // TODO private when ready
     double mHorizDisp;      // Cumulative, from starting point.
     double mAngleFromHoriz; // 0 is horizontal, negative points downwards, positive upwards.
     Sample(double const aHeight, double const aHorizDisp, double const aAngleFromHoriz) : mHeight(aHeight), mHorizDisp(aHorizDisp), mAngleFromHoriz(aAngleFromHoriz) {}
-  };
-
-  // Used to generate Vandermonde matrices and polynomial fit
-  struct Relation final {
-    double mStartHeight;
-    double mStartAngleFromHoriz;
-    double mHorizDisp;
-    double mEndHeight;
-    double mEndAngleFromHoriz;
-    Relation(double const aStartHeight, double const aStartAngleFromHoriz, double const aHorizDisp, double const aEndHeight, double const aEndAngleFromHoriz)
-      : mStartHeight(aStartHeight)
-      , mStartAngleFromHoriz(aStartAngleFromHoriz)
-      , mHorizDisp(aHorizDisp)
-      , mEndHeight(aEndHeight)
-      , mEndAngleFromHoriz(aEndAngleFromHoriz) {}
   };
 
   struct Gather final {
@@ -149,10 +134,9 @@ private:
 
 public:  // TODO private when ready
   static Intermediate                   toRayPath(Gather const aRaws);
-  void                                  addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const;
-  void                                  addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const;
+  void                                  addForward(typename ActualShepard::DataTransfer &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const;
+  void                                  addReverse(typename ActualShepard::DataTransfer &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const;
   std::vector<uint32_t>                 getRandomIndices(uint32_t const aFromCount, uint32_t const aChosenCount) const;
-  static std::unique_ptr<ActualShepard> toShepard(std::deque<Relation> &aData);
 };
 
 #endif

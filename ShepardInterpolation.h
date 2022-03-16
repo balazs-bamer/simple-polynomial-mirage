@@ -9,8 +9,109 @@
 #include <vector>
 #include <variant>
 #include <stdexcept>
+#include <algorithm>
 #include <type_traits>
 
+template<typename tValue, size_t tArrayCount, size_t tArraySize>
+class FixedStack final {
+private:
+  struct Iterator final {
+    uint32_t    mIndexArray;
+    uint32_t    mIndexValue; // both point to valid
+    FixedStack &mHost;
+    Iterator(FixedStack &aHost, uint32_t const aIndexArray, uint32_t const aIndexValue) : mHost(aHost), mIndexArray(aIndexArray), mIndexValue(aIndexValue) {}
+    Iterator(FixedStack const &aHost, uint32_t const aIndexArray, uint32_t const aIndexValue) : mHost(const_cast<FixedStack&>(aHost)), mIndexArray(aIndexArray), mIndexValue(aIndexValue) {}
+
+    void operator++() {
+      if(++mIndexValue == tArraySize) {
+        ++mIndexArray;
+        mIndexValue = 0u;
+      }
+      else {} // Nothing to do
+    }
+
+    void operator--() {
+      if(mIndexValue == 0u) {
+        --mIndexArray;
+        mIndexValue = tArraySize - 1u;
+      }
+      else {
+        --mIndexValue;
+      }
+    }
+
+    tValue const& operator*() const { return mHost.get(mIndexArray, mIndexValue); }
+    tValue const& operator->() const { return mHost.get(mIndexArray, mIndexValue); }
+    tValue&       operator*() { return mHost.get(mIndexArray, mIndexValue); }
+    tValue&       operator->() { return mHost.get(mIndexArray, mIndexValue); }
+    bool          operator==(Iterator const &aOther) const { return &mHost == &(aOther.mHost) && mIndexArray == aOther.mIndexArray && mIndexValue == aOther.mIndexValue; }
+    bool          operator!=(Iterator const &aOther) const { return !(*this == aOther); }
+  };
+
+  using Array = std::array<tValue, tArraySize>;
+
+  std::array<std::unique_ptr<Array>, tArrayCount> mArrays;
+  uint32_t                                        mIndexArray = 0u; // Points to full unused but valid one if mIndexValue == 0u
+  uint32_t                                        mIndexValue = 0u; // Can't be tArraySize. Both point to next unused.
+
+public:
+  FixedStack() { mArrays[0u] = std::move(std::make_unique<Array>()); }
+
+  Iterator begin()       { return Iterator(*this, 0u, 0u); }
+  Iterator end()         { return Iterator(*this, mIndexArray, mIndexValue); }
+  Iterator begin() const { return Iterator(*this, 0u, 0u); }
+  Iterator end()   const { return Iterator(*this, mIndexArray, mIndexValue); }
+
+  size_t size() const { return tArraySize * mIndexArray + mIndexValue; }
+
+  void push_back(tValue&& aValue) {
+    (*mArrays[mIndexArray])[mIndexValue] = std::move(aValue);
+    if(++mIndexValue == tArraySize) {
+      mArrays[++mIndexArray] = std::move(std::make_unique<Array>());
+      mIndexValue = 0u;
+    }
+    else {} // Nothing to do
+  }
+
+  void push_back(tValue const& aValue) {
+    (*mArrays[mIndexArray])[mIndexValue] = aValue;
+    if(++mIndexValue == tArraySize) {
+      mArrays[++mIndexArray] = std::move(std::make_unique<Array>());
+      mIndexValue = 0u;
+    }
+    else {} // Nothing to do
+  }
+
+  tValue& back() {
+    uint32_t ia = (mIndexValue == 0u ? mIndexArray - 1u : mIndexArray);
+    uint32_t iv = (mIndexValue == 0u ? tArraySize - 1u : mIndexValue - 1u);
+    return (*mArrays[ia])[iv];
+  }
+
+  void pop_back() {
+    if(mIndexValue == 0u) {
+      mArrays[mIndexArray].reset(nullptr);
+      mIndexValue = tArraySize - 1u;
+      --mIndexArray;
+    }
+    else {
+      --mIndexValue;
+    }
+  }
+
+  void clear() {
+    std::fill(mArrays.begin() + 1u, mArrays.end(), nullptr);
+    mIndexValue = mIndexArray = 0u;
+  }
+
+  bool isValid() {
+    return std::all_of(mArrays.begin() + mIndexArray + 1u, mArrays.end(), [](auto const &item){ return !item; });
+  }
+
+private:
+  tValue const& get(uint32_t const aIndexArray, uint32_t const& aIndexValue) const { return (*mArrays[aIndexArray])[aIndexValue]; }
+  tValue&       get(uint32_t const aIndexArray, uint32_t const& aIndexValue)       { return (*mArrays[aIndexArray])[aIndexValue]; }
+};
 
 template<typename tCoordinate, size_t tSize>
 class CoefficientWise final {
@@ -222,6 +323,7 @@ public:
     Location mLocation;
     tPayload mPayload;
   };
+  using DataTransfer = FixedStack<Data, 16384u, 65536u>;
 
   static constexpr size_t getAverageCount() {
     size_t result = 1u;
@@ -299,12 +401,12 @@ public:
   ShepardInterpolation& operator=(ShepardInterpolation const &) = delete;
   ShepardInterpolation& operator=(ShepardInterpolation &&) = delete;
 
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent, tCoordinate const aBiasSize);
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent)
+  ShepardInterpolation(DataTransfer const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent, tCoordinate const aBiasSize);
+  ShepardInterpolation(DataTransfer const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent)
     : ShepardInterpolation(aData, aSamplesToConsider, aAverageRelativeSize, aShepardExponent, csDefaultBiasSize) {}
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize)
+  ShepardInterpolation(DataTransfer const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize)
     : ShepardInterpolation(aData, aSamplesToConsider, aAverageRelativeSize, csDefaultShepardExponent, csDefaultBiasSize) {}
-  ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider)
+  ShepardInterpolation(DataTransfer const &aData, uint32_t const aSamplesToConsider)
     : ShepardInterpolation(aData, aSamplesToConsider, csDefaultAverageRelativeSize, csDefaultShepardExponent, csDefaultBiasSize) {}
   uint32_t getTargetLevel()                    const { return mTargetLevelInChild0; }
   uint32_t getLevelCount()                     const { return mNodesPerLevel.size(); }
@@ -317,7 +419,7 @@ public:
   tCoordinate getDistanceFromTargetCenter(Location const& aLocation) const;
 
 private:
-  void                       buildTree(size_t const aWhichRoot, Location const aCenter, Location const aBoundsMax, std::vector<Data> const& aData);
+  void                       buildTree(size_t const aWhichRoot, Location const aCenter, Location const aBoundsMax, DataTransfer const& aData);
   void                       addLeaf(Node * aBranch, Location const& aCenter, Location const& aSize, Data const& aItem, uint32_t const aLevel);
   void                       calculateTargetLevelFromChild0();
   std::pair<Node*, uint32_t> getTargetNodeLevelDiff(uint32_t const aWhichRoot, Location const& aLoc) const;
@@ -325,7 +427,7 @@ private:
 };
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
-ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::ShepardInterpolation(std::vector<Data> const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent, tCoordinate const aBiasSize)
+ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::ShepardInterpolation(DataTransfer const &aData, uint32_t const aSamplesToConsider, tCoordinate const aAverageRelativeSize, tCoordinate const aShepardExponent, tCoordinate const aBiasSize)
   : mBoundsMin ( std::numeric_limits<tCoordinate>::max())
   , mBoundsMax (-std::numeric_limits<tCoordinate>::max())
   , cmSamplesToConsider(aSamplesToConsider)
@@ -498,7 +600,7 @@ tCoordinate ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, t
 }
 
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
-void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::buildTree(size_t const aWhichRoot, Location const aCenter, Location const aSize, std::vector<Data> const& aData) {
+void ShepardInterpolation<tCoordinate, tDimensions, tPayload, tInPlace, tAverageCount1d>::buildTree(size_t const aWhichRoot, Location const aCenter, Location const aSize, DataTransfer const& aData) {
   mRoots[aWhichRoot] = std::move(std::make_unique<Node>(aCenter, aSize));
   auto root = mRoots[aWhichRoot].get();
   for(auto const &item : aData) {

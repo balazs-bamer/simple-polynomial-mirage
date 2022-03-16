@@ -131,9 +131,36 @@ TEST(polynomApprox, 10y_x_x2__x3_xy) {
 
 #include <iostream>
 
+TEST(fixedStack, iterator) {
+  FixedStack<int, 10, 10> s;
+  EXPECT_TRUE(s.isValid());
+  for(int i = 0; i < 99; ++i) {
+    s.push_back(i);
+    EXPECT_TRUE(s.isValid());
+  }
+  EXPECT_TRUE(s.size() == 99u);
+  for(int i = 98; i >= 0; --i) {
+    EXPECT_TRUE(s.back() == i);
+    s.pop_back();
+    EXPECT_TRUE(s.isValid());
+  }
+  EXPECT_TRUE(s.size() == 0u);
+}
+
+TEST(fixedStack, clear) {
+  FixedStack<int, 10, 10> s;
+  for(int i = 0; i < 99; ++i) {
+    s.push_back(i);
+  }
+  EXPECT_TRUE(s.size() == 99u);
+  s.clear();
+  EXPECT_TRUE(s.isValid());
+  EXPECT_TRUE(s.size() == 0u);
+}
+
 TEST(shepardInterpolation, level10_dim1_data10) {
   using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 3, 1>;
-  std::vector<ShepIntpol::Data> data;
+  typename ShepIntpol::DataTransfer data;
   for(uint32_t i = 0u; i < 10u; ++i) {
     typename ShepIntpol::Data item;
     item.mLocation[0] = ::pow(1.0 / 3.0, i);
@@ -178,7 +205,7 @@ std::cout << "\n TL:" << shep.getTargetLevel() << '\n';
 
 TEST(shepardInterpolation, levelFew_dim1_random40) {
   using ShepIntpol = ShepardInterpolation<float, 1u, uint32_t, 3, 1>;
-  std::vector<ShepIntpol::Data> data;
+  typename ShepIntpol::DataTransfer data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Data item;
@@ -199,7 +226,7 @@ TEST(shepardInterpolation, levelFew_dim1_random40) {
 
 TEST(shepardInterpolation, levelFew_dim2_random40_data1d) {
   using ShepIntpol = ShepardInterpolation<float, 2u, uint32_t, 3, 1>;
-  std::vector<ShepIntpol::Data> data;
+  typename ShepIntpol::DataTransfer data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Data item;
@@ -215,7 +242,7 @@ TEST(shepardInterpolation, levelFew_dim2_random40_data1d) {
 
 TEST(shepardInterpolation, levelFew_dim2_random40_data2d) {
   using ShepIntpol = ShepardInterpolation<float, 2u, uint32_t, 3, 1>;
-  std::vector<ShepIntpol::Data> data;
+  typename ShepIntpol::DataTransfer data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 40u; ++i) {
     typename ShepIntpol::Data item;
@@ -240,7 +267,7 @@ TEST(shepardInterpolation, levelFew_dim2_random40_data2d) {
 
 TEST(shepardInterpolation, levelFew_dim3_random40_data3d) {
   using ShepIntpol = ShepardInterpolation<float, 3u, CoefficientWise<double, 1u>, 3, 1 >;
-  std::vector<ShepIntpol::Data> data;
+  typename ShepIntpol::DataTransfer data;
   uint32_t number = 0u;
   for(uint32_t i = 0u; i < 97u; ++i) {
     typename ShepIntpol::Data item;

@@ -48,42 +48,42 @@ void ShepardRayBending::initReflection() {
 std::cout << "ready 1: critical inclination\n";
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csRayTraceCountBending - 1u);
   auto inclination = mCriticalInclination;
-  std::deque<Relation> samplesBending;
+  typename ActualShepard::DataTransfer samplesForward;
   for(uint32_t i = 0u; i < csRayTraceCountBending; ++i) {
     auto rayPath = toRayPath(traceHalf(inclination));
     if(!rayPath.mAsphalt) {
-      addForward(samplesBending, rayPath.mCollection, csDispSampleFactorBending);
+      addForward(samplesForward, rayPath.mCollection, csDispSampleFactorBending);
     }
     else {
       throw std::runtime_error("Should not hit asphalt in bending region.");
     }
     inclination += increment;
   }
-std::cout << "ready 2: bending trace\n";
-  mShepardBending = std::move(toShepard(samplesBending));
-std::cout << "ready 3: mShepardBending\n";
+  mShepardBending = std::make_unique<ActualShepard>(samplesForward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
+  samplesForward.clear();
+std::cout << "ready 2: mShepardBending\n";
 
+  typename ActualShepard::DataTransfer samplesBackward;
   mCriticalInclination -= 2.0 * csEpsilon;
   increment = (mCriticalInclination - csAsphaltRayAngleLimit) / (csRayTraceCountAsphalt - 1u);
   inclination = csAsphaltRayAngleLimit;
-  std::deque<Relation> samplesAsphaltDown;
-  std::deque<Relation> samplesAsphaltUp;
   for(uint32_t i = 0u; i < csRayTraceCountAsphalt; ++i) {
     auto rayPath = toRayPath(traceHalf(inclination));
     if(rayPath.mAsphalt) {
-      addForward(samplesAsphaltDown, rayPath.mCollection, csDispSampleFactorAsphalt);
-      addReverse(samplesAsphaltUp, rayPath.mCollection, csDispSampleFactorAsphalt);
+      addForward(samplesForward, rayPath.mCollection, csDispSampleFactorAsphalt);
+      addReverse(samplesBackward, rayPath.mCollection, csDispSampleFactorAsphalt);
     }
     else {
       throw std::runtime_error("Should hit asphalt outside bending region.");
     }
     inclination += increment;
   }
-std::cout << "ready 4: asphalt trace\n";
-  mShepardAsphaltDown = std::move(toShepard(samplesAsphaltDown));
-std::cout << "ready 5: mShepardAsphaltDown\n";
-  mShepardAsphaltUp   = std::move(toShepard(samplesAsphaltUp));
-std::cout << "ready 6: mShepardAsphaltUp\n";
+  mShepardAsphaltDown = std::make_unique<ActualShepard>(samplesForward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
+  mShepardAsphaltUp   = std::make_unique<ActualShepard>(samplesBackward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
+  samplesForward.clear();
+  samplesBackward.clear();
+std::cout << "ready 3: mShepardAsphaltDown\n";
+std::cout << "ready 4: mShepardAsphaltUp\n";
 }
 
 ShepardRayBending::Gather ShepardRayBending::traceHalf(double const aInclination0) const {
@@ -175,7 +175,7 @@ ShepardRayBending::Intermediate ShepardRayBending::toRayPath(Gather const aRaws)
 
 #include<iostream>
 
-void ShepardRayBending::addForward(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const {
+void ShepardRayBending::addForward(typename ActualShepard::DataTransfer &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const {
   auto valid = std::find_if(aLot.begin() + 1u, aLot.end(), [](auto &x){return x.mHorizDisp == 0.0; }) - aLot.begin();
   if(valid > 3u) {
     auto indices = getRandomIndices(valid, static_cast<uint32_t>(aLot[valid - 1u].mHorizDisp * aDispSampleFactor));
@@ -183,14 +183,20 @@ void ShepardRayBending::addForward(std::deque<Relation> &aCollector, std::vector
       for(uint32_t j = 0u; j < i; ++j) {          // j -> i
         auto from = indices[j];
         auto to = indices[i];
-        aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[to].mHorizDisp - aLot[from].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
+        typename ActualShepard::Data item;
+        item.mLocation[csIndexLocationStartHeight] = aLot[from].mHeight;
+        item.mLocation[csIndexLocationStartDir] = aLot[from].mAngleFromHoriz;
+        item.mLocation[csIndexLocationHorizDisp] = aLot[to].mHorizDisp - aLot[from].mHorizDisp;
+        item.mPayload[csIndexPayloadHeight]  = aLot[to].mHeight;
+        item.mPayload[csIndexPayloadDir]  = aLot[to].mAngleFromHoriz;
+        aCollector.push_back(item);
       }
     }
   }
   else {} // nothing to do
 }
 
-void ShepardRayBending::addReverse(std::deque<Relation> &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const {
+void ShepardRayBending::addReverse(typename ActualShepard::DataTransfer &aCollector, std::vector<Sample> const &aLot, double const aDispSampleFactor) const {
   auto valid = std::find_if(aLot.begin() + 1u, aLot.end(), [](auto &x){return x.mHorizDisp == 0.0; }) - aLot.begin();
   if(valid > 3u) {
     auto indices = getRandomIndices(valid, static_cast<uint32_t>(aLot[valid - 1u].mHorizDisp * aDispSampleFactor));
@@ -198,7 +204,13 @@ void ShepardRayBending::addReverse(std::deque<Relation> &aCollector, std::vector
       for(uint32_t j = 0u; j < i; ++j) {          // j -> i
         auto to = indices[j];
         auto from = indices[i];
-        aCollector.emplace_back(aLot[from].mHeight, aLot[from].mAngleFromHoriz, aLot[from].mHorizDisp - aLot[to].mHorizDisp, aLot[to].mHeight, aLot[to].mAngleFromHoriz);
+        typename ActualShepard::Data item;
+        item.mLocation[csIndexLocationStartHeight] = aLot[from].mHeight;
+        item.mLocation[csIndexLocationStartDir] = aLot[from].mAngleFromHoriz;
+        item.mLocation[csIndexLocationHorizDisp] = aLot[from].mHorizDisp - aLot[to].mHorizDisp;
+        item.mPayload[csIndexPayloadHeight]  = aLot[to].mHeight;
+        item.mPayload[csIndexPayloadDir]  = aLot[to].mAngleFromHoriz;
+        aCollector.push_back(item);
       }
     }
   }
@@ -224,19 +236,4 @@ std::vector<uint32_t> ShepardRayBending::getRandomIndices(uint32_t const aFromCo
     }
   }
   return result;
-}
-
-std::unique_ptr<typename ShepardRayBending::ActualShepard> ShepardRayBending::toShepard(std::deque<Relation> &aData) {
-  std::vector<typename ActualShepard::Data> data;
-  data.reserve(aData.size());
-  for(auto relation : aData) {
-    typename ActualShepard::Data item;
-    item.mLocation[csIndexLocationStartHeight] = relation.mStartHeight;
-    item.mLocation[csIndexLocationStartDir] = relation.mStartAngleFromHoriz;
-    item.mLocation[csIndexLocationHorizDisp] = relation.mHorizDisp;
-    item.mPayload[csIndexPayloadHeight]  = relation.mEndHeight;
-    item.mPayload[csIndexPayloadDir]  = relation.mEndAngleFromHoriz;
-    data.push_back(item);
-  }
-  return std::make_unique<ActualShepard>(data, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
 }
