@@ -42,16 +42,32 @@ double ShepardRayBending::getRefractionAtTempRise(double const aTempRise) const 
 
 
 void ShepardRayBending::initReflection() {
-  mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this](double const aInclination) {
-    return traceHalf(aInclination).mAsphalt ? 1.0 : -1.0;
+  Gather criticalHalfPath;
+  mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this, &criticalHalfPath](double const aInclination) {
+    criticalHalfPath = traceHalf(aInclination);
+    return criticalHalfPath.mAsphalt ? 1.0 : -1.0;
   }) + csEpsilon;
+  auto indices = getRandomIndices(criticalHalfPath.mCollection.size(), csAuxiliaryPolynomPointCount);
+  std::vector<double> samplesX;
+  std::vector<double> samplesY;
+  for(auto i : indices) {
+    samplesX.push_back(criticalHalfPath.mCollection[i].mHeight);
+    samplesY.push_back(-std::acos(criticalHalfPath.mCollection[i].mSinInclination));
+  }
+  mHeight2criticalDirection = std::move(std::make_unique<PolynomApprox>(samplesY, std::initializer_list<PolynomApprox::Var>{{samplesX, csAuxiliaryPolynomDegree}}));
+std::cout << "mHeight2criticalDirection size: " << samplesX.size() << '\n';
 std::cout << "ready 1: critical inclination\n";
+
+  samplesX.clear();
+  samplesY.clear();
   auto increment = (csAlmostHorizontal - mCriticalInclination) / (csRayTraceCountBending - 1u);
   auto inclination = mCriticalInclination;
   typename ActualShepard::DataTransfer samplesForward;
   for(uint32_t i = 0u; i < csRayTraceCountBending; ++i) {
     auto rayPath = toRayPath(traceHalf(inclination));
     if(!rayPath.mAsphalt) {
+      samplesX.push_back(inclination - cgPi / 2.0);
+      samplesY.push_back(rayPath.mCollection.back().mHorizDisp);
       addForward(samplesForward, rayPath.mCollection, csDispSampleFactorBending);
     }
     else {
@@ -60,11 +76,15 @@ std::cout << "ready 1: critical inclination\n";
     inclination += increment;
 std::cout << static_cast<int>(static_cast<double>(i) / csRayTraceCountBending * 100.0) << ' ' << std::flush;
   }
+  mDirection2bendingHorizDisp = std::move(std::make_unique<PolynomApprox>(samplesY, std::initializer_list<PolynomApprox::Var>{{samplesX, csAuxiliaryPolynomDegree}}));
+std::cout << "mDirection2bendingHorizDisp size: " << samplesX.size() << '\n';
 std::cout << "\nready 2: trace bending fw: " << samplesForward.size() << std::endl;
   mShepardBending = std::make_unique<ActualShepard>(samplesForward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
   samplesForward.clear();
 std::cout << "ready 3: mShepardBending" << std::endl;
 
+  samplesX.clear();
+  samplesY.clear();
   typename ActualShepard::DataTransfer samplesBackward;
   mCriticalInclination -= 2.0 * csEpsilon;
   increment = (mCriticalInclination - csAsphaltRayAngleLimit) / (csRayTraceCountAsphalt - 1u);
@@ -72,6 +92,12 @@ std::cout << "ready 3: mShepardBending" << std::endl;
   for(uint32_t i = 0u; i < csRayTraceCountAsphalt; ++i) {
     auto rayPath = toRayPath(traceHalf(inclination));
     if(rayPath.mAsphalt) {
+      if(rayPath.mCollection.size() > 3u) {
+        auto second0 = std::find_if(rayPath.mCollection.begin() + 1u, rayPath.mCollection.end(), [](auto &x){return x.mHorizDisp == 0.0; }) - rayPath.mCollection.begin();
+        samplesX.push_back(inclination - cgPi / 2.0);
+        samplesY.push_back(rayPath.mCollection[second0 - 1u].mHorizDisp);
+      }
+      else {} // Nothing to do
       addForward(samplesForward, rayPath.mCollection, csDispSampleFactorAsphalt);
       addReverse(samplesBackward, rayPath.mCollection, csDispSampleFactorAsphalt);
     }
@@ -81,6 +107,8 @@ std::cout << "ready 3: mShepardBending" << std::endl;
     inclination += increment;
 std::cout << static_cast<int>(static_cast<double>(i) / csRayTraceCountAsphalt * 100.0) << ' ' << std::flush;
   }
+  mDirection2asphaltHitHorizDisp = std::move(std::make_unique<PolynomApprox>(samplesY, std::initializer_list<PolynomApprox::Var>{{samplesX, csAuxiliaryPolynomDegree}}));
+std::cout << "mDirection2asphaltHitHorizDisp size: " << samplesX.size() << '\n';
 std::cout << "\nready 4: trace asphalt fw: " << samplesForward.size() << " bw: " << samplesBackward.size() << std::endl;
   mShepardAsphaltDown = std::make_unique<ActualShepard>(samplesForward, csSamplesToConsider, csAverageRelativeSize, csShepardExponent);
   samplesForward.clear();

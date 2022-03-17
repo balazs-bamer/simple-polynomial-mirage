@@ -33,7 +33,9 @@ private:
   static constexpr double   csDelta[csTempProfilePointCount]       = { 1.4,   1.4,   1.5,   1.5,   1.6,   1.6,   1.6,   1.6   };
   static constexpr double   csDeltaFallback                 = 1.2;
 
-  static constexpr uint32_t csRayTraceCountAsphalt          =   7u; //
+  static constexpr uint32_t csAuxiliaryPolynomPointCount    =  97u;
+  static constexpr uint32_t csAuxiliaryPolynomDegree        =  17u;
+  static constexpr uint32_t csRayTraceCountAsphalt          =   7u; // TODO reset
   static constexpr uint32_t csRayTraceCountBending          = 197u;
   static constexpr uint32_t csShepardInPlace                =   8u;
   static constexpr uint32_t csAverageCount1d                =   1u;
@@ -41,7 +43,7 @@ private:
   static constexpr uint32_t csShepardExponent               =   3u;
   static constexpr double   csAverageRelativeSize           =   0.25;
   static constexpr double   csDispSampleFactorBending       =   0.2;     // pieces / horizDsip(m), up to 0.4
-  static constexpr double   csDispSampleFactorAsphalt       =   2.0;  // // pieces / horizDsip(m), up to 40
+  static constexpr double   csDispSampleFactorAsphalt       =   2.0;  // TODO reset // pieces / horizDsip(m), up to 40
   static constexpr double   csRelativeRandomRadius          =   0.25;
 
   static constexpr double   csRelativeHumidityPercent       =  50.0;
@@ -112,18 +114,34 @@ private:
   std::unique_ptr<ActualShepard>                 mShepardAsphaltDown;
   std::unique_ptr<ActualShepard>                 mShepardAsphaltUp;
 
+  std::unique_ptr<PolynomApprox>                 mHeight2criticalDirection;
+  std::unique_ptr<PolynomApprox>                 mDirection2bendingHorizDisp;    // Start height is the upper limit.
+  std::unique_ptr<PolynomApprox>                 mDirection2asphaltHitHorizDisp; // Start height is the upper limit.
+
 public:
   ShepardRayBending(double const aTempDiffSurface); // TODO this should accept ambient temperature in the final version.
 
-  static double getWorkingHeight()                                   { return csInitialHeight; }
-  static double getAmbientTemp()    /* Kelvin */                     { return csTempAmbient; }
-  double getCriticalInclination()                              const { return mCriticalInclination; }
-  double getTempRiseAtHeight(double const aHeight)             const;  // delta Celsius and meter
-  double getHeightAtTempRise(double const aTempRise)           const;  // delta Celsius and meter
-  double getRefractionAtTempRise(double const aTempRise)       const;  // delta Celsius
-  double getRefractionAtHeight(double const aHeight)           const { return getRefractionAtTempRise(getTempRiseAtHeight(aHeight)); }
+  static double getWorkingHeight()                             { return csInitialHeight; }
+  static double getAmbientTemp()    /* Kelvin */               { return csTempAmbient; }
+  double getCriticalInclination()                        const { return mCriticalInclination; }
+  double getTempRiseAtHeight(double const aHeight)       const;  // delta Celsius and meter
+  double getHeightAtTempRise(double const aTempRise)     const;  // delta Celsius and meter
+  double getRefractionAtTempRise(double const aTempRise) const;  // delta Celsius
+  double getRefractionAtHeight(double const aHeight)     const { return getRefractionAtTempRise(getTempRiseAtHeight(aHeight)); }
 
-  std::pair<double, double> getHeightDirection(double const aHeight, double const aDirection, double const aDistance) {
+  double getBendingHorizDisp(double const aDirection) {
+    mDirection2bendingHorizDisp->eval(std::initializer_list<double>{ aDirection });
+  }
+
+  double getCriticalDirection(double const aHeight) {
+    mHeight2criticalDirection->eval(std::initializer_list<double>{ aHeight });
+  }
+
+  double getAsphaltHitHorizDisp(double const aDirection) {
+    mDirection2asphaltHitHorizDisp->eval(std::initializer_list<double>{ aDirection });
+  }
+
+  std::pair<double, double> getHeightDirectionBending(double const aHeight, double const aDirection, double const aDistance) {
     auto result = mShepardBending->interpolate({aHeight, aDirection, aDistance});
     return std::make_pair(result[csIndexPayloadHeight], result[csIndexPayloadDir]);
   }

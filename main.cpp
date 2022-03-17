@@ -19,7 +19,7 @@ void test(char const * const aName, std::vector<double> const& aSamplesX, std::f
 }
 
 int main(int argc, char **argv) {
-  if(argc < 6) { return 1; }
+/*  if(argc < 6) { return 1; }
   double bias = std::stod(std::string(argv[1]));
   std::cout << "bias: " << bias << '\n';
   double delta = std::stod(std::string(argv[2]));
@@ -29,8 +29,9 @@ int main(int argc, char **argv) {
   double shepardExponent = std::stod(std::string(argv[4]));
   std::cout << "shepExp: " << shepardExponent << '\n';
   double avRelSize = std::stod(std::string(argv[5]));
-  std::cout << "avRelSize: " << avRelSize << '\n';
-  /*using Data = CoefficientWise<double, 1u>;
+  std::cout << "avRelSize: " << avRelSize << '\n';*/
+
+/*using Data = CoefficientWise<double, 1u>;
   using ShepIntpol = ShepardInterpolation<double, 1u, Data, 4, 3>;
   typename ShepIntpol::DataTransfer data;
   double number = 0.0;
@@ -157,14 +158,21 @@ int main(int argc, char **argv) {
     angles.push_back(i);
   }
 
-  test("height1dist50height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 50).first; });
-  test("height1dist50dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 50).second; });
-  test("height1dist100height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 100).first; });
-  test("height1dist100dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 100).second; });
-  test("height1dist200height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 200).first; });
-  test("height1dist200dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 200).second; });
-  test("height1dist300height", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 300).first; });
-  test("height1dist300dir", angles, [&t28](auto angle){ return t28.getHeightDirection(1.0, (90.0 - angle) * cgPi / 180.0, 300).second; });
+  // TODO check angles
+  test("height1dist50height", angles, [&t28](auto angle){ return t28.getHeightDirectionBending(1.0, (angle - 90.0) * cgPi / 180.0, 50).first; });
+  test("height1dist50dir", angles, [&t28](auto angle){ return t28.getHeightDirectionBending(1.0, (angle - 90.0) * cgPi / 180.0, 50).second; });
+  test("height1dist100height", angles, [&t28](auto angle){ return t28.getHeightDirectionBending(1.0, (angle - 90.0) * cgPi / 180.0, 100).first; });
+  test("height1dist100dir", angles, [&t28](auto angle){ return t28.getHeightDirectionBending(1.0, (angle - 90.0) * cgPi / 180.0, 100).second; });
+  test("height1dist200height", angles, [&t28](auto angle){ return t28.getHeightDirectionBending(1.0, (angle - 90.0) * cgPi / 180.0, 200).first; });
+  test("height1dist200dir", angles, [&t28](auto angle){ return t28.getHeightDirectionBending(1.0, (angle - 90.0) * cgPi / 180.0, 200).second; });
+  test("height1dist300height", angles, [&t28](auto angle){ return t28.getHeightDirectionBending(1.0, (angle - 90.0) * cgPi / 180.0, 300).first; });
+  test("height1dist300dir", angles, [&t28](auto angle){ return t28.getHeightDirectionBending(1.0, (angle - 90.0) * cgPi / 180.0, 300).second; });
+
+  test("getBendingHorizDisp", angles, [&t28](auto angle){ return t28.getBendingHorizDisp((angle - 90) * cgPi / 180.0); });
+  test("getCriticalDirection", std::vector<double>{{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9}}, [&t28](auto height){ return t28.getCriticalDirection(height); });
+  test("getAsphaltHitHorizDisp", std::vector<double>{{-0.785, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, -0.017}}, [&t28](auto dir){ return t28.getAsphaltHitHorizDisp(dir); });
+
+  // TODO double getAsphaltHitHorizDisp(double const aDirection) {
 
 /*
   std::vector<double> heights({0.0005, 0.0007, 0.001, 0.0015, 0.002, 0.0035, 0.005, 0.007, 0.01, 0.02, 0.03, 0.05, 0.07, 0.1, 0.13, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.7, 0.8, 0.89});

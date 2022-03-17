@@ -315,6 +315,8 @@ static auto testMax(long) -> std::false_type;
 template<class tType>
 struct hasMax : decltype(testMax<tType>(0)){};
 
+// TODO perhaps store the locations in floats to save place.
+
 template<typename tCoordinate, uint32_t tDimensions, typename tPayload, size_t tInPlace, size_t tAverageCount1d>
 class ShepardInterpolation final {
 public:
