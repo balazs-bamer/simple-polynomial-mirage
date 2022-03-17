@@ -407,6 +407,46 @@ TEST(angle2apparentMirrorDepth, temp2height) {
   auto valAvg = valSum / limit / limit;
   std::cout << "err: " << diffAvg/valAvg << '\n';
 
+  double slice = std::stod(std::string(argv[6]));
+  std::cout << "slice: " << avRelSize << '\n';
+  using Data = CoefficientWise<double, 1u>;
+  using ShepIntpol = ShepardInterpolation<double, 3u, Data, 6, 3>;
+
+  typename ShepIntpol::DataTransfer data;
+  double const max = 64.0;
+  for(double n1 = 0.0; n1 < max; n1 += delta) {
+    for(double n2 = 0.0; n2 < max; n2 += delta) {
+      for(double n3 = 0.0; n3 < max; n3 += delta) {
+        typename ShepIntpol::Data item;
+        item.mLocation[0] = n1;
+        item.mLocation[1] = n2 *  5.0;
+        item.mLocation[2] = n3 * 20.0;
+        auto sum = (n1 * n1 + n2 * n2 + n3 * n3) / 10.0;
+        item.mPayload = {sum};
+        data.push_back(item);
+      }
+    }
+  }
+  ShepIntpol shep(data, toConsider, avRelSize, shepardExponent, bias);
+  std::cout << "TL: " << shep.getTargetLevel() << '\n';
+  double diffSum = 0.0;
+  double valSum = 0.0;
+  std::cout << "diff=[";
+  uint32_t limit = 64u;
+  for(uint32_t i = 0u; i < limit; ++i) {
+    for(uint32_t j = 0u; j < limit; ++j) {
+      typename ShepIntpol::Location loc{slice, i * 5.0, j * 20.0};
+      auto v = (slice*slice+i*i+j*j)/10.0;
+      valSum += v;
+      auto d = (v == 0.0 ? 1.0 : shep.interpolate(loc)[0] / v);
+      diffSum += d * d;
+      std::cout << d << (j < limit - 1u ? ", " : (i < limit - 1u ? ";\n" : "];\n"));
+    }
+  }
+  auto diffAvg = std::sqrt(diffSum) / limit / limit;
+  auto valAvg = valSum / limit / limit;
+  std::cout << "err: " << diffAvg/valAvg << '\n';
+
 
   using Data = CoefficientWise<double, 1u>;
   using ShepIntpol = ShepardInterpolation<double, 2u, Data, 3>;
