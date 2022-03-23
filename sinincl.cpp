@@ -13,14 +13,9 @@ double ndiff(double const aH) {
 }
 
 class Sin final {
-private:
-  Doub eps;
-
 public:
-  Sin(Doub const aEps) : eps(aEps) {}
-
   void operator() (const Doub aX, VecDoub_I const &aY, VecDoub_O &aDydx) {
-    aDydx[0] = (-aY[0] * ndiff(aX) / n(aX)) / eps;
+    aDydx[0] = -aY[0] * ndiff(aX) / n(aX);
   }
 };
 
@@ -30,7 +25,7 @@ void comp(char * aPre, double const aSinIncl) {
   VecDoub ystart(nvar);
   ystart[0]=aSinIncl;    // Kezdo beesesi szog szinusza.
   Output out(100);
-  Sin sin(0.001);
+  Sin sin();
   Odeint<StepperDopr853<Sin>> ode(ystart, x1, x2, atol, rtol, h1, hmin, out, sin);
   ode.integrate();
   std::cout << aPre << "_x=[";
