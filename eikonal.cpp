@@ -3,11 +3,12 @@
 #include "stepper.h"
 #include "stepperdopr853.h"
 #include "odeint.h"
-
+#include "OdeSolver.h"
+#include "StepperDopr853.h"
 
 // g++ eikonal.cpp -Inumrec -o eikonal -ggdb -lboost_program_options
 
-
+// These two are for conventional asphalt
 double refract(double const aH, double const aTempAmb, double const aTempDiff) {
   auto celsius = aTempAmb + 0.018 + aTempDiff * std::exp(-aH * 10.08); // Toled vettem.
   return 1.0 + 7.86e-4 * 101 / (celsius + 273.15);
@@ -45,8 +46,38 @@ public:
   }
 };
 
+template<typename tReal>
+class Eikonal2 final {
+public:
+  static constexpr double cgC = 299792458; // m/2
+  static constexpr uint32_t csNvar = 6u;
+  using Real                       = tReal;
+  
+private:
+  double mTempAmb;
+  double mTempDiff;
+
+public:
+  Eikonal2(double const aTempAmb, double const aTempDiff) : mTempAmb(aTempAmb), mTempDiff(aTempDiff) {}
+
+  void operator() (const double/* aS*/, std::array<Real, csNvar> const &aY, std::array<Real, csNvar> &aDyds) {
+    double n    = refract(aY[2], mTempAmb, mTempDiff);
+    double v    = cgC / n;
+//    double dvdz = -v / n * refractDiff(aY[2]);
+
+    aDyds[0] = v * aY[3];
+    aDyds[1] = v * aY[4];
+    aDyds[2] = v * aY[5];
+    aDyds[3] = 0.0;
+    aDyds[4] = 0.0;
+    aDyds[5] = refractDiff(aY[2], mTempAmb, mTempDiff) / v / n;
+    //aDyds[5] = -1.0 / v / v * dvdz;
+  }
+};
+
 void comp(double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aTempAmb, double aTempDiff, double aTolAbs, double aTolRel) {
-  VecDoub yStart(6);
+  constexpr uint32_t cNvar = 6u;
+  VecDoub yStart(cNvar);
   yStart[0] = 0.0;
   yStart[1] = 0.0;
   yStart[2] = aHeight;
@@ -58,6 +89,16 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   Eikonal eikonal(aTempAmb, aTempDiff);
   Odeint<StepperDopr853<Eikonal>> ode(yStart, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, out, eikonal);
   ode.integrate();
+  std::array<double, cNvar> yStart2;
+  yStart2[0] = 0.0;
+  yStart2[1] = 0.0;
+  yStart2[2] = aHeight;
+  yStart2[3] = u * std::cos(aDir / 180.0 * 3.1415926539);
+  yStart2[4] = 0.0;
+  yStart2[5] = u * std::sin(aDir / 180.0 * 3.1415926539);
+  Eikonal2<double> eikonal2(aTempAmb, aTempDiff);
+  OdeSolver<StepperDormandPrice853<Eikonal2<double>>> ode2(yStart2, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal2);
+  auto result = ode2.solve([](std::array<double, cNvar> const& aY){ return aY[0] > 1000.0; });
   std::cout << "x=[";
   for (Int i=0; i<out.count; i++) {
     std::cout << out.ysave[0][i] << (i < out.count - 1 ? ", " : "];\n");
@@ -79,7 +120,7 @@ int main(int aArgc, char **aArgv) {
                     ("step1", boost::program_options::value<double>(), "initial step size [0.01]")
                     ("stepmin", boost::program_options::value<double>(), "minimal step size [0.0]")
                     ("tempamb", boost::program_options::value<double>(), "ambient temperature (Celsius) [20]")
-                    ("tempdiff", boost::program_options::value<double>(), "temperature rise next to asphalt compared to ambient (Celsius) [28]")
+                    ("tempdiff", boost::program_options::value<double>(), "temperature rise next to asphalt compared to ambient (Celsius) [6.37]")
                     ("tolabs", boost::program_options::value<double>(), "absolute tolerance [1e-3]")
                     ("tolrel", boost::program_options::value<double>(), "relative tolerance [1e-3]");
   boost::program_options::variables_map varMap;
@@ -95,7 +136,7 @@ int main(int aArgc, char **aArgv) {
     double step1 = (varMap.count("step1") ? varMap["step1"].as<double>() : 0.01);
     double stepMin = (varMap.count("stepmin") ? varMap["stepmin"].as<double>() : 0.0);
     double tempAmb = (varMap.count("tempamb") ? varMap["tempamb"].as<double>() : 20);
-    double tempDiff = (varMap.count("tempdiff") ? varMap["tempdiff"].as<double>() : 28);
+    double tempDiff = (varMap.count("tempdiff") ? varMap["tempdiff"].as<double>() : 6.37);
     double tolAbs = (varMap.count("tolabs") ? varMap["tolabs"].as<double>() : 0.001);
     double tolRel = (varMap.count("tolrel") ? varMap["tolrel"].as<double>() : 0.001);
     comp(dir, dist, height, step1, stepMin, tempAmb, tempDiff, tolAbs, tolRel);
