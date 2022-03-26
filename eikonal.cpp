@@ -4,7 +4,7 @@
 #include "stepperdopr853.h"
 #include "odeint.h"
 #include "OdeSolver.h"
-#include "StepperDopr853.h"
+#include "StepperDormandPrice853.h"
 
 // g++ eikonal.cpp -Inumrec -o eikonal -ggdb -lboost_program_options
 
@@ -52,6 +52,7 @@ public:
   static constexpr double cgC = 299792458; // m/2
   static constexpr uint32_t csNvar = 6u;
   using Real                       = tReal;
+  using Variables                  = std::array<Real, csNvar>;
   
 private:
   double mTempAmb;
@@ -98,7 +99,13 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   yStart2[5] = u * std::sin(aDir / 180.0 * 3.1415926539);
   Eikonal2<double> eikonal2(aTempAmb, aTempDiff);
   OdeSolver<StepperDormandPrice853<Eikonal2<double>>> ode2(yStart2, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal2);
-  auto result = ode2.solve([](std::array<double, cNvar> const& aY){ return aY[0] > 1000.0; });
+  auto result = ode2.solve([](std::array<double, cNvar> const& aY){ 
+std::cout << "judge x " << aY[0] <<"\n\n";
+return aY[0] >= 999.0; 
+}, 0.0001);
+std::cout << "result y: "; for(auto i : result) std::cout << i << ' '; std::cout << '\n';
+  std::cout << "x2=[0, " << result[0] << "]\n";
+  std::cout << "z2=[1, " << result[2] << "]\n";
   std::cout << "x=[";
   for (Int i=0; i<out.count; i++) {
     std::cout << out.ysave[0][i] << (i < out.count - 1 ? ", " : "];\n");
@@ -131,7 +138,7 @@ int main(int aArgc, char **aArgv) {
   }
   else {
     double dir = (varMap.count("dir") ? varMap["dir"].as<double>() : 0.0);
-    double dist = (varMap.count("dist") ? varMap["dist"].as<double>() : 1000.0);
+    double dist = (varMap.count("dist") ? varMap["dist"].as<double>() : 2000.0);
     double height = (varMap.count("height") ? varMap["height"].as<double>() : 1.0);
     double step1 = (varMap.count("step1") ? varMap["step1"].as<double>() : 0.01);
     double stepMin = (varMap.count("stepmin") ? varMap["stepmin"].as<double>() : 0.0);

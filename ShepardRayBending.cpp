@@ -45,7 +45,7 @@ void ShepardRayBending::initReflection() {
   Gather criticalHalfPath;
   mCriticalInclination = binarySearch(csAlmostVertical, csAlmostHorizontal, csEpsilon, [this, &criticalHalfPath](double const aInclination) {
     criticalHalfPath = traceHalf(aInclination);
-    return criticalHalfPath.mAsphalt ? 1.0 : -1.0;
+    return criticalHalfPath.mAsphalt;
   }) + csEpsilon;
   auto indices = getRandomIndices(criticalHalfPath.mCollection.size(), csAuxiliaryPolynomPointCount);
   std::vector<double> samplesX;
@@ -142,7 +142,7 @@ ShepardRayBending::Gather ShepardRayBending::traceHalf(double const aInclination
         double refractionIndex = getRefractionAtHeight(height);
         double factor = currentRefractionIndex / refractionIndex;
         double sinInclination = currentSinInclination * factor;
-        return (sinInclination > static_cast<double>(1.0) ? 1.0 : -1.0);
+        return (sinInclination > static_cast<double>(1.0);
       });
       double criticalHeight = getHeightAtTempRise(criticalTemp);
       disp = static_cast<double>(currentHeight - criticalHeight) * currentSinInclination / ::sqrt(static_cast<double>(1.0) - currentSinInclination * currentSinInclination);

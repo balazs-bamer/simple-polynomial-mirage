@@ -7,13 +7,13 @@ double signum(double const aValue) {
   return std::copysign(1.0f, aValue);
 }
 
-double binarySearch(double const aLower, double const aUpper, double const aEpsilon, std::function<double(double)> aLambda) {
-  double signLower = signum(aLambda(aLower));
+double binarySearch(double const aLower, double const aUpper, double const aEpsilon, std::function<bool(double)> aLambda) {
+  bool signLower = aLambda(aLower);
   double lower = aLower;
   double upper = aUpper;
   double result = (lower + upper) / 2.0f;
   while(upper - lower > aEpsilon) {
-    double now = signum(aLambda(result));
+    bool now = aLambda(result);
     if(now == signLower) {
       lower = result;
     }

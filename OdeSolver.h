@@ -1,17 +1,22 @@
+#include "mathUtil.h"
 #include <array>
 #include <cmath>
+#include <stdexcept>
 #include <functional>
+
+#include<iostream>
 
 
 template<typename tStepper>
 class OdeSolver {
 private:
   using Real          = typename tStepper::Real;
+  using Variables     = typename tStepper::Variables;
   using OdeDefinition = typename tStepper::OdeDefinition;
 
 	static constexpr uint32_t csMaxStep = 50000u;
   static constexpr uint32_t csNvar    = tStepper::csNvar;
-	std::array<Real, csNvar>  mYstart;
+	Variables                 mYstart;
 	Real                      mXstart;
 	Real                      mXend;
 	Real                      mStepStart;
@@ -20,15 +25,15 @@ private:
 	tStepper                  mStepper;
 
 public:
-	OdeSolver(std::array<Real, csNvar> const &ayStart, const Real aXstart, const Real aXend,
+	OdeSolver(Variables const &ayStart, const Real aXstart, const Real aXend,
 		const Real aAtol, const Real aRtol, const Real aStepStart,
 		const Real aStepMin, OdeDefinition &aOdeDefs);
 
-	std::array<Real, csNvar> solve(std::function<bool(std::array<double, csNvar> const&)> aJudge);
+	Variables solve(std::function<bool(std::array<double, csNvar> const&)> aJudge, Real const aEpsilon);
 };
 
 template<typename tStepper>
-OdeSolver<tStepper>::OdeSolver(std::array<Real, csNvar> const &aYstart, const Real aXstart, const Real aXend,
+OdeSolver<tStepper>::OdeSolver(Variables const &aYstart, const Real aXstart, const Real aXend,
 		const Real aAtol, const Real aRtol, const Real aStepStart,
 		const Real aStepMin, OdeDefinition &aOdeDef)
 : mYstart(aYstart)
@@ -41,9 +46,9 @@ OdeSolver<tStepper>::OdeSolver(std::array<Real, csNvar> const &aYstart, const Re
 }
 
 template<typename tStepper>
-std::array<typename OdeSolver<tStepper>::Real, OdeSolver<tStepper>::csNvar> OdeSolver<tStepper>::solve(std::function<bool(std::array<double, csNvar> const&)> aJudge) {
-  std::array<Real, csNvar> result;
-  result.fill(0.0);   // TODO remove
+typename OdeSolver<tStepper>::Variables OdeSolver<tStepper>::solve(std::function<bool(std::array<double, csNvar> const&)> aJudge, Real const aEpsilon) {
+  Variables result;
+  bool ready = false;
 	auto x = mXstart;
   auto h = std::copysign(mStepStart, mXend - mXstart);
   mStepper.init(mXstart, mYstart);
@@ -51,12 +56,24 @@ std::array<typename OdeSolver<tStepper>::Real, OdeSolver<tStepper>::csNvar> OdeS
 		if ((x + h * 1.0001 - mXend) * (mXend - mXstart) > 0.0) {
 			h = mXend - x;
     }
-		std::tie(x, h) = mStepper.step(x, h);
-std::cout << x << '\n';
+		auto stepData = mStepper.step(x, h);
 		if (aJudge(mStepper.getY())) {
-			return mStepper.getY();
+      mStepper.prepareDense(stepData.xNow, stepData.hNow);
+std::cout << stepData.xOld << '-' << stepData.xNow << '\n';
+      binarySearch(stepData.xOld, stepData.xNow, aEpsilon, [&result, &stepData, this, &aJudge](auto const aWhere){
+std::cout << "s: " << aWhere << '\n';
+        result = mStepper.interpolate(stepData.xOld, aWhere, stepData.hNow);
+        return aJudge(result);
+      });
+			ready = true;
+      break;
 		}
-		if (abs(h) <= mStepMin) throw("Step size too small in OdeSolver");
+		if (abs(h) <= mStepMin) throw std::out_of_range("Step size too small in OdeSolver");
+    x = stepData.xNext;
+    h = stepData.hNext;
 	}
-	throw("Too many steps in routine OdeSolver");
+  if(!ready) {
+  	throw std::out_of_range("Too many steps in routine OdeSolver");
+  }
+  return result;
 }

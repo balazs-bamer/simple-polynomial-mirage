@@ -1,7 +1,10 @@
 #include <array>
 #include <cmath>
+#include <limits>
 #include <utility>
+#include <stdexcept>
 
+#include<iostream>
 
 template <typename tOdeDefinition>
 class StepperDormandPrice853 {
@@ -174,33 +177,43 @@ class StepperDormandPrice853 {
 
 public:
   using Real                       = typename tOdeDefinition::Real;
+  using Variables                  = typename tOdeDefinition::Variables;
 	using OdeDefinition              = tOdeDefinition;
   static constexpr uint32_t csNvar = tOdeDefinition::csNvar;
+  struct StepData {
+    Real xOld;
+    Real hNow;
+    Real xNow;
+    Real hNext;
+    Real xNext;
+  };
 
 private:
-  Real mAtol, mRtol;
-	OdeDefinition&           mOdeDef;
-  Real hnext;
-  std::array<Real, csNvar> yout;
-  std::array<Real, csNvar> yerr;
-	std::array<Real, csNvar> yerr2;
-	std::array<Real, csNvar> k2,k3,k4,k5,k6,k7,k8,k9,k10;
-	std::array<Real, csNvar> rcont1,rcont2,rcont3,rcont4,rcont5,rcont6,rcont7,rcont8;
-  Real xold;
-  std::array<Real, csNvar> y;
-  std::array<Real, csNvar> mDydx;
+  Real            mAtol;
+  Real            mRtol;
+	OdeDefinition&  mOdeDef;
+  Real            hnext;
+  Variables       yout;
+  Variables       yerr;
+	Variables       yerr2;
+	Variables k2,k3,k4,k5,k6,k7,k8,k9,k10;
+	Variables rcont1,rcont2,rcont3,rcont4,rcont5,rcont6,rcont7,rcont8;
+  Real            xold;
+  Variables       mYprev;
+  Variables       y;
+  Variables       mDydx;
 
 public:
 	StepperDormandPrice853(const Real aAtol, const Real aRtol, tOdeDefinition &aOdeDef);
+  Variables const& getY() const { return y; }
 
-  void init(Real const aXstart, std::array<Real, csNvar> const &aYstart);
-	std::pair<Real, Real> step(Real const x, const Real aHtry);
-  std::array<Real,  csNvar> const& getY() const { return y; }
+  void init(Real const aXstart, Variables const &aYstart);
+	StepData step(Real const x, const Real aHtry);
+	void prepareDense(Real const x, const Real h);
+	Variables interpolate(Real const aXold, const Real x, const Real h);
 
 private:
 	void dy(Real const x, const Real h);
-	void prepare_dense(Real const x, const Real h,std::array<Real, csNvar> &dydxnew);
-	Real dense_out(const uint32_t i, const Real x, const Real h);
 	Real error(const Real h);
 	class Controller {
 		Real hnext,errold;
@@ -221,35 +234,45 @@ StepperDormandPrice853<tOdeDefinition>::StepperDormandPrice853(const Real aAtol,
 }
 	
 template <typename tOdeDefinition>
-void StepperDormandPrice853<tOdeDefinition>::init(Real const aXstart, std::array<Real, csNvar> const &aYstart) {
+void StepperDormandPrice853<tOdeDefinition>::init(Real const aXstart, Variables const &aYstart) {
   y = aYstart;
   mOdeDef(aXstart, aYstart, mDydx);
 }
 
 template <typename tOdeDefinition>
-std::pair<typename StepperDormandPrice853<tOdeDefinition>::Real, typename StepperDormandPrice853<tOdeDefinition>::Real> StepperDormandPrice853<tOdeDefinition>::step(Real const aX, const Real htry) {
-	std::array<Real, csNvar> dydxnew;
+typename StepperDormandPrice853<tOdeDefinition>::StepData StepperDormandPrice853<tOdeDefinition>::step(Real const aX, const Real htry) {
+  StepData result;
 	Real h=htry;
   auto x = aX;
+std::cout << "was y: "; for(auto i : y) std::cout << i << ' '; std::cout << '\n';
+std::cout << "was dydx: "; for(auto i : mDydx) std::cout << i << ' '; std::cout << '\n';
 	for (;;) {
+std::cout << "step (x " << x << ", h " << h << ") ";
 		dy(x, h);
 		Real err=error(h);
-		if (con.success(err,h)) break;
-		if (abs(h) <= abs(x)*numeric_limits<Real>::epsilon())
-			throw("stepsize underflow in StepperDormandPrice853");
+		if (con.success(err,h)) {
+      break;
+    }
+		if (abs(h) <= abs(x)*std::numeric_limits<Real>::epsilon()) {
+			throw std::out_of_range("stepsize underflow in StepperDormandPrice853");
+    }
 	}
-	mOdeDef(x+h,yout,dydxnew);
-	mDydx=dydxnew;
-	y=yout;
-	xold=x;
-	x += h;
-	hnext=con.getNextStep();
-  return std::make_pair(x, h);
+std::cout << "\n";
+	mOdeDef(x+h, yout, mDydx);
+  mYprev = y;
+	y = yout;
+std::cout << "new y: "; for(auto i : y) std::cout << i << ' '; std::cout << '\n';
+  result.xOld = xold;
+  result.hNow = h;
+	result.xNow = xold = x;
+	result.xNext = x += h;
+	result.hNext = hnext =con.getNextStep();
+  return result;
 }
 
 template <typename tOdeDefinition>
 void StepperDormandPrice853<tOdeDefinition>::dy(Real const x, const Real h) {
-	std::array<Real, csNvar> ytemp;
+	Variables ytemp;
 	uint32_t i;
 	for (i=0;i<csNvar;i++)
 		ytemp[i]=y[i]+h*a21*mDydx[i];
@@ -302,17 +325,17 @@ void StepperDormandPrice853<tOdeDefinition>::dy(Real const x, const Real h) {
 }
 
 template <typename tOdeDefinition>
-void StepperDormandPrice853<tOdeDefinition>::prepare_dense(Real const x, const Real h,std::array<Real, csNvar> &dydxnew) {
+void StepperDormandPrice853<tOdeDefinition>::prepareDense(Real const x, const Real h) {
 	uint32_t i;
 	Real ydiff,bspl;
-	std::array<Real, csNvar> ytemp;
+	Variables ytemp;
 	for (i=0;i<csNvar;i++) {
-		rcont1[i]=y[i];
-		ydiff=yout[i]-y[i];
+		rcont1[i]=mYprev[i];
+		ydiff=y[i]-mYprev[i];
 		rcont2[i]=ydiff;
 		bspl=h*mDydx[i]-ydiff;
 		rcont3[i]=bspl;
-		rcont4[i]=ydiff-h*dydxnew[i]-bspl;
+		rcont4[i]=ydiff-h*mDydx[i]-bspl;
 		rcont5[i]=d41*mDydx[i]+d46*k6[i]+d47*k7[i]+d48*k8[i]+
 			d49*k9[i]+d410*k10[i]+d411*k2[i]+d412*k3[i];
 		rcont6[i]=d51*mDydx[i]+d56*k6[i]+d57*k7[i]+d58*k8[i]+
@@ -322,33 +345,37 @@ void StepperDormandPrice853<tOdeDefinition>::prepare_dense(Real const x, const R
 		rcont8[i]=d71*mDydx[i]+d76*k6[i]+d77*k7[i]+d78*k8[i]+
 			d79*k9[i]+d710*k10[i]+d711*k2[i]+d712*k3[i];
 	}
-    for (i=0;i<csNvar;i++)
-		ytemp[i]=y[i]+h*(a141*mDydx[i]+a147*k7[i]+a148*k8[i]+a149*k9[i]+
-			a1410*k10[i]+a1411*k2[i]+a1412*k3[i]+a1413*dydxnew[i]);
-    mOdeDef(x+c14*h,ytemp,k10);
-    for (i=0;i<csNvar;i++)
-		ytemp[i]=y[i]+h*(a151*mDydx[i]+a156*k6[i]+a157*k7[i]+a158*k8[i]+
-			a1511*k2[i]+a1512*k3[i]+a1513*dydxnew[i]+a1514*k10[i]);
-    mOdeDef(x+c15*h,ytemp,k2);
-    for (i=0;i<csNvar;i++)
-		ytemp[i]=y[i]+h*(a161*mDydx[i]+a166*k6[i]+a167*k7[i]+a168*k8[i]+
-			a169*k9[i]+a1613*dydxnew[i]+a1614*k10[i]+a1615*k2[i]);
-    mOdeDef(x+c16*h,ytemp,k3);
+  for (i=0;i<csNvar;i++)
+		ytemp[i]=mYprev[i]+h*(a141*mDydx[i]+a147*k7[i]+a148*k8[i]+a149*k9[i]+
+			a1410*k10[i]+a1411*k2[i]+a1412*k3[i]+a1413*mDydx[i]);
+  mOdeDef(x+c14*h,ytemp,k10);
+  for (i=0;i<csNvar;i++)
+		ytemp[i]=mYprev[i]+h*(a151*mDydx[i]+a156*k6[i]+a157*k7[i]+a158*k8[i]+
+			a1511*k2[i]+a1512*k3[i]+a1513*mDydx[i]+a1514*k10[i]);
+  mOdeDef(x+c15*h,ytemp,k2);
+  for (i=0;i<csNvar;i++)
+		ytemp[i]=mYprev[i]+h*(a161*mDydx[i]+a166*k6[i]+a167*k7[i]+a168*k8[i]+
+			a169*k9[i]+a1613*mDydx[i]+a1614*k10[i]+a1615*k2[i]);
+  mOdeDef(x+c16*h,ytemp,k3);
 	for (i=0;i<csNvar;i++)
 	{
-		rcont5[i]=h*(rcont5[i]+d413*dydxnew[i]+d414*k10[i]+d415*k2[i]+d416*k3[i]);
-		rcont6[i]=h*(rcont6[i]+d513*dydxnew[i]+d514*k10[i]+d515*k2[i]+d516*k3[i]);
-		rcont7[i]=h*(rcont7[i]+d613*dydxnew[i]+d614*k10[i]+d615*k2[i]+d616*k3[i]);
-		rcont8[i]=h*(rcont8[i]+d713*dydxnew[i]+d714*k10[i]+d715*k2[i]+d716*k3[i]);
+		rcont5[i]=h*(rcont5[i]+d413*mDydx[i]+d414*k10[i]+d415*k2[i]+d416*k3[i]);
+		rcont6[i]=h*(rcont6[i]+d513*mDydx[i]+d514*k10[i]+d515*k2[i]+d516*k3[i]);
+		rcont7[i]=h*(rcont7[i]+d613*mDydx[i]+d614*k10[i]+d615*k2[i]+d616*k3[i]);
+		rcont8[i]=h*(rcont8[i]+d713*mDydx[i]+d714*k10[i]+d715*k2[i]+d716*k3[i]);
 	}
 }
 
 template <typename tOdeDefinition>
-typename StepperDormandPrice853<tOdeDefinition>::Real StepperDormandPrice853<tOdeDefinition>::dense_out(const uint32_t i,const Real x,const Real h) {
-	Real s=(x-xold)/h;
+typename StepperDormandPrice853<tOdeDefinition>::Variables StepperDormandPrice853<tOdeDefinition>::interpolate(Real const aXold, const Real x, const Real h) {
+  Variables result;
+	Real s=(x-aXold)/h;
 	Real s1=1.0-s;
-	return rcont1[i]+s*(rcont2[i]+s1*(rcont3[i]+s*(rcont4[i]+s1*(rcont5[i]+
+  for(uint32_t i = 0u; i < csNvar; ++i) {
+	  result[i] = rcont1[i]+s*(rcont2[i]+s1*(rcont3[i]+s*(rcont4[i]+s1*(rcont5[i]+
 		s*(rcont6[i]+s1*(rcont7[i]+s*rcont8[i]))))));
+  }
+  return result;
 }
 
 template <typename tOdeDefinition>

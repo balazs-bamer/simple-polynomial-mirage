@@ -7,7 +7,7 @@
 #include <array>
 
 double signum(double const aValue);
-double binarySearch(double const aLower, double const aUpper, double const aEpsilon, std::function<double(double)> aLambda);
+double binarySearch(double const aLower, double const aUpper, double const aEpsilon, std::function<bool(double)> aLambda);
 
 class PolynomApprox final {
 public:
