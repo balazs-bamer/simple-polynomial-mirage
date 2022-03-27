@@ -59,9 +59,11 @@ struct Output {
 		} else {
 			while ((x-xout)*(x2-x1) > 0.0) {
 				save_dense(s,xout,h);
+std::cout << '[' << xout << ':' << ysave[0][count-1] << "] ";
 				xout += dxout;
 			}
 		}
+std::cout << '\n';
 	}
 };
 template<class Stepper>
