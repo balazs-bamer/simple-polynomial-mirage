@@ -90,6 +90,7 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   Eikonal eikonal(aTempAmb, aTempDiff);
   Odeint<StepperDopr853<Eikonal>> ode(yStart, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, out, eikonal);
   ode.integrate();
+std::cout << "==========================================================\n";
   std::array<double, cNvar> yStart2;
   yStart2[0] = 0.0;
   yStart2[1] = 0.0;
@@ -121,7 +122,7 @@ int main(int aArgc, char **aArgv) {
   boost::program_options::options_description desc("Usage:");
   desc.add_options()
                     ("dir", boost::program_options::value<double>(), "start direction (degrees), neg is down, 0 horizontal [0]")
-                    ("dist", boost::program_options::value<double>(), "horizontal distance to track [1000]")
+                    ("dist", boost::program_options::value<double>(), "horizontal distance to track [2000]")
                     ("height", boost::program_options::value<double>(), "start height (m) [1]")
                     ("help", "produce this message")
                     ("step1", boost::program_options::value<double>(), "initial step size [0.01]")

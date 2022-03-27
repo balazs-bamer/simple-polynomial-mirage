@@ -110,7 +110,7 @@ void Odeint<Stepper>::integrate() {
 		if ((x+h*1.0001-x2)*(x2-x1) > 0.0)
 			h=x2-x;
 		s.step(h,derivs);
-std::cout << x << ' ' << h << '\n';
+std::cout << "xNow: " << x << '\n';
 		if (s.hdid == h) ++nok; else ++nbad;
 		if (dense)
 			out.out(nstp,x,y,s,s.hdid);

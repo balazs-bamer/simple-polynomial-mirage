@@ -217,19 +217,20 @@ void StepperDopr853<D>::step(const Doub htry,D &derivs) {
 std::cout << "y: "; for(auto i=0; i < n; ++i) std::cout << y[i] << ' '; std::cout << '\n';
 std::cout << "dydx: "; for(auto i=0; i < n; ++i) std::cout << dydx[i] << ' '; std::cout << '\n';
 	for (;;) {
-std::cout << "(" << x << ',' << h << ") ";
+std::cout << "step (x " << x << ", h " << h << ") ";
 		dy(h,derivs);
 		Doub err=error(h);
+std::cout << "err: " << err << ' ';
 		if (con.success(err,h)) break;
 		if (abs(h) <= abs(x)*EPS)
 			throw("stepsize underflow in StepperDopr853");
 	}
-std::cout << '\n';
 	derivs(x+h,yout,dydxnew);
 	if (dense)
 		prepare_dense(h,dydxnew,derivs);
 	dydx=dydxnew;
 	y=yout;
+std::cout << "\nnew y: "; for(auto i=0; i < n; ++i) std::cout << y[i] << ' '; std::cout << "\n\n";
 	xold=x;
 	x += (hdid=h);
 	hnext=con.hnext;
@@ -286,6 +287,8 @@ void StepperDopr853<D>::dy(const Doub h,D &derivs) {
 		yerr2[i]=er1*dydx[i]+er6*k6[i]+er7*k7[i]+er8*k8[i]+er9*k9[i]+
 			 er10*k10[i]+er11*k2[i]+er12*k3[i];
 	}
+i = 0;
+std::cout << '\n' << k2[i] << ' ' << k3[i] << ' ' << k4[i] << ' ' << k5[i] << ' ' << k6[i] << ' ' << k7[i] << ' ' << k8[i] << ' ' << k9[i] << ' ' << k10[i] << ' ' << yout[i] << ' ' << yerr[i] << ' ' << yerr2[i] << '\n';
 }
 template <class D>
 void StepperDopr853<D>::prepare_dense(const Doub h,VecDoub_I &dydxnew,
@@ -347,6 +350,7 @@ Doub StepperDopr853<D>::error(const Doub h) {
 	deno=err+0.01*err2;
 	if (deno <= 0.0)
 		deno=1.0;
+std::cout << std::abs(h) << ' ' << err << ' ' << std::sqrt(1.0/(n*deno)) << '\n';
 	return abs(h)*err*sqrt(1.0/(n*deno));
 }
 template <class D>
@@ -357,21 +361,35 @@ bool StepperDopr853<D>::Controller::success(const Doub err, Doub &h) {
 		maxscale=6.0;
 	Doub scale;
 	if (err <= 1.0) {
-		if (err == 0.0)
+		if (err == 0.0) {
+std::cout << "con A ";
 			scale=maxscale;
+    }
 		else {
+std::cout << "con B ";
 			scale=safe*pow(err,-alpha)*pow(errold,beta);
-			if (scale<minscale) scale=minscale;
-			if (scale>maxscale) scale=maxscale;
+			if (scale<minscale) {
+std::cout << "con C ";
+        scale=minscale;
+      }
+			if (scale>maxscale) {
+std::cout << "con D ";
+        scale=maxscale;
+      }
 		}
-		if (reject)
+		if (reject) {
+std::cout << "con E ";
 			hnext=h*MIN(scale,1.0);
-		else
+    }
+		else {
+std::cout << "con F ";
 			hnext=h*scale;
+    }
 		errold=MAX(err,1.0e-4);
 		reject=false;
 		return true;
 	} else {
+std::cout << "con G ";
 		scale=MAX(safe*pow(err,-alpha),minscale);
 		h *= scale;
 		reject=true;

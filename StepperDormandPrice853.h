@@ -250,18 +250,18 @@ std::cout << "was dydx: "; for(auto i : mDydx) std::cout << i << ' '; std::cout 
 std::cout << "step (x " << x << ", h " << h << ") ";
 		dy(x, h);
 		Real err=error(h);
+std::cout << "err: " << err << ' ';
 		if (con.success(err,h)) {
       break;
     }
-		if (abs(h) <= abs(x)*std::numeric_limits<Real>::epsilon()) {
+		if (std::abs(h) <= std::abs(x)*std::numeric_limits<Real>::epsilon()) {
 			throw std::out_of_range("stepsize underflow in StepperDormandPrice853");
     }
 	}
-std::cout << "\n";
 	mOdeDef(x+h, yout, mDydx);
   mYprev = y;
 	y = yout;
-std::cout << "new y: "; for(auto i : y) std::cout << i << ' '; std::cout << '\n';
+std::cout << "\nnew y: "; for(auto i : y) std::cout << i << ' '; std::cout << '\n';
   result.xOld = xold;
   result.hNow = h;
 	result.xNow = xold = x;
@@ -322,6 +322,8 @@ void StepperDormandPrice853<tOdeDefinition>::dy(Real const x, const Real h) {
 		yerr2[i]=er1*mDydx[i]+er6*k6[i]+er7*k7[i]+er8*k8[i]+er9*k9[i]+
 			 er10*k10[i]+er11*k2[i]+er12*k3[i];
 	}
+i = 0;
+std::cout << '\n' << k2[i] << ' ' << k3[i] << ' ' << k4[i] << ' ' << k5[i] << ' ' << k6[i] << ' ' << k7[i] << ' ' << k8[i] << ' ' << k9[i] << ' ' << k10[i] << ' ' << yout[i] << ' ' << yerr[i] << ' ' << yerr2[i] << '\n';
 }
 
 template <typename tOdeDefinition>
@@ -382,16 +384,17 @@ template <typename tOdeDefinition>
 typename StepperDormandPrice853<tOdeDefinition>::Real StepperDormandPrice853<tOdeDefinition>::error(const Real h) {
 	Real err=0.0,err2=0.0,sk,deno;
 	for (uint32_t i=0;i<csNvar;i++) {
-		sk=mAtol+mRtol*MAX(abs(y[i]),abs(yout[i]));
-    auto err = yerr[i]/sk;
-		err += err*err;
-    auto err2 = yerr2[i]/sk;
-		err2 += err2 * err2;
+		sk=mAtol+mRtol*MAX(std::abs(y[i]),std::abs(yout[i]));
+    auto terr = yerr[i]/sk;
+		err2 += terr*terr;
+    auto terr2 = yerr2[i]/sk;
+		err += terr2 * terr2;
 	}
 	deno=err+0.01*err2;
 	if (deno <= 0.0)
 		deno=1.0;
-	return abs(h)*err*sqrt(1.0/(csNvar*deno));
+std::cout << std::abs(h) << ' ' << err << ' ' << std::sqrt(1.0/(csNvar*deno)) << '\n';
+	return std::abs(h)*err*std::sqrt(1.0/(csNvar*deno));
 }
 
 template <typename tOdeDefinition>
@@ -402,21 +405,35 @@ bool StepperDormandPrice853<tOdeDefinition>::Controller::success(const Real err,
 		maxscale=6.0;
 	Real scale;
 	if (err <= 1.0) {
-		if (err == 0.0)
+		if (err == 0.0) {
+std::cout << "con A ";
 			scale=maxscale;
+    }
 		else {
+std::cout << "con B ";
 			scale=safe*pow(err,-alpha)*pow(errold,beta);
-			if (scale<minscale) scale=minscale;
-			if (scale>maxscale) scale=maxscale;
+			if (scale<minscale) {
+std::cout << "con C ";
+        scale=minscale;
+      }
+			if (scale>maxscale) {
+std::cout << "con D ";
+        scale=maxscale;
+      }
 		}
-		if (reject)
+		if (reject) {
+std::cout << "con E ";
 			hnext=h*MIN(scale,1.0);
-		else
+    }
+		else {
+std::cout << "con F ";
 			hnext=h*scale;
+    }
 		errold=MAX(err,1.0e-4);
 		reject=false;
 		return true;
 	} else {
+std::cout << "con G ";
 		scale=MAX(safe*pow(err,-alpha),minscale);
 		h *= scale;
 		reject=true;

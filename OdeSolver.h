@@ -57,9 +57,10 @@ typename OdeSolver<tStepper>::Variables OdeSolver<tStepper>::solve(std::function
 			h = mXend - x;
     }
 		auto stepData = mStepper.step(x, h);
+std::cout << "xNow: " << stepData.xNow << '\n';
 		if (aJudge(mStepper.getY())) {
       mStepper.prepareDense(stepData.xNow, stepData.hNow);
-std::cout << stepData.xOld << '-' << stepData.xNow << '\n';
+std::cout << "ready: " << stepData.xOld << '-' << stepData.xNow << '\n';
       binarySearch(stepData.xOld, stepData.xNow, aEpsilon, [&result, &stepData, this, &aJudge](auto const aWhere){
 std::cout << "s: " << aWhere << '\n';
         result = mStepper.interpolate(stepData.xOld, aWhere, stepData.hNow);
