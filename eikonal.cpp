@@ -76,7 +76,7 @@ public:
   }
 };
 
-void comp(double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aTempAmb, double aTempDiff, double aTolAbs, double aTolRel) {
+void comp(double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aTempAmb, double aTempDiff, double aTolAbs, double aTolRel, double aTarget) {
   constexpr uint32_t cNvar = 6u;
   VecDoub yStart(cNvar);
   yStart[0] = 0.0;
@@ -100,9 +100,9 @@ std::cout << "==========================================================\n";
   yStart2[5] = u * std::sin(aDir / 180.0 * 3.1415926539);
   Eikonal2<double> eikonal2(aTempAmb, aTempDiff);
   OdeSolver<StepperDormandPrice853<Eikonal2<double>>> ode2(yStart2, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal2);
-  auto result = ode2.solve([](std::array<double, cNvar> const& aY){ 
+  auto result = ode2.solve([aTarget](std::array<double, cNvar> const& aY){ 
 std::cout << "judge x " << aY[0] <<"\n\n";
-return aY[0] >= 999.0; 
+return aY[0] >= aTarget;
 }, 0.0001);
 std::cout << "result y: "; for(auto i : result) std::cout << i << ' '; std::cout << '\n';
   std::cout << "x2=[0, " << result[0] << "]\n";
@@ -130,7 +130,8 @@ int main(int aArgc, char **aArgv) {
                     ("tempamb", boost::program_options::value<double>(), "ambient temperature (Celsius) [20]")
                     ("tempdiff", boost::program_options::value<double>(), "temperature rise next to asphalt compared to ambient (Celsius) [6.37]")
                     ("tolabs", boost::program_options::value<double>(), "absolute tolerance [1e-3]")
-                    ("tolrel", boost::program_options::value<double>(), "relative tolerance [1e-3]");
+                    ("tolrel", boost::program_options::value<double>(), "relative tolerance [1e-3]")
+                    ("xyz", boost::program_options::value<double>(), "custom [0]");
   boost::program_options::variables_map varMap;
   boost::program_options::store(boost::program_options::parse_command_line(aArgc, aArgv, desc), varMap);
   boost::program_options::notify(varMap);
@@ -147,7 +148,8 @@ int main(int aArgc, char **aArgv) {
     double tempDiff = (varMap.count("tempdiff") ? varMap["tempdiff"].as<double>() : 6.37);
     double tolAbs = (varMap.count("tolabs") ? varMap["tolabs"].as<double>() : 0.001);
     double tolRel = (varMap.count("tolrel") ? varMap["tolrel"].as<double>() : 0.001);
-    comp(dir, dist, height, step1, stepMin, tempAmb, tempDiff, tolAbs, tolRel);
+    double target = (varMap.count("xyz") ? varMap["xyz"].as<double>() : 0.0);
+    comp(dir, dist, height, step1, stepMin, tempAmb, tempDiff, tolAbs, tolRel, target);
   }
   return 0;
 }

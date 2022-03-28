@@ -59,7 +59,7 @@ struct Output {
 		} else {
 			while ((x-xout)*(x2-x1) > 0.0) {
 				save_dense(s,xout,h);
-std::cout << '[' << xout << ':' << ysave[0][count-1] << "] ";
+std::cout << "[save s " << xout << ":x " << ysave[0][count-1] << "] ";
 				xout += dxout;
 			}
 		}
@@ -112,7 +112,7 @@ void Odeint<Stepper>::integrate() {
 		if ((x+h*1.0001-x2)*(x2-x1) > 0.0)
 			h=x2-x;
 		s.step(h,derivs);
-std::cout << "xNow: " << x << '\n';
+std::cout << "xNow: " << x << " y: " << s.y[0] << '\n';
 		if (s.hdid == h) ++nok; else ++nbad;
 		if (dense)
 			out.out(nstp,x,y,s,s.hdid);
@@ -126,6 +126,7 @@ std::cout << "xNow: " << x << '\n';
 		}
 		if (abs(s.hnext) <= hmin) throw("Step size too small in Odeint");
 		h=s.hnext;
+std::cout << "-------------------------------------\n";
 	}
 	throw("Too many steps in routine Odeint");
 }

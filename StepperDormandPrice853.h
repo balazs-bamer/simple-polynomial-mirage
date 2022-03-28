@@ -328,6 +328,7 @@ std::cout << '\n' << k2[i] << ' ' << k3[i] << ' ' << k4[i] << ' ' << k5[i] << ' 
 
 template <typename tOdeDefinition>
 void StepperDormandPrice853<tOdeDefinition>::prepareDense(Real const x, const Real h) {
+std::cout << "prepare: h " << h << " mYprev: " << mYprev[0] << "y: " << y[0] << '\n';
 	uint32_t i;
 	Real ydiff,bspl;
 	Variables ytemp;
@@ -370,6 +371,7 @@ void StepperDormandPrice853<tOdeDefinition>::prepareDense(Real const x, const Re
 
 template <typename tOdeDefinition>
 typename StepperDormandPrice853<tOdeDefinition>::Variables StepperDormandPrice853<tOdeDefinition>::interpolate(Real const aXold, const Real x, const Real h) {
+std::cout << " interpol xo: " << aXold << " xa: " << x << " h: " << h << " rc1: " << rcont1[0] << " rc2: " << rcont2[0] << '\n';
   Variables result;
 	Real s=(x-aXold)/h;
 	Real s1=1.0-s;

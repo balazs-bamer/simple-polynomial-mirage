@@ -57,13 +57,13 @@ typename OdeSolver<tStepper>::Variables OdeSolver<tStepper>::solve(std::function
 			h = mXend - x;
     }
 		auto stepData = mStepper.step(x, h);
-std::cout << "xNow: " << stepData.xNow << '\n';
+std::cout << "xNow: " << stepData.xNow << " y: " << mStepper.getY()[0] << '\n';
 		if (aJudge(mStepper.getY())) {
       mStepper.prepareDense(stepData.xNow, stepData.hNow);
-std::cout << "ready: " << stepData.xOld << '-' << stepData.xNow << '\n';
-      binarySearch(stepData.xOld, stepData.xNow, aEpsilon, [&result, &stepData, this, &aJudge](auto const aWhere){
+std::cout << "ready: " << stepData.xNow << '-' << stepData.xNext << '\n';
+      binarySearch(stepData.xNow, stepData.xNext, aEpsilon, [&result, &stepData, this, &aJudge](auto const aWhere){
 std::cout << "s: " << aWhere << '\n';
-        result = mStepper.interpolate(stepData.xOld, aWhere, stepData.hNow);
+        result = mStepper.interpolate(stepData.xNow, aWhere, stepData.hNow);
         return aJudge(result);
       });
 			ready = true;
@@ -72,6 +72,7 @@ std::cout << "s: " << aWhere << '\n';
 		if (abs(h) <= mStepMin) throw std::out_of_range("Step size too small in OdeSolver");
     x = stepData.xNext;
     h = stepData.hNext;
+std::cout << "-------------------------------------\n";
 	}
   if(!ready) {
   	throw std::out_of_range("Too many steps in routine OdeSolver");

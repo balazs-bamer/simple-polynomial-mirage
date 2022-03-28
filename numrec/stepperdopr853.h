@@ -293,6 +293,7 @@ std::cout << '\n' << k2[i] << ' ' << k3[i] << ' ' << k4[i] << ' ' << k5[i] << ' 
 template <class D>
 void StepperDopr853<D>::prepare_dense(const Doub h,VecDoub_I &dydxnew,
 	D &derivs) {
+std::cout << "prepare: h " << h << " y: " << y[0] << "yNext: " << yout[0] << '\n';
 	Int i;
 	Doub ydiff,bspl;
 	VecDoub ytemp(n);
@@ -334,6 +335,7 @@ void StepperDopr853<D>::prepare_dense(const Doub h,VecDoub_I &dydxnew,
 }
 template <class D>
 Doub StepperDopr853<D>::dense_out(const Int i,const Doub x,const Doub h) {
+if(i == 0) std::cout << " interpol xo: " << xold << " xa: " << x << " h: " << h << " rc1: " << rcont1[0] << " rc2: " << rcont2[0] << '\n';
 	Doub s=(x-xold)/h;
 	Doub s1=1.0-s;
 	return rcont1[i]+s*(rcont2[i]+s1*(rcont3[i]+s*(rcont4[i]+s1*(rcont5[i]+
