@@ -90,7 +90,6 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   Eikonal eikonal(aTempAmb, aTempDiff);
   Odeint<StepperDopr853<Eikonal>> ode(yStart, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, out, eikonal);
   ode.integrate();
-std::cout << "==========================================================\n";
   std::array<double, cNvar> yStart2;
   yStart2[0] = 0.0;
   yStart2[1] = 0.0;
@@ -100,13 +99,9 @@ std::cout << "==========================================================\n";
   yStart2[5] = u * std::sin(aDir / 180.0 * 3.1415926539);
   Eikonal2<double> eikonal2(aTempAmb, aTempDiff);
   OdeSolver<StepperDormandPrice853<Eikonal2<double>>> ode2(yStart2, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal2);
-  auto result = ode2.solve([aTarget](std::array<double, cNvar> const& aY){ 
-std::cout << "judge x " << aY[0] <<"\n\n";
-return aY[0] >= aTarget;
-}, 0.0001);
-std::cout << "result y: "; for(auto i : result) std::cout << i << ' '; std::cout << '\n';
-  std::cout << "x2=[0, " << result[0] << "]\n";
-  std::cout << "z2=[1, " << result[2] << "]\n";
+  auto result = ode2.solve([aTarget](std::array<double, cNvar> const& aY){ return aY[0] >= aTarget; }, 0.0001);
+  std::cout << "x2=[0, " << result[0] << "];\n";
+  std::cout << "z2=[1, " << result[2] << "];\n";
   std::cout << "x=[";
   for (Int i=0; i<out.count; i++) {
     std::cout << out.ysave[0][i] << (i < out.count - 1 ? ", " : "];\n");

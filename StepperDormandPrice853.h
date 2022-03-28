@@ -244,13 +244,9 @@ typename StepperDormandPrice853<tOdeDefinition>::StepData StepperDormandPrice853
   StepData result;
 	Real h=htry;
   auto x = aX;
-std::cout << "was y: "; for(auto i : y) std::cout << i << ' '; std::cout << '\n';
-std::cout << "was dydx: "; for(auto i : mDydx) std::cout << i << ' '; std::cout << '\n';
 	for (;;) {
-std::cout << "step (x " << x << ", h " << h << ") ";
 		dy(x, h);
 		Real err=error(h);
-std::cout << "err: " << err << ' ';
 		if (con.success(err,h)) {
       break;
     }
@@ -261,7 +257,6 @@ std::cout << "err: " << err << ' ';
 	mOdeDef(x+h, yout, mDydx);
   mYprev = y;
 	y = yout;
-std::cout << "\nnew y: "; for(auto i : y) std::cout << i << ' '; std::cout << '\n';
   result.xOld = xold;
   result.hNow = h;
 	result.xNow = xold = x;
@@ -322,13 +317,10 @@ void StepperDormandPrice853<tOdeDefinition>::dy(Real const x, const Real h) {
 		yerr2[i]=er1*mDydx[i]+er6*k6[i]+er7*k7[i]+er8*k8[i]+er9*k9[i]+
 			 er10*k10[i]+er11*k2[i]+er12*k3[i];
 	}
-i = 0;
-std::cout << '\n' << k2[i] << ' ' << k3[i] << ' ' << k4[i] << ' ' << k5[i] << ' ' << k6[i] << ' ' << k7[i] << ' ' << k8[i] << ' ' << k9[i] << ' ' << k10[i] << ' ' << yout[i] << ' ' << yerr[i] << ' ' << yerr2[i] << '\n';
 }
 
 template <typename tOdeDefinition>
 void StepperDormandPrice853<tOdeDefinition>::prepareDense(Real const x, const Real h) {
-std::cout << "prepare: h " << h << " mYprev: " << mYprev[0] << "y: " << y[0] << '\n';
 	uint32_t i;
 	Real ydiff,bspl;
 	Variables ytemp;
@@ -371,7 +363,6 @@ std::cout << "prepare: h " << h << " mYprev: " << mYprev[0] << "y: " << y[0] << 
 
 template <typename tOdeDefinition>
 typename StepperDormandPrice853<tOdeDefinition>::Variables StepperDormandPrice853<tOdeDefinition>::interpolate(Real const aXold, const Real x, const Real h) {
-std::cout << " interpol xo: " << aXold << " xa: " << x << " h: " << h << " rc1: " << rcont1[0] << " rc2: " << rcont2[0] << '\n';
   Variables result;
 	Real s=(x-aXold)/h;
 	Real s1=1.0-s;
@@ -395,7 +386,6 @@ typename StepperDormandPrice853<tOdeDefinition>::Real StepperDormandPrice853<tOd
 	deno=err+0.01*err2;
 	if (deno <= 0.0)
 		deno=1.0;
-std::cout << std::abs(h) << ' ' << err << ' ' << std::sqrt(1.0/(csNvar*deno)) << '\n';
 	return std::abs(h)*err*std::sqrt(1.0/(csNvar*deno));
 }
 
@@ -408,34 +398,27 @@ bool StepperDormandPrice853<tOdeDefinition>::Controller::success(const Real err,
 	Real scale;
 	if (err <= 1.0) {
 		if (err == 0.0) {
-std::cout << "con A ";
 			scale=maxscale;
     }
 		else {
-std::cout << "con B ";
 			scale=safe*pow(err,-alpha)*pow(errold,beta);
 			if (scale<minscale) {
-std::cout << "con C ";
         scale=minscale;
       }
 			if (scale>maxscale) {
-std::cout << "con D ";
         scale=maxscale;
       }
 		}
 		if (reject) {
-std::cout << "con E ";
 			hnext=h*MIN(scale,1.0);
     }
 		else {
-std::cout << "con F ";
 			hnext=h*scale;
     }
 		errold=MAX(err,1.0e-4);
 		reject=false;
 		return true;
 	} else {
-std::cout << "con G ";
 		scale=MAX(safe*pow(err,-alpha),minscale);
 		h *= scale;
 		reject=true;

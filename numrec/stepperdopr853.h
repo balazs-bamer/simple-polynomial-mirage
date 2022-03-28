@@ -1,5 +1,3 @@
-#include <iostream>
-
 struct Dopr853_constants {
 	static const Doub c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c14,c15,c16,
 		b1,b6,b7,b8,b9,b10,b11,b12,bhh1,bhh2,bhh3,
@@ -214,13 +212,9 @@ template <class D>
 void StepperDopr853<D>::step(const Doub htry,D &derivs) {
 	VecDoub dydxnew(n);
 	Doub h=htry;
-std::cout << "y: "; for(auto i=0; i < n; ++i) std::cout << y[i] << ' '; std::cout << '\n';
-std::cout << "dydx: "; for(auto i=0; i < n; ++i) std::cout << dydx[i] << ' '; std::cout << '\n';
 	for (;;) {
-std::cout << "step (x " << x << ", h " << h << ") ";
 		dy(h,derivs);
 		Doub err=error(h);
-std::cout << "err: " << err << ' ';
 		if (con.success(err,h)) break;
 		if (abs(h) <= abs(x)*EPS)
 			throw("stepsize underflow in StepperDopr853");
@@ -230,7 +224,6 @@ std::cout << "err: " << err << ' ';
 		prepare_dense(h,dydxnew,derivs);
 	dydx=dydxnew;
 	y=yout;
-std::cout << "\nnew y: "; for(auto i=0; i < n; ++i) std::cout << y[i] << ' '; std::cout << "\n\n";
 	xold=x;
 	x += (hdid=h);
 	hnext=con.hnext;
@@ -287,13 +280,10 @@ void StepperDopr853<D>::dy(const Doub h,D &derivs) {
 		yerr2[i]=er1*dydx[i]+er6*k6[i]+er7*k7[i]+er8*k8[i]+er9*k9[i]+
 			 er10*k10[i]+er11*k2[i]+er12*k3[i];
 	}
-i = 0;
-std::cout << '\n' << k2[i] << ' ' << k3[i] << ' ' << k4[i] << ' ' << k5[i] << ' ' << k6[i] << ' ' << k7[i] << ' ' << k8[i] << ' ' << k9[i] << ' ' << k10[i] << ' ' << yout[i] << ' ' << yerr[i] << ' ' << yerr2[i] << '\n';
 }
 template <class D>
 void StepperDopr853<D>::prepare_dense(const Doub h,VecDoub_I &dydxnew,
 	D &derivs) {
-std::cout << "prepare: h " << h << " y: " << y[0] << "yNext: " << yout[0] << '\n';
 	Int i;
 	Doub ydiff,bspl;
 	VecDoub ytemp(n);
@@ -335,7 +325,6 @@ std::cout << "prepare: h " << h << " y: " << y[0] << "yNext: " << yout[0] << '\n
 }
 template <class D>
 Doub StepperDopr853<D>::dense_out(const Int i,const Doub x,const Doub h) {
-if(i == 0) std::cout << " interpol xo: " << xold << " xa: " << x << " h: " << h << " rc1: " << rcont1[0] << " rc2: " << rcont2[0] << '\n';
 	Doub s=(x-xold)/h;
 	Doub s1=1.0-s;
 	return rcont1[i]+s*(rcont2[i]+s1*(rcont3[i]+s*(rcont4[i]+s1*(rcont5[i]+
@@ -352,7 +341,6 @@ Doub StepperDopr853<D>::error(const Doub h) {
 	deno=err+0.01*err2;
 	if (deno <= 0.0)
 		deno=1.0;
-std::cout << std::abs(h) << ' ' << err << ' ' << std::sqrt(1.0/(n*deno)) << '\n';
 	return abs(h)*err*sqrt(1.0/(n*deno));
 }
 template <class D>
@@ -364,34 +352,27 @@ bool StepperDopr853<D>::Controller::success(const Doub err, Doub &h) {
 	Doub scale;
 	if (err <= 1.0) {
 		if (err == 0.0) {
-std::cout << "con A ";
 			scale=maxscale;
     }
 		else {
-std::cout << "con B ";
 			scale=safe*pow(err,-alpha)*pow(errold,beta);
 			if (scale<minscale) {
-std::cout << "con C ";
         scale=minscale;
       }
 			if (scale>maxscale) {
-std::cout << "con D ";
         scale=maxscale;
       }
 		}
 		if (reject) {
-std::cout << "con E ";
 			hnext=h*MIN(scale,1.0);
     }
 		else {
-std::cout << "con F ";
 			hnext=h*scale;
     }
 		errold=MAX(err,1.0e-4);
 		reject=false;
 		return true;
 	} else {
-std::cout << "con G ";
 		scale=MAX(safe*pow(err,-alpha),minscale);
 		h *= scale;
 		reject=true;
