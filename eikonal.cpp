@@ -3,10 +3,13 @@
 #include "stepper.h"
 #include "stepperdopr853.h"
 #include "odeint.h"
+#include "Eikonal.h"
 #include "OdeSolver.h"
 #include "StepperDormandPrice853.h"
+#include "RungeKuttaRayBending.h"
 
-// g++ eikonal.cpp -Inumrec -o eikonal -ggdb -lboost_program_options
+//clang++ -Inumrec -I/usr/include/eigen3 -I../repos/eigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp mathUtil.cpp -o eikonal -ggdb -lboost_program_options
+
 
 // These two are for conventional asphalt
 double refract(double const aH, double const aTempAmb, double const aTempDiff) {
@@ -20,7 +23,7 @@ double refractDiff(double const aH, double const aTempAmb, double const aTempDif
 }
 
 
-class Eikonal final {
+class Eik final {
 public:
   static constexpr double cgC = 299792458; // m/2
   
@@ -29,7 +32,7 @@ private:
   double mTempDiff;
 
 public:
-  Eikonal(double const aTempAmb, double const aTempDiff) : mTempAmb(aTempAmb), mTempDiff(aTempDiff) {}
+  Eik(double const aTempAmb, double const aTempDiff) : mTempAmb(aTempAmb), mTempDiff(aTempDiff) {}
 
   void operator() (const double/* aS*/, VecDoub_I const &aY, VecDoub_O &aDyds) {
     double n    = refract(aY[2], mTempAmb, mTempDiff);
@@ -61,7 +64,7 @@ private:
 public:
   Eikonal2(double const aTempAmb, double const aTempDiff) : mTempAmb(aTempAmb), mTempDiff(aTempDiff) {}
 
-  void operator() (const double/* aS*/, std::array<Real, csNvar> const &aY, std::array<Real, csNvar> &aDyds) {
+  void operator() (const double/* aS*/, std::array<Real, csNvar> const &aY, std::array<Real, csNvar> &aDyds) const {
     double n    = refract(aY[2], mTempAmb, mTempDiff);
     double v    = cgC / n;
 //    double dvdz = -v / n * refractDiff(aY[2]);
@@ -82,14 +85,24 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   yStart[0] = 0.0;
   yStart[1] = 0.0;
   yStart[2] = aHeight;
-  auto u = refract(aHeight, aTempAmb, aTempDiff) / Eikonal::cgC;
+  auto u = refract(aHeight, aTempAmb, aTempDiff) / Eik::cgC;
   yStart[3] = u * std::cos(aDir / 180.0 * 3.1415926539);
   yStart[4] = 0.0;
   yStart[5] = u * std::sin(aDir / 180.0 * 3.1415926539);
   Output out(100);
-  Eikonal eikonal(aTempAmb, aTempDiff);
-  Odeint<StepperDopr853<Eikonal>> ode(yStart, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, out, eikonal);
+  Eik eik(aTempAmb, aTempDiff);
+  Odeint<StepperDopr853<Eik>> ode(yStart, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, out, eik);
   ode.integrate();
+  std::cout << "x=[";
+  for (Int i=0; i<out.count; i++) {
+    std::cout << out.ysave[0][i] << (i < out.count - 1 ? ", " : "];\n");
+  }
+  std::cout << "z=[";
+  for (Int i=0; i<out.count; i++) {
+    std::cout << out.ysave[2][i] << (i < out.count - 1 ? ", " : "];\n");
+  }
+  std::cout << "\n";
+
   std::array<double, cNvar> yStart2;
   yStart2[0] = 0.0;
   yStart2[1] = 0.0;
@@ -102,20 +115,19 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   auto judge = [&aTarget](std::array<double, cNvar> const& aY){ return aY[0] >= aTarget; };
   auto result = ode2.solve(yStart2, judge, 0.0001);
   std::cout << "x2=[0, " << result[0] << "];\n";
-  std::cout << "z2=[1, " << result[2] << "];\n";
+  std::cout << "z2=[" << aHeight << ", " << result[2] << "];\n";
   aTarget /= 2;
   result = ode2.solve(yStart2, judge, 0.0001);
   std::cout << "x3=[0, " << result[0] << "];\n";
-  std::cout << "z3=[1, " << result[2] << "];\n";
-  std::cout << "x=[";
-  for (Int i=0; i<out.count; i++) {
-    std::cout << out.ysave[0][i] << (i < out.count - 1 ? ", " : "];\n");
-  }
-  std::cout << "z=[";
-  for (Int i=0; i<out.count; i++) {
-    std::cout << out.ysave[2][i] << (i < out.count - 1 ? ", " : "];\n");
-  }
-  std::cout << "\n";
+  std::cout << "z3=[" << aHeight << ", " << result[2] << "];\n";
+
+  Eikonal eikonal(aTempAmb, aTempDiff);
+  RungeKuttaRayBending rk(aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal);
+  Vertex start(0.0f, 0.0f, (float)(aHeight));
+  Vector dir((float)(std::cos(aDir / 180.0 * 3.1415926539)), 0.0f, (float)(std::sin(aDir / 180.0 * 3.1415926539)));
+  auto final = rk.solve4x(start, dir, aTarget * 0.75);
+  std::cout << "x4=[0, " << final(0) << "];\n";
+  std::cout << "z4=[" << aHeight << ", " << final(2) << "];\n";
 }
 
 int main(int aArgc, char **aArgv) {

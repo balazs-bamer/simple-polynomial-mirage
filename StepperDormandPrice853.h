@@ -1,3 +1,6 @@
+#ifndef STEPPERDORMANDPRICE853
+#define STEPPERDORMANDPRICE853
+
 #include <array>
 #include <cmath>
 #include <limits>
@@ -188,22 +191,22 @@ public:
   };
 
 private:
-  Real            mAtol;
-  Real            mRtol;
-	OdeDefinition&  mOdeDef;
-  Real            hnext;
-  Variables       yout;
-  Variables       yerr;
-	Variables       yerr2;
+  Real                 mAtol;
+  Real                 mRtol;
+  OdeDefinition const& mOdeDef;
+  Real                 hnext;
+  Variables            yout;
+  Variables            yerr;
+  Variables            yerr2;
 	Variables k2,k3,k4,k5,k6,k7,k8,k9,k10;
 	Variables rcont1,rcont2,rcont3,rcont4,rcont5,rcont6,rcont7,rcont8;
-  Real            xold;
-  Variables       mYprev;
-  Variables       y;
-  Variables       mDydx;
+  Real                 xold;
+  Variables            mYprev;
+  Variables            y;
+  Variables            mDydx;
 
 public:
-	StepperDormandPrice853(const Real aAtol, const Real aRtol, tOdeDefinition &aOdeDef);
+  StepperDormandPrice853(const Real aAtol, const Real aRtol, tOdeDefinition const& aOdeDef);
   Variables const& getY() const { return y; }
 
   void init(Real const aXstart, Variables const &aYstart);
@@ -227,7 +230,7 @@ private:
 };
 
 template <typename tOdeDefinition>
-StepperDormandPrice853<tOdeDefinition>::StepperDormandPrice853(const Real aAtol, const Real aRtol, tOdeDefinition &aOdeDef)
+StepperDormandPrice853<tOdeDefinition>::StepperDormandPrice853(const Real aAtol, const Real aRtol, tOdeDefinition const& aOdeDef)
 : mAtol(aAtol)
 , mRtol(aRtol)
 , mOdeDef(aOdeDef) { 
@@ -424,3 +427,5 @@ bool StepperDormandPrice853<tOdeDefinition>::Controller::success(const Real err,
 		return false;
 	}
 }
+
+#endif

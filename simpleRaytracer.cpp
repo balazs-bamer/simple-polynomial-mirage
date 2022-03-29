@@ -15,28 +15,13 @@ Object::Object(char const * const aName, double const aCenterX, double const aCe
   mPlane = Plane::createFrom2vectors1point({0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {aCenterX, 0.0f, 0.0f});
 }
 
-bool gNeed;
-double gIncl;
-double gDepth;
-double gBottom;
-double gNewStart;
-
 uint8_t Object::getPixel(Ray const &aRay) const {
   uint8_t result = 0u;
   auto intersection = mPlane.intersect(aRay);
   if(intersection.mValid && intersection.mPoint(1) > mMinY && intersection.mPoint(1) < mMaxY && intersection.mPoint(2) > mMinZ && intersection.mPoint(2) < mMaxZ) {
-    uint32_t x = /*mImage.get_width() -*/ (intersection.mPoint(2) - mMinZ) / mDz/* - 1u*/;
+    uint32_t x = mImage.get_width() - (intersection.mPoint(2) - mMinZ) / mDz - 1u;
     uint32_t y = mImage.get_height() - (intersection.mPoint(1) - mMinY) / mDy - 1u;
     result = mImage.get_pixel(x, y);
-if(gNeed) {
-/*  std::cout << " inc:  " << std::setw(17) << gIncl
-            << " dpt:  " << std::setw(17) << gDepth
-            << " bot:  " << std::setw(17) << gBottom
-            << " new: " << std::setw(17) << gNewStart
-            << " x: " << std::setw(5) << x
-            << " y: " << std::setw(5) << y
-            << " p: " << (int)(result) << '\n';*/
-}
   }
   else {} // Nothing to do
   return result;
@@ -49,23 +34,17 @@ uint8_t Medium::trace(Ray const& aRay) {
   horizontal.mConstant = mHotPlate.getWorkingHeight();
   auto intersection = horizontal.intersect(aRay);
   double inclination;
-gNeed = false;
   if(intersection.mValid) {
      if(aRay.mDirection(1) < 0.0f   // Simplest case: must point downwards.
         && (inclination = ::acos(static_cast<double>(-aRay.mDirection.dot(horizontal.mNormal)))) >= mHotPlate.getCriticalInclination()) {
-gIncl = inclination;
        Ray inner(intersection.mPoint, aRay.mDirection);  // Virtual ray downwards inside the bending air.
        horizontal.mConstant = 0; // TODO mHotPlate.approximateReflectionDepth(inclination);
-gDepth = horizontal.mConstant;
        intersection = horizontal.intersect(inner);
-gBottom = intersection.mPoint(1);
        inner.mStart = intersection.mPoint;
        inner.mDirection(1) = -inner.mDirection(1);       // Virtual reflection, ray still virtual, still inside the bending air.
        horizontal.mConstant = mHotPlate.getWorkingHeight();
        intersection = horizontal.intersect(inner);
-gNewStart = intersection.mPoint(1);
        inner.mStart = intersection.mPoint;               // Normal ray in homogeneous air.
-gNeed = true;
        result = mObject.getPixel(inner);
      }
      else {} // Nothing to do

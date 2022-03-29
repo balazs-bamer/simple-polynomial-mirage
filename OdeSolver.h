@@ -1,3 +1,6 @@
+#ifndef ODESOLVER
+#define ODESOLVER
+
 #include "mathUtil.h"
 #include <array>
 #include <cmath>
@@ -18,11 +21,11 @@ private:
 	Real                      mXend;
 	Real                      mStepStart;
 	Real                      mStepMin;
-	OdeDefinition&            mOdeDef;
+  OdeDefinition const&      mOdeDef;
 	tStepper                  mStepper;
 
 public:
-	OdeSolver(const Real aXstart, const Real aXend, const Real aAtol, const Real aRtol, const Real aStepStart, const Real aStepMin, OdeDefinition &aOdeDefs);
+  OdeSolver(const Real aXstart, const Real aXend, const Real aAtol, const Real aRtol, const Real aStepStart, const Real aStepMin, OdeDefinition const& aOdeDefs);
 
 	Variables solve(Variables const &aYstart, std::function<bool(std::array<double, csNvar> const&)> aJudge, Real const aEpsilon);
 };
@@ -30,7 +33,7 @@ public:
 template<typename tStepper>
 OdeSolver<tStepper>::OdeSolver(const Real aXstart, const Real aXend,
 		const Real aAtol, const Real aRtol, const Real aStepStart,
-		const Real aStepMin, OdeDefinition &aOdeDef)
+    const Real aStepMin, OdeDefinition const& aOdeDef)
 : mXstart(aXstart)
 , mXend(aXend)
 , mStepStart(aStepStart)
@@ -69,3 +72,5 @@ typename OdeSolver<tStepper>::Variables OdeSolver<tStepper>::solve(Variables con
   }
   return result;
 }
+
+#endif
