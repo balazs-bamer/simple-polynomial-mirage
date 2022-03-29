@@ -4,7 +4,6 @@
 #include <utility>
 #include <stdexcept>
 
-#include<iostream>
 
 template <typename tOdeDefinition>
 class StepperDormandPrice853 {
@@ -219,7 +218,8 @@ private:
 		Real hnext,errold;
 		bool reject;
   public:
-		Controller();
+		Controller() { init(); } 
+    void init()  { reject = false; errold = 1.0e-4; }
 		bool success(const Real err, Real &h);
     Real getNextStep() const { return hnext; }
 	};
@@ -237,6 +237,7 @@ template <typename tOdeDefinition>
 void StepperDormandPrice853<tOdeDefinition>::init(Real const aXstart, Variables const &aYstart) {
   y = aYstart;
   mOdeDef(aXstart, aYstart, mDydx);
+  con.init();
 }
 
 template <typename tOdeDefinition>
@@ -389,8 +390,6 @@ typename StepperDormandPrice853<tOdeDefinition>::Real StepperDormandPrice853<tOd
 	return std::abs(h)*err*std::sqrt(1.0/(csNvar*deno));
 }
 
-template <typename tOdeDefinition>
-StepperDormandPrice853<tOdeDefinition>::Controller::Controller() : reject(false), errold(1.0e-4) {}
 template <typename tOdeDefinition>
 bool StepperDormandPrice853<tOdeDefinition>::Controller::success(const Real err, Real &h) {
 	static const Real beta=0.0,alpha=1.0/8.0-beta*0.2,safe=0.9,minscale=0.333,

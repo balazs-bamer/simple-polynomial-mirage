@@ -98,10 +98,15 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   yStart2[4] = 0.0;
   yStart2[5] = u * std::sin(aDir / 180.0 * 3.1415926539);
   Eikonal2<double> eikonal2(aTempAmb, aTempDiff);
-  OdeSolver<StepperDormandPrice853<Eikonal2<double>>> ode2(yStart2, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal2);
-  auto result = ode2.solve([aTarget](std::array<double, cNvar> const& aY){ return aY[0] >= aTarget; }, 0.0001);
+  OdeSolver<StepperDormandPrice853<Eikonal2<double>>> ode2(0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal2);
+  auto judge = [&aTarget](std::array<double, cNvar> const& aY){ return aY[0] >= aTarget; };
+  auto result = ode2.solve(yStart2, judge, 0.0001);
   std::cout << "x2=[0, " << result[0] << "];\n";
   std::cout << "z2=[1, " << result[2] << "];\n";
+  aTarget /= 2;
+  result = ode2.solve(yStart2, judge, 0.0001);
+  std::cout << "x3=[0, " << result[0] << "];\n";
+  std::cout << "z3=[1, " << result[2] << "];\n";
   std::cout << "x=[";
   for (Int i=0; i<out.count; i++) {
     std::cout << out.ysave[0][i] << (i < out.count - 1 ? ", " : "];\n");

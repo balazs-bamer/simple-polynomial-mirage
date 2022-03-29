@@ -12,9 +12,8 @@ private:
   using Variables     = typename tStepper::Variables;
   using OdeDefinition = typename tStepper::OdeDefinition;
 
-	static constexpr uint32_t csMaxStep = 50000u;
+  static constexpr uint32_t csMaxStep = 1000u;
   static constexpr uint32_t csNvar    = tStepper::csNvar;
-	Variables                 mYstart;
 	Real                      mXstart;
 	Real                      mXend;
 	Real                      mStepStart;
@@ -23,19 +22,16 @@ private:
 	tStepper                  mStepper;
 
 public:
-	OdeSolver(Variables const &ayStart, const Real aXstart, const Real aXend,
-		const Real aAtol, const Real aRtol, const Real aStepStart,
-		const Real aStepMin, OdeDefinition &aOdeDefs);
+	OdeSolver(const Real aXstart, const Real aXend, const Real aAtol, const Real aRtol, const Real aStepStart, const Real aStepMin, OdeDefinition &aOdeDefs);
 
-	Variables solve(std::function<bool(std::array<double, csNvar> const&)> aJudge, Real const aEpsilon);
+	Variables solve(Variables const &aYstart, std::function<bool(std::array<double, csNvar> const&)> aJudge, Real const aEpsilon);
 };
 
 template<typename tStepper>
-OdeSolver<tStepper>::OdeSolver(Variables const &aYstart, const Real aXstart, const Real aXend,
+OdeSolver<tStepper>::OdeSolver(const Real aXstart, const Real aXend,
 		const Real aAtol, const Real aRtol, const Real aStepStart,
 		const Real aStepMin, OdeDefinition &aOdeDef)
-: mYstart(aYstart)
-, mXstart(aXstart)
+: mXstart(aXstart)
 , mXend(aXend)
 , mStepStart(aStepStart)
 , mStepMin(aStepMin)
@@ -44,12 +40,12 @@ OdeSolver<tStepper>::OdeSolver(Variables const &aYstart, const Real aXstart, con
 }
 
 template<typename tStepper>
-typename OdeSolver<tStepper>::Variables OdeSolver<tStepper>::solve(std::function<bool(std::array<double, csNvar> const&)> aJudge, Real const aEpsilon) {
+typename OdeSolver<tStepper>::Variables OdeSolver<tStepper>::solve(Variables const &aYstart, std::function<bool(std::array<double, csNvar> const&)> aJudge, Real const aEpsilon) {
   Variables result;
   bool ready = false;
 	auto x = mXstart;
   auto h = std::copysign(mStepStart, mXend - mXstart);
-  mStepper.init(mXstart, mYstart);
+  mStepper.init(mXstart, aYstart);
 	for (uint32_t steps = 0u; steps < csMaxStep; steps++) {
 		if ((x + h * 1.0001 - mXend) * (mXend - mXstart) > 0.0) {
 			h = mXend - x;
