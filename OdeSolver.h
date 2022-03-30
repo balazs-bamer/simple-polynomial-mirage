@@ -15,7 +15,7 @@ private:
   using Variables     = typename tStepper::Variables;
   using OdeDefinition = typename tStepper::OdeDefinition;
 
-  static constexpr uint32_t csMaxStep = 1000u;
+  static constexpr uint32_t csMaxStep = 100u;
   static constexpr uint32_t csNvar    = tStepper::csNvar;
 	Real                      mXstart;
 	Real                      mXend;
@@ -53,7 +53,10 @@ typename OdeSolver<tStepper>::Variables OdeSolver<tStepper>::solve(Variables con
 		if ((x + h * 1.0001 - mXend) * (mXend - mXstart) > 0.0) {
 			h = mXend - x;
     }
-		auto stepData = mStepper.step(x, h);
+    if(std::isnan(h) || std::isnan(x)) {
+      throw std::out_of_range("NaN in OdeSolver");
+    }
+    auto stepData = mStepper.step(x, h);
 		if (aJudge(mStepper.getY())) {
       mStepper.prepareDense(stepData.xNow, stepData.hNow);
       binarySearch(stepData.xNow, stepData.xNext, aEpsilon, [&result, &stepData, this, &aJudge](auto const aWhere){
@@ -63,7 +66,9 @@ typename OdeSolver<tStepper>::Variables OdeSolver<tStepper>::solve(Variables con
 			ready = true;
       break;
 		}
-		if (abs(h) <= mStepMin) throw std::out_of_range("Step size too small in OdeSolver");
+    if (abs(h) <= mStepMin) {
+      throw std::out_of_range("Step size too small in OdeSolver");
+    }
     x = stepData.xNext;
     h = stepData.hNext;
 	}

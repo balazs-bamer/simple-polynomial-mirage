@@ -13,15 +13,14 @@ Object::Object(char const * const aName, double const aCenterX, double const aCe
   , mMinZ(-aWidth / 2.0)
   , mMaxZ(aWidth / 2.0)
   , mX(aCenterX) {
-  mPlane = Plane::createFrom2vectors1point({0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {aCenterX, 0.0f, 0.0f});
+std::cout << mMinZ << ' ' << mMaxZ << ' ' << mMinY << ' ' << mMaxY << '\n';
 }
 
-uint8_t Object::getPixel(Ray const &aRay) const {
+uint8_t Object::getPixel(Vertex const &aHit) const {
   uint8_t result = 0u;
-  auto intersection = mPlane.intersect(aRay);
-  if(intersection.mValid && intersection.mPoint(1) > mMinY && intersection.mPoint(1) < mMaxY && intersection.mPoint(2) > mMinZ && intersection.mPoint(2) < mMaxZ) {
-    uint32_t x = mImage.get_width() - (intersection.mPoint(2) - mMinZ) / mDz - 1u;
-    uint32_t y = mImage.get_height() - (intersection.mPoint(1) - mMinY) / mDy - 1u;
+  if(aHit(1) > mMinY && aHit(1)  < mMaxY && aHit(2) > mMinZ && aHit(2) < mMaxZ) {
+    uint32_t x = std::max(0.0, (aHit(2) - mMinZ) / mDz);
+    uint32_t y = mImage.get_height() - (aHit(1) - mMinY) / mDy - 1u;
     result = mImage.get_pixel(x, y);
   }
   else {} // Nothing to do
@@ -29,12 +28,17 @@ uint8_t Object::getPixel(Ray const &aRay) const {
 }
 
 uint8_t Medium::trace(Ray const& aRay) {
-  auto hit = mSolver.solve4x(aRay.mStart, aRay,mDierection, mObject.getX());
-  return mObject.getPixel(hit);
+  try {
+    auto hit = mSolver.solve4x(aRay.mStart, aRay.mDirection, mObject.getX());
+    return mObject.getPixel(hit);
+  }
+  catch(...) {
+    return 0u;
+  }
 }
 
 
-Image::Image(double const aCenterX, double const aCenterY,
+Image::Image(double const aCenterY,
         double const aTilt, double const aPinholeDist,
         double const aPixelSize,
         uint32_t const aResZ, uint32_t const aResY,
@@ -43,7 +47,7 @@ Image::Image(double const aCenterX, double const aCenterY,
   , mSubSample(aSubSample)
   , mSsFactor(1.0 / aSubSample)
   , mPixelSize(aPixelSize)
-  , mCenter(aCenterX, aCenterY, 0.0)
+  , mCenter(0.0, aCenterY, 0.0)
   , mNormal(::cos(aTilt), -::sin(aTilt), 0.0)
   , mInPlaneZ(0.0, 0.0, 1.0)
   , mInPlaneY(mNormal.cross(mInPlaneZ))

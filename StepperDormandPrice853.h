@@ -251,7 +251,10 @@ typename StepperDormandPrice853<tOdeDefinition>::StepData StepperDormandPrice853
 	for (;;) {
 		dy(x, h);
 		Real err=error(h);
-		if (con.success(err,h)) {
+    if(std::isnan(h) || std::isnan(x)) {
+      throw std::out_of_range("NaN in StepperDormandPrice853");
+    }
+    if (con.success(err,h)) {
       break;
     }
 		if (std::abs(h) <= std::abs(x)*std::numeric_limits<Real>::epsilon()) {
@@ -381,14 +384,14 @@ template <typename tOdeDefinition>
 typename StepperDormandPrice853<tOdeDefinition>::Real StepperDormandPrice853<tOdeDefinition>::error(const Real h) {
 	Real err=0.0,err2=0.0,sk,deno;
 	for (uint32_t i=0;i<csNvar;i++) {
-		sk=mAtol+mRtol*MAX(std::abs(y[i]),std::abs(yout[i]));
+    sk=mAtol+mRtol*std::max(std::abs(y[i]),std::abs(yout[i]));
     auto terr = yerr[i]/sk;
 		err2 += terr*terr;
     auto terr2 = yerr2[i]/sk;
 		err += terr2 * terr2;
 	}
 	deno=err+0.01*err2;
-	if (deno <= 0.0)
+  if (deno <= 1e-23)
 		deno=1.0;
 	return std::abs(h)*err*std::sqrt(1.0/(csNvar*deno));
 }
@@ -412,16 +415,16 @@ bool StepperDormandPrice853<tOdeDefinition>::Controller::success(const Real err,
       }
 		}
 		if (reject) {
-			hnext=h*MIN(scale,1.0);
+      hnext=h*std::min(scale,1.0);
     }
 		else {
 			hnext=h*scale;
     }
-		errold=MAX(err,1.0e-4);
+    errold=std::max(err,1.0e-4);
 		reject=false;
 		return true;
 	} else {
-		scale=MAX(safe*pow(err,-alpha),minscale);
+    scale=std::max(safe*pow(err,-alpha),minscale);
 		h *= scale;
 		reject=true;
 		return false;

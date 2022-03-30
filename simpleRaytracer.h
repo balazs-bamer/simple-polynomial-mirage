@@ -14,7 +14,6 @@ private:
   double const mMaxY;
   double const mMinZ;
   double const mMaxZ;
-  Plane  mPlane;
   double const mX;
 
 public:
@@ -25,15 +24,16 @@ public:
 
 class Medium final {
 private:
-  Eikonal mEikonal(aTempAmb, aTempDiff);
-  RungeKuttaRayBending mSolver(aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal);
+  Eikonal mEikonal;
+  RungeKuttaRayBending mSolver;
   Object const&     mObject;
 
 public:
   Medium(double const aTempAmb, double const aTempDiff,
-         double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, double const aStepMin)
-  : Eikonal mEikonal(aTempAmb, aTempDiff)
-  , mSolver(aDist, aTolAbs, aTolRel, aStep1, aStepMin, mEikonal) {}
+         double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, double const aStepMin, Object const& aObject)
+  : mEikonal(aTempAmb, aTempDiff)
+  , mSolver(aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMin, mEikonal)
+  , mObject(aObject) {}
 
   uint8_t trace(Ray const& aRay);
 };
@@ -55,7 +55,7 @@ private:
   Medium         &mMedium;
 
 public:
-  Image(double const aCenterX, double const aCenterY,
+  Image(double const aCenterY,
         double const aTilt, double const aPinholeDist,
         double const aPixelSize,
         uint32_t const aResZ, uint32_t const aResY,

@@ -1,4 +1,5 @@
-#include "ShepardRayBending.h"
+#include "RungeKuttaRayBending.h"
+#include "ShepardInterpolation.h"
 #include "gtest/gtest.h"
 #include <random>
 
@@ -128,8 +129,6 @@ TEST(polynomApprox, 10y_x_x2__x3_xy) {
   EXPECT_TRUE(shep.getNodeCount(0u) == 1u);
   EXPECT_TRUE(shep.getItemCount(0u) == 0u);
 }*/
-
-#include <iostream>
 
 TEST(fixedStack, iterator) {
   FixedStack<int, 10, 10> s;
