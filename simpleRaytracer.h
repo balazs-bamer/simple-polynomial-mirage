@@ -1,7 +1,7 @@
 #ifndef SIMPLERAYTRACER_H
 #define SIMPLERAYTRACER_H
 
-#include "ShepardRayBending.h"
+#include "RungeKuttaRayBending.h"
 #include "3dGeomUtil.h"
 #include <png++/png.hpp>
 
@@ -15,20 +15,25 @@ private:
   double const mMinZ;
   double const mMaxZ;
   Plane  mPlane;
+  double const mX;
 
 public:
   Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight);
-
-  uint8_t getPixel(Ray const &aRay) const;
+  double  getX() const { return mX; }
+  uint8_t getPixel(Vertex const &aHit) const;
 };
 
 class Medium final {
 private:
-  ShepardRayBending mHotPlate;
+  Eikonal mEikonal(aTempAmb, aTempDiff);
+  RungeKuttaRayBending mSolver(aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal);
   Object const&     mObject;
 
 public:
-  Medium(double const aTempDiff, Object const &aObject) : mHotPlate(aTempDiff), mObject(aObject) {}
+  Medium(double const aTempAmb, double const aTempDiff,
+         double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, double const aStepMin)
+  : Eikonal mEikonal(aTempAmb, aTempDiff)
+  , mSolver(aDist, aTolAbs, aTolRel, aStep1, aStepMin, mEikonal) {}
 
   uint8_t trace(Ray const& aRay);
 };

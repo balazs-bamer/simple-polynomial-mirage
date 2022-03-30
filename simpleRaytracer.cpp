@@ -11,7 +11,8 @@ Object::Object(char const * const aName, double const aCenterX, double const aCe
   , mMinY(aCenterY - aHeight / 2.0)
   , mMaxY(aCenterY + aHeight / 2.0)
   , mMinZ(-aWidth / 2.0)
-  , mMaxZ(aWidth / 2.0) {
+  , mMaxZ(aWidth / 2.0)
+  , mX(aCenterX) {
   mPlane = Plane::createFrom2vectors1point({0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {aCenterX, 0.0f, 0.0f});
 }
 
@@ -28,31 +29,8 @@ uint8_t Object::getPixel(Ray const &aRay) const {
 }
 
 uint8_t Medium::trace(Ray const& aRay) {
-  uint8_t result = 0u;
-  Plane horizontal;
-  horizontal.mNormal = Vector{0.0f, 1.0f, 0.0f};
-  horizontal.mConstant = mHotPlate.getWorkingHeight();
-  auto intersection = horizontal.intersect(aRay);
-  double inclination;
-  if(intersection.mValid) {
-     if(aRay.mDirection(1) < 0.0f   // Simplest case: must point downwards.
-        && (inclination = ::acos(static_cast<double>(-aRay.mDirection.dot(horizontal.mNormal)))) >= mHotPlate.getCriticalInclination()) {
-       Ray inner(intersection.mPoint, aRay.mDirection);  // Virtual ray downwards inside the bending air.
-       horizontal.mConstant = 0; // TODO mHotPlate.approximateReflectionDepth(inclination);
-       intersection = horizontal.intersect(inner);
-       inner.mStart = intersection.mPoint;
-       inner.mDirection(1) = -inner.mDirection(1);       // Virtual reflection, ray still virtual, still inside the bending air.
-       horizontal.mConstant = mHotPlate.getWorkingHeight();
-       intersection = horizontal.intersect(inner);
-       inner.mStart = intersection.mPoint;               // Normal ray in homogeneous air.
-       result = mObject.getPixel(inner);
-     }
-     else {} // Nothing to do
-  }
-  else {
-    result = mObject.getPixel(aRay);
-  }
-  return result;
+  auto hit = mSolver.solve4x(aRay.mStart, aRay,mDierection, mObject.getX());
+  return mObject.getPixel(hit);
 }
 
 
