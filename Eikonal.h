@@ -1,6 +1,8 @@
 #ifndef EIKONAL
 #define EIKONAL
 
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_matrix.h>
 #include <cmath>
 
 
@@ -57,6 +59,44 @@ public:
     //aDyds[5] = -1.0 / v / v * dvdz;
   }
 
+  int differentials(double, const double aY[], double aDydt[]) const {
+    double n    = getRefract(aY[1]);
+    double v    = csC / n;
+
+    aDydt[0] = v * aY[3];
+    aDydt[1] = v * aY[4];
+    aDydt[2] = v * aY[5];
+    aDydt[3] = 0.0;
+    aDydt[4] = getRefractDiff(aY[1]) / v / n;
+    aDydt[5] = 0.0;
+    return GSL_SUCCESS;
+  }
+
+  int jacobian(double, const double aY[], double *aDfdy, double aDfdt[]) const {
+    gsl_matrix_view dfdy_mat = gsl_matrix_view_array (aDfdy, csNvar, csNvar);  // TODO do directly
+    gsl_matrix * m = &dfdy_mat.matrix;
+//    gsl_matrix_set (m, row, col, 0.0);
+    double n    = getRefract(aY[1]);
+    double nd1  = getRefractDiff(aY[1]);
+    double nd2  = getRefractDiff2(aY[1]);
+    double v    = csC / n;
+    for(uint32_t i = 0u; i < csNvar; ++i) {
+      gsl_matrix_set (m, i, 0u, 0.0);
+      gsl_matrix_set (m, i, 2u, 0.0);
+      gsl_matrix_set (m, i, 3u, (i == 0u ? v : 0.0));
+      gsl_matrix_set (m, i, 4u, (i == 1u ? v : 0.0));
+      gsl_matrix_set (m, i, 5u, (i == 2u ? v : 0.0));
+      aDfdt[i] = 0.0;
+    }
+    gsl_matrix_set (m, 0u, 1u, -v * aY[3] * nd1 / n);
+    gsl_matrix_set (m, 1u, 1u, -v * aY[4] * nd1 / n);
+    gsl_matrix_set (m, 2u, 1u, -v * aY[5] * nd1 / n);
+    gsl_matrix_set (m, 3u, 1u, 0.0);
+    gsl_matrix_set (m, 4u, 1u, v * (nd2 / n - 2.0 * nd1 * nd1 / n / n));
+    gsl_matrix_set (m, 5u, 1u, 0.0);
+    return GSL_SUCCESS;
+  }
+
 public:
   // Conventional
   double getRefract(double const aH) const {
@@ -74,6 +114,12 @@ private:
   double getRefractDiff(double const aH) const {
     auto t = mTempAmbient + mTempDiffSurface * std::exp(-10.08 * aH) + 273.168;
     return mTempDiffSurface * 0.800211 * std::exp(-10.08 * aH) / t / t;
+  }
+
+  double getRefractDiff2(double const aH) const {
+    auto t = mTempAmbient + mTempDiffSurface * std::exp(-10.08 * aH) + 273.168;
+    return 0.079386 * ((203.213 * mTempDiffSurface * mTempDiffSurface * std::exp(-20.16 * aH)) / t / t / t
+                     - (101.606 * mTempDiffSurface * std::exp(-10.08 * aH)) / t / t);
   }
 };
 
