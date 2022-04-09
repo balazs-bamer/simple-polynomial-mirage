@@ -1,8 +1,39 @@
+#include "OdeSolverGsl.h"
 #include <iostream>
 #include <vector>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_odeiv2.h>
+
+class VanDerPol final {
+public:
+  static constexpr uint32_t csNvar = 2u;
+
+private:
+  double const mMu;
+
+public:
+  VanDerPol(double const aMu) : mMu(aMu) {}
+
+  int differentials(double, const double y[], double f[]) const {
+    f[0] = y[1];
+    f[1] = -y[0] - mMu*y[1]*(y[0]*y[0] - 1);
+std::cout<<'<'<<mMu<<','<<f[0]<<','<<f[1]<<'>';
+    return GSL_SUCCESS;
+  }
+
+  int jacobian(double, const double y[], double *dfdy, double dfdt[]) const {
+    gsl_matrix_view dfdy_mat = gsl_matrix_view_array (dfdy, csNvar, csNvar);
+    gsl_matrix * m = &dfdy_mat.matrix;
+    gsl_matrix_set (m, 0, 0, 0.0);
+    gsl_matrix_set (m, 0, 1, 1.0);
+    gsl_matrix_set (m, 1, 0, -2.0*mMu*y[0]*y[1] - 1.0);
+    gsl_matrix_set (m, 1, 1, -mMu*(y[0]*y[0] - 1.0));
+    dfdt[0] = 0.0;
+    dfdt[1] = 0.0;
+    return GSL_SUCCESS;
+  }
+};
 
 int func (double t, const double y[], double f[], void *params)
 {
@@ -10,6 +41,7 @@ int func (double t, const double y[], double f[], void *params)
   double mu = *(double *)params;
   f[0] = y[1];
   f[1] = -y[0] - mu*y[1]*(y[0]*y[0] - 1);
+std::cout<<'<'<<mu<<','<<f[0]<<','<<f[1]<<'>';
   return GSL_SUCCESS;
 }
 
@@ -142,6 +174,7 @@ void stalker(double const aTarget)   // 1.6
     double t = start;
     uint32_t steps = 0;
     double diffPre = y[0] - aTarget;
+std::cout <<  '('<<y[0]<<'_'<<aTarget<<')';
     double hPrev;
     double yPrev[2];
     double tPrev;
@@ -155,7 +188,7 @@ void stalker(double const aTarget)   // 1.6
                                            &sys,
                                            &t, end,
                                            &h, y);
-std::cout << ".";
+std::cout << ".["<<t<<']'<< '('<<y[0]<<'_'<<aTarget<<')';
       if (status != GSL_SUCCESS) {
         throw 1;
       }
@@ -182,17 +215,31 @@ std::cout << tPrev-t << '\n';
       gsl_odeiv2_step_reset(s); 
     }
   }
-  std::cout << "t=[0.0, " << res.t << "];\n";
-  std::cout << "y0=[1.0, " << res.y0 << "];\n";
-  std::cout << "y1=[0.0, " << res.y1 << "];\n";
+  std::cout << "st=[0.0, " << res.t << "];\n";
+  std::cout << "sy0=[1.0, " << res.y0 << "];\n";
+  std::cout << "sy1=[0.0, " << res.y1 << "];\n";
   gsl_odeiv2_evolve_free (e);
   gsl_odeiv2_control_free (c);
   gsl_odeiv2_step_free (s);
+}
+
+void object(double const aTarget)   // 1.6
+{
+  VanDerPol diff(10.0);
+  OdeSolverGsl<VanDerPol> ode(0.0, 11.0, 1e-6, 1e-6, 1e-6, diff);
+  auto [t,y] = ode.solve({1.0, 0.0}, [aTarget](typename OdeSolverGsl<VanDerPol>::Variables const aY){ 
+std::cout << '('<<aY[0]<<'_'<<aTarget<<')';
+return aY[0] > aTarget;
+});
+  std::cout << "ot=[0.0, " << t << "];\n";
+  std::cout << "oy0=[1.0, " << y[0] << "];\n";
+  std::cout << "oy1=[0.0, " << y[1] << "];\n";
 }
 
 int main() {
   driver();
   evolve();
   stalker(1.6);
+  object(1.6);
   return 0;
 }
