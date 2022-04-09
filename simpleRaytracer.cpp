@@ -27,13 +27,22 @@ uint8_t Object::getPixel(Vertex const &aHit) const {
   return result;
 }
 
+
+bool eq(double a, double b) { return std::abs(a-b)<1e-7; }
+
 uint8_t Medium::trace(Ray const& aRay) {
+  if(eq(aRay.mStart(0),4.0) && eq(aRay.mStart(1),1.1) && eq(aRay.mStart(2),0)
+  && eq(aRay.mDirection(0),0.999891) && eq(aRay.mDirection(1),-0.00783665) && eq(aRay.mDirection(2),0.0124861)) {
+std::cout<<"itt\n";
+}
   try {
     auto hit = mSolver.solve4x(aRay.mStart, aRay.mDirection, mObject.getX());
     return mObject.getPixel(hit);
   }
   catch(...) {
-    return 0u;
+std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) << ' '
+          << aRay.mDirection(0) << ' ' << aRay.mDirection(1) << ' ' << aRay.mDirection(2) << '\n';
+    throw 0u;
   }
 }
 
