@@ -225,7 +225,7 @@ void object(double const aTarget)   // 1.6
 {
   VanDerPol diff(10.0);
   OdeSolverGsl<VanDerPol> ode(0.0, 11.0, 1e-6, 1e-6, 1e-6, diff);
-  auto [t,y] = ode.solve({1.0, 0.0}, [aTarget](typename OdeSolverGsl<VanDerPol>::Variables const aY){ return aY[0] > aTarget; });
+  auto [t,y] = ode.solve({1.0, 0.0}, [aTarget](typename OdeSolverGsl<VanDerPol>::Variables const &aY){ return aY[0] > aTarget; });
   std::cout << "ot=[0.0, " << t << "];\n";
   std::cout << "oy0=[1.0, " << y[0] << "];\n";
   std::cout << "oy1=[0.0, " << y[1] << "];\n";

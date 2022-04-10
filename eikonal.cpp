@@ -5,6 +5,7 @@
 #include "odeint.h"
 #include "Eikonal.h"
 #include "OdeSolver.h"
+#include "OdeSolverGsl.h"
 #include "StepperDormandPrice853.h"
 #include "RungeKuttaRayBending.h"
 
@@ -93,11 +94,11 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   Eik eik(aTempAmb, aTempDiff);
   Odeint<StepperDopr853<Eik>> ode(yStart, 0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, out, eik);
   ode.integrate();
-  std::cout << "x=[";
+  std::cout << "xnro=[";
   for (Int i=0; i<out.count; i++) {
     std::cout << out.ysave[0][i] << (i < out.count - 1 ? ", " : "];\n");
   }
-  std::cout << "z=[";
+  std::cout << "znro=[";
   for (Int i=0; i<out.count; i++) {
     std::cout << out.ysave[2][i] << (i < out.count - 1 ? ", " : "];\n");
   }
@@ -114,20 +115,43 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   OdeSolver<StepperDormandPrice853<Eikonal2<double>>> ode2(0.0, aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal2);
   auto judge = [&aTarget](std::array<double, cNvar> const& aY){ return aY[0] >= aTarget; };
   auto result = ode2.solve(yStart2, judge, 0.0001);
-  std::cout << "x2=[0, " << result[0] << "];\n";
-  std::cout << "z2=[" << aHeight << ", " << result[2] << "];\n";
+  std::cout << "xnrm=[0, " << result[0] << "];\n";
+  std::cout << "znrm=[" << aHeight << ", " << result[2] << "];\n";
   aTarget /= 2;
   result = ode2.solve(yStart2, judge, 0.0001);
-  std::cout << "x3=[0, " << result[0] << "];\n";
-  std::cout << "z3=[" << aHeight << ", " << result[2] << "];\n";
+  std::cout << "xnrm2=[0, " << result[0] << "];\n";
+  std::cout << "znrm2=[" << aHeight << ", " << result[2] << "];\n";
 
   Eikonal eikonal(aTempAmb, aTempDiff);
   RungeKuttaRayBending rk(aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal);
   Vertex start(0.0f, 0.0f, (float)(aHeight));
   Vector dir((float)(std::cos(aDir / 180.0 * 3.1415926539)), 0.0f, (float)(std::sin(aDir / 180.0 * 3.1415926539)));
   auto final = rk.solve4x(start, dir, aTarget * 0.75);
-  std::cout << "x4=[0, " << final(0) << "];\n";
-  std::cout << "z4=[" << aHeight << ", " << final(2) << "];\n";
+  std::cout << "xnrrb=[0, " << final(0) << "];\n";
+  std::cout << "znrrb=[" << aHeight << ", " << final(2) << "];\n";
+
+  OdeSolverGsl<Eikonal> gsl(0.0, aDist, 1e-6, 1e-6, 1e-6, eikonal);
+  typename Eikonal::Variables yStart3;
+  yStart3[0] = 0.0;
+  yStart3[1] = aHeight;
+  yStart3[2] = 0.0;
+  yStart3[3] = u * std::cos(aDir / 180.0 * 3.1415926539);
+  yStart3[4] = u * std::sin(aDir / 180.0 * 3.1415926539);
+  yStart3[5] = 0.0;
+  std::vector<typename Eikonal::Variables> stuff;
+  for(double t = 0.0; t < aDist; t += aDist / 100.0) {
+    auto [tt,y] = gsl.solve(yStart3, [t](typename Eikonal::Variables const &aY){ return aY[0] > t; });
+    stuff.push_back(y);
+  }
+  std::cout << "xgls=[";
+  for (int i = 0; i < stuff.size(); ++i) {
+    std::cout << stuff[i][0] << (i < stuff.size() - 1 ? ", " : "];\n");
+  }
+  std::cout << "zgls=[";
+  for (int i = 0; i < stuff.size(); ++i) {
+    std::cout << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
+  }
+  std::cout << "\n";
 }
 
 int main(int aArgc, char **aArgv) {
