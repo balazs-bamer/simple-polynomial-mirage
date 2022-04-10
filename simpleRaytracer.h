@@ -30,9 +30,9 @@ private:
 
 public:
   Medium(double const aTempAmb, double const aTempDiff,
-         double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, double const aStepMin, Object const& aObject)
+         double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Object const& aObject)
   : mEikonal(aTempAmb, aTempDiff)
-  , mSolver(aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMin, mEikonal)
+  , mSolver(aDistAlongRay, aTolAbs, aTolRel, aStep1, mEikonal)
   , mObject(aObject) {}
 
   uint8_t trace(Ray const& aRay);

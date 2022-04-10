@@ -23,8 +23,6 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--resolution", resolution, "film resulution in both directions (pixel) [1000]");
   double step1 = 0.01;
   opt.add_option("--step1", step1, "initial step size [0.01]");
-  double stepMin = 0.0;
-  opt.add_option("--stepMin", stepMin, "minimal step size [0.0]");
   uint32_t subsample = 2u;
   opt.add_option("--subsample", subsample, "subsampling each pixel in both directions (count) [2]");
   double tempAmb = 20.0;
@@ -42,7 +40,7 @@ int main(int aArgc, char **aArgv) {
   CLI11_PARSE(opt, aArgc, aArgv);
 
   Object object(nameIn.c_str(), dist, bullCenter, width, height);
-  Medium medium(tempAmb, tempDiff, dist * 2.0, tolAbs, tolRel, step1, stepMin, object);
+  Medium medium(tempAmb, tempDiff, dist * 2.0, tolAbs, tolRel, step1, object);
   Image image(camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.process(nameOut.c_str());
   return 0;

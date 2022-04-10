@@ -20,4 +20,4 @@ target_link_libraries(googleTest GTest::GTest GTest::Main RungeKuttaRayBendingLi
 add_test(google-test googleTest)
 
 add_executable(main main.cpp simpleRaytracer.cpp)
-target_link_libraries(main RungeKuttaRayBendingLib quadmath png )
+target_link_libraries(main RungeKuttaRayBendingLib quadmath png gsl)
