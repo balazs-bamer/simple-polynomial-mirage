@@ -142,9 +142,11 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   yStart3[4] = u * std::sin(aDir / 180.0 * 3.1415926539);
   yStart3[5] = 0.0;
   std::vector<typename Eikonal::Variables> stuff;
-/*  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
+  ofstream out("values.txt");
+  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
     auto [tt,y] = gsl.solve(yStart3, [t](typename Eikonal::Variables const &aY){ return aY[0] > t; });
     stuff.push_back(y);
+    out << std::setprecision(10) << y[0] << '\t' << std::setprecision(10) << y[1] << '\n';
   }
   std::cout << "xgls=[";
   for (int i = 0; i < stuff.size(); ++i) {
@@ -154,8 +156,8 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
-  std::cout << "\n";*/
-  std::cout << "h=[";
+  std::cout << "\n";
+/*  std::cout << "h=[";
   for (auto i = 0.01; i < 1; i += .01) {
     std::cout << std::setprecision(10) << i << ", ";
   }
@@ -163,7 +165,7 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   for (auto i = 0.01; i < 1; i += .01) {
     std::cout << std::setprecision(10) << eikonal.getRefract(i) << ", ";
   }
-  std::cout << "\n";
+  std::cout << "\n";*/
 }
 
 int main(int aArgc, char **aArgv) {
@@ -178,7 +180,7 @@ int main(int aArgc, char **aArgv) {
                     ("step1", boost::program_options::value<double>(), "initial step size [1e-6]")
                     ("stepmin", boost::program_options::value<double>(), "minimal step size [0.0]")
                     ("target", boost::program_options::value<double>(), "horizontal distance to travel [1000]")
-                    ("tempamb", boost::program_options::value<double>(), "ambient temperature (Celsius) [20]")
+                    ("tempamb", boost::program_options::value<double>(), "ambient temperature (Celsius) [20 for conventional, 38.5 for porous]")
                     ("tolabs", boost::program_options::value<double>(), "absolute tolerance [1e-6]")
                     ("tolrel", boost::program_options::value<double>(), "relative tolerance [1e-6]");
   boost::program_options::variables_map varMap;
@@ -201,7 +203,7 @@ int main(int aArgc, char **aArgv) {
     double step1 = (varMap.count("step1") ? varMap["step1"].as<double>() : 1e-6);
     double stepMin = (varMap.count("stepmin") ? varMap["stepmin"].as<double>() : 0.0);
     double target = (varMap.count("target") ? varMap["target"].as<double>() : 1000.0);
-    double tempAmb = (varMap.count("tempamb") ? varMap["tempamb"].as<double>() : 20);
+    double tempAmb = (varMap.count("tempamb") ? varMap["tempamb"].as<double>() : (asphalt == Eikonal::Mode::cConventional ? 20.0 : 38.5));
     double tempDiff = (varMap.count("tempdiff") ? varMap["tempdiff"].as<double>() : 6.37);
     double tolAbs = (varMap.count("tolabs") ? varMap["tolabs"].as<double>() : 1e-6);
     double tolRel = (varMap.count("tolrel") ? varMap["tolrel"].as<double>() : 1e-6);

@@ -32,8 +32,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--step1", step1, "initial step size [0.01]");
   uint32_t subsample = 2u;
   opt.add_option("--subsample", subsample, "subsampling each pixel in both directions (count) [2]");
-  double tempAmb = 20.0;
-  opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20]");
+  double tempAmb = (asphalt == Eikonal::Mode::cConventional ? 20.0 : 38.5);
+  opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous]");
   double tilt = 0.0;
   opt.add_option("--tilt", tilt, "camera tilt in degrees, neg downwards [0.0]");
   double tolAbs = 0.001;
