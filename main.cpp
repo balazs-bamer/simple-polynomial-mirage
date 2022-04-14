@@ -5,6 +5,13 @@
 
 int main(int aArgc, char **aArgv) {
   CLI::App opt{"Usage"};
+  Eikonal::Mode asphalt = Eikonal::Mode::cConventional;
+  std::string name;
+  opt.add_option("--asphalt", name, "asphalt type (conventional / porous) [conventional]");
+  if(name == "porous") {
+    asphalt = Eikonal::Mode::cPorous;
+  }
+  else {} // nothing to do
   double bullCenter = 5.0;
   opt.add_option("--bullCenter", bullCenter, "height of bulletin center (m) [5.0]");
   double camCenter = 1.1;
@@ -27,8 +34,6 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--subsample", subsample, "subsampling each pixel in both directions (count) [2]");
   double tempAmb = 20.0;
   opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20]");
-  double tempDiff = 6.37;
-  opt.add_option("--tempDiff", tempDiff, "temperature rise next to asphalt compared to ambient (Celsius) [6.37]");
   double tilt = 0.0;
   opt.add_option("--tilt", tilt, "camera tilt in degrees, neg downwards [0.0]");
   double tolAbs = 0.001;
@@ -40,8 +45,8 @@ int main(int aArgc, char **aArgv) {
   CLI11_PARSE(opt, aArgc, aArgv);
 
   Object object(nameIn.c_str(), dist, bullCenter, width, height);
-  Medium medium(tempAmb, tempDiff, dist * 2.0, tolAbs, tolRel, step1, object);
-  Image image(camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
+  Medium medium(tempAmb, asphalt, dist * 2.0, tolAbs, tolRel, step1, object);
+  Image image(true, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.process(nameOut.c_str());
   return 0;
 }

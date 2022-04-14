@@ -29,9 +29,9 @@ private:
   Object const&     mObject;
 
 public:
-  Medium(double const aTempAmb, double const aTempDiff,
+  Medium(double const aTempAmb, Eikonal::Mode const aMode,
          double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Object const& aObject)
-  : mEikonal(aTempAmb, aTempDiff)
+  : mEikonal(aTempAmb, aMode)
   , mSolver(aDistAlongRay, aTolAbs, aTolRel, aStep1, mEikonal)
   , mObject(aObject) {}
 
@@ -40,6 +40,7 @@ public:
 
 class Image final {
 private:
+  bool     const  mRestrictCpu;
   png::image<png::gray_pixel> mImage;
   uint32_t const  mSubSample;
   double   const  mSsFactor;
@@ -55,7 +56,7 @@ private:
   Medium         &mMedium;
 
 public:
-  Image(double const aCenterY,
+  Image(bool const aRestrictCpu, double const aCenterY,
         double const aTilt, double const aPinholeDist,
         double const aPixelSize,
         uint32_t const aResZ, uint32_t const aResY,

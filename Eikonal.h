@@ -8,6 +8,12 @@
 
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
 class Eikonal final {
+public:
+  enum class Mode : uint8_t {
+    cConventional = 0u,
+    cPorous       = 1u
+  };
+
 private:
   static constexpr double   csCelsius2kelvin                = 273.15;
   static constexpr double   csC                             = 299792458.0; // m/s
@@ -33,7 +39,7 @@ private:
   };*/
 
   double mTempAmbient;      // Celsius
-  double mTempDiffSurface;  // Celsius
+  Mode   mMode;
   double mHeightLimit;
   double mB;
   double mDelta;
@@ -43,7 +49,7 @@ public:
   using Real                       = double;
   using Variables                  = std::array<Real, csNvar>;
 
-  Eikonal(double const aTempAmbient, double const aTempDiffSurface) : mTempAmbient(aTempAmbient), mTempDiffSurface(aTempDiffSurface) {}
+  Eikonal(double const aTempAmbient, Mode const aMode) : mTempAmbient(aTempAmbient), mMode(aMode) {}
 
   void operator() (const double/* aS*/, std::array<Real, csNvar> const &aY, std::array<Real, csNvar> &aDyds) const {
     double n    = getRefract(aY[1]);
@@ -98,28 +104,62 @@ public:
   }
 
 public:
-  // Conventional
   double getRefract(double const aH) const {
-    auto celsius = mTempAmbient + 0.018 + mTempDiffSurface * std::exp(-aH * 10.08);
-    return 1.0 + 7.86e-4 * 101 / (celsius + 273.15);
+    return mMode == Mode::cConventional ? getConventionalRefract(aH) : getPorousRefract(aH);
   }
 
-  // Conventional
   double getSlowness(double const aH) const {
-    return getRefract(aH) / csC;
+    return mMode == Mode::cConventional ? getConventionalSlowness(aH) : getPorousSlowness(aH);
   }
 
-private:
-  // Conventional
   double getRefractDiff(double const aH) const {
-    auto t = mTempAmbient + mTempDiffSurface * std::exp(-10.08 * aH) + 273.168;
-    return mTempDiffSurface * 0.800211 * std::exp(-10.08 * aH) / t / t;
+    return mMode == Mode::cConventional ? getConventionalRefractDiff(aH) : getPorousRefractDiff(aH);
   }
 
   double getRefractDiff2(double const aH) const {
-    auto t = mTempAmbient + mTempDiffSurface * std::exp(-10.08 * aH) + 273.168;
-    return 0.079386 * ((203.213 * mTempDiffSurface * mTempDiffSurface * std::exp(-20.16 * aH)) / t / t / t
-                     - (101.606 * mTempDiffSurface * std::exp(-10.08 * aH)) / t / t);
+    return mMode == Mode::cConventional ? getConventionalRefractDiff2(aH) : getPorousRefractDiff2(aH);
+  }
+
+private:
+  double getConventionalRefract(double const aH) const {
+    auto celsius = mTempAmbient + 0.018 + 6.37 * std::exp(-aH * 10.08);
+    return 1.0 + 7.86e-4 * 101 / (celsius + 273.15);
+  }
+
+  double getConventionalSlowness(double const aH) const {
+    return getConventionalRefract(aH) / csC;
+  }
+
+  double getConventionalRefractDiff(double const aH) const {
+    auto t = mTempAmbient + 6.37 * std::exp(-10.08 * aH) + 273.168;
+    return 5.09734 * std::exp(-10.08 * aH) / t / t;
+  }
+
+  double getConventionalRefractDiff2(double const aH) const {
+    auto t = mTempAmbient + 6.37 * std::exp(-10.08 * aH) + 273.168;
+    return 0.079386 * ((8245.75 * std::exp(-20.16 * aH)) / t / t / t
+                     - (647.233 * std::exp(-10.08 * aH)) / t / t);
+  }
+
+  double getPorousRefract(double const aH) const {
+    auto celsius = mTempAmbient + (-66.8 + 1.9 * mTempAmbient) * (0.002 + 0.994 * std::exp(-aH * 8.35));
+    return 1.0 + 7.86e-4 * 101 / (celsius + 273.15);
+  }
+
+  double getPorousSlowness(double const aH) const {
+    return getPorousRefract(aH) / csC;
+  }
+
+  double getPorousRefractDiff(double const aH) const {
+    auto t = (1.9 * mTempAmbient - 66.8) * (0.002 + 0.994 * std::exp(-8.35 * aH)) + mTempAmbient + 273.15;
+    return 0.658896 * (1.9 * mTempAmbient - 66.8) * std::exp(-8.35 * aH) / t / t;
+  }
+
+  double getPorousRefractDiff2(double const aH) const {
+    auto t = (1.9 * mTempAmbient - 66.8) * (0.002 + 0.994 * std::exp(-8.35 * aH)) + mTempAmbient + 273.15;
+    auto d = 1.9 * mTempAmbient - 66.8;
+    return 0.079386 * ((137.777 * d * d * std::exp(-16.7 * aH)) / t / t / t
+                     - (69.3042 * d * std::exp(-8.35 * aH)) / t / t);
   }
 };
 

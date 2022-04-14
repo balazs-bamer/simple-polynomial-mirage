@@ -1,5 +1,5 @@
 #include "simpleRaytracer.h"
-
+#include <thread>
 
 #include <iostream> // TODO remove
 #include <iomanip> // TODO remove
@@ -47,12 +47,13 @@ std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) <<
 }
 
 
-Image::Image(double const aCenterY,
+Image::Image(bool const aRestrictCpu, double const aCenterY,
         double const aTilt, double const aPinholeDist,
         double const aPixelSize,
         uint32_t const aResZ, uint32_t const aResY,
         uint32_t const aSubSample, Medium &aMedium)
-  : mImage(aResZ, aResY)
+  : mRestrictCpu(aRestrictCpu)
+  , mImage(aResZ, aResY)
   , mSubSample(aSubSample)
   , mSsFactor(1.0 / aSubSample)
   , mPixelSize(aPixelSize)
@@ -67,6 +68,8 @@ Image::Image(double const aCenterY,
   , mMedium(aMedium) {}
 
 void Image::process(char const * const aName) {
+  uint32_t nCpus = std::thread::hardware_concurrency();
+  nCpus -= (nCpus > 1u && mRestrictCpu ? 1u : 0u);
   Ray ray;
   ray.mStart = mPinhole;
   for(int y = 0; y < mImage.get_height(); ++y) {

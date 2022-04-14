@@ -82,14 +82,14 @@ public:
   }
 };
 
-void comp(double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aTempAmb, double aTempDiff, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
+void comp(double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aTempAmb, Eikonal::Mode aMode, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
 /*  constexpr uint32_t cNvar = 6u;
   VecDoub yStart(cNvar);
   yStart[0] = 0.0;
   yStart[1] = 0.0;
-  yStart[2] = aHeight;*/
-  auto u = refract(aHeight, aTempAmb, aTempDiff) / Eik::cgC;
-/*  yStart[3] = u * std::cos(aDir / 180.0 * 3.1415926539);
+  yStart[2] = aHeight;
+  auto u = refract(aHeight, aTempAmb, 6.37) / Eik::cgC;
+  yStart[3] = u * std::cos(aDir / 180.0 * 3.1415926539);
   yStart[4] = 0.0;
   yStart[5] = u * std::sin(aDir / 180.0 * 3.1415926539);
   Output out(100);
@@ -124,7 +124,7 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   std::cout << "xnrm2=[0, " << result[0] << "];\n";
   std::cout << "znrm2=[" << aHeight << ", " << result[2] << "];\n";*/
 
-  Eikonal eikonal(aTempAmb, aTempDiff);
+  Eikonal eikonal(aTempAmb, aMode);
 /*  RungeKuttaRayBending rk(aDist, aTolAbs, aTolRel, aStep1, aStepMin, eikonal);
   Vertex start(0.0f, 0.0f, (float)(aHeight));
   Vector dir((float)(std::cos(aDir / 180.0 * 3.1415926539)), 0.0f, (float)(std::sin(aDir / 180.0 * 3.1415926539)));
@@ -132,6 +132,7 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   std::cout << "xnrrb=[0, " << final(0) << "];\n";
   std::cout << "znrrb=[" << aHeight << ", " << final(2) << "];\n";*/
 
+  auto u = eikonal.getSlowness(aHeight);
   OdeSolverGsl<Eikonal> gsl(0.0, aDist, aTolAbs, aTolRel, aStep1, eikonal);
   typename Eikonal::Variables yStart3;
   yStart3[0] = 0.0;
@@ -141,7 +142,7 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   yStart3[4] = u * std::sin(aDir / 180.0 * 3.1415926539);
   yStart3[5] = 0.0;
   std::vector<typename Eikonal::Variables> stuff;
-  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
+/*  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
     auto [tt,y] = gsl.solve(yStart3, [t](typename Eikonal::Variables const &aY){ return aY[0] > t; });
     stuff.push_back(y);
   }
@@ -153,12 +154,22 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
+  std::cout << "\n";*/
+  std::cout << "h=[";
+  for (auto i = 0.01; i < 1; i += .01) {
+    std::cout << std::setprecision(10) << i << ", ";
+  }
+  std::cout << "n=[";
+  for (auto i = 0.01; i < 1; i += .01) {
+    std::cout << std::setprecision(10) << eikonal.getRefract(i) << ", ";
+  }
   std::cout << "\n";
 }
 
 int main(int aArgc, char **aArgv) {
   boost::program_options::options_description desc("Usage:");
   desc.add_options()
+                    ("asphalt", boost::program_options::value<std::string>(), "asphalt type (conventional / porous) [conventional]")
                     ("dir", boost::program_options::value<double>(), "start direction (degrees), neg is down, 0 horizontal [0]")
                     ("dist", boost::program_options::value<double>(), "distance along the ray to track [2000]")
                     ("height", boost::program_options::value<double>(), "start height (m) [1]")
@@ -168,7 +179,6 @@ int main(int aArgc, char **aArgv) {
                     ("stepmin", boost::program_options::value<double>(), "minimal step size [0.0]")
                     ("target", boost::program_options::value<double>(), "horizontal distance to travel [1000]")
                     ("tempamb", boost::program_options::value<double>(), "ambient temperature (Celsius) [20]")
-                    ("tempdiff", boost::program_options::value<double>(), "temperature rise next to asphalt compared to ambient (Celsius) [6.37]")
                     ("tolabs", boost::program_options::value<double>(), "absolute tolerance [1e-6]")
                     ("tolrel", boost::program_options::value<double>(), "relative tolerance [1e-6]");
   boost::program_options::variables_map varMap;
@@ -178,6 +188,12 @@ int main(int aArgc, char **aArgv) {
     cout << desc << "\n";
   }
   else {
+    Eikonal::Mode asphalt = Eikonal::Mode::cConventional;
+    std::string name = (varMap.count("asphalt") ? varMap["asphalt"].as<std::string>() : std::string("conventional"));
+    if(name == "porous") {
+      asphalt = Eikonal::Mode::cPorous;
+    }
+    else {} // nothing to do
     double dir = (varMap.count("dir") ? varMap["dir"].as<double>() : 0.0);
     double dist = (varMap.count("dist") ? varMap["dist"].as<double>() : 2000.0);
     double height = (varMap.count("height") ? varMap["height"].as<double>() : 1.0);
@@ -189,7 +205,7 @@ int main(int aArgc, char **aArgv) {
     double tempDiff = (varMap.count("tempdiff") ? varMap["tempdiff"].as<double>() : 6.37);
     double tolAbs = (varMap.count("tolabs") ? varMap["tolabs"].as<double>() : 1e-6);
     double tolRel = (varMap.count("tolrel") ? varMap["tolrel"].as<double>() : 1e-6);
-    comp(dir, dist, height, step1, stepMin, tempAmb, tempDiff, tolAbs, tolRel, target, samples);
+    comp(dir, dist, height, step1, stepMin, tempAmb, asphalt, tolAbs, tolRel, target, samples);
   }
   return 0;
 }
