@@ -85,6 +85,8 @@ std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl
                                            &t, end,
                                            &h, y.data());
       if (status != GSL_SUCCESS) {
+        gsl_odeiv2_evolve_reset(mEvolver);
+        gsl_odeiv2_step_reset(mStepper);
         throw std::out_of_range("OdeSolverGsl: Can't apply step in evolver.");
       }
       else {} // Nothing to do
@@ -95,6 +97,8 @@ std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl
       }
       else {} // Nothing to do
     }
+    gsl_odeiv2_evolve_reset(mEvolver);
+    gsl_odeiv2_step_reset(mStepper);
     if(stepsNow == 1u) {
       result.first = t;
       result.second = y;
@@ -104,8 +108,6 @@ std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl
       y = yPrev;
       start = tPrev;
       end = t;
-      gsl_odeiv2_evolve_reset(mEvolver);
-      gsl_odeiv2_step_reset(mStepper);
     }
   }
   if(stepsAll == csMaxStep) {
