@@ -13,9 +13,9 @@ private:
   OdeSolverGsl<Eikonal> mSolver;
 
 public:
-  RungeKuttaRayBending(double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Eikonal const &aDiffEqu)
+  RungeKuttaRayBending(StepperType const aStepper, double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Eikonal const &aDiffEqu)
     : mDiffEqu(aDiffEqu)
-    , mSolver(0.0, aDistAlongRay, aTolAbs, aTolRel, aStep1, aDiffEqu) {}
+    , mSolver(aStepper, 0.0, aDistAlongRay, aTolAbs, aTolRel, aStep1, aDiffEqu) {}
 
   Vertex solve4x(Vertex const &aStart, Vector const &aDir, double const aX) {
     typename Eikonal::Variables start;

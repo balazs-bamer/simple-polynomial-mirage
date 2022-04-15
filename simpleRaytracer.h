@@ -24,15 +24,15 @@ public:
 
 class Medium final {
 private:
-  Eikonal mEikonal;
+  Eikonal              mEikonal;
   RungeKuttaRayBending mSolver;
-  Object const&     mObject;
+  Object const&        mObject;
 
 public:
-  Medium(double const aTempAmb, Eikonal::Mode const aMode,
+  Medium(StepperType const aStepper, double const aTempAmb, Eikonal::Mode const aMode,
          double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Object const& aObject)
   : mEikonal(aTempAmb, aMode)
-  , mSolver(aDistAlongRay, aTolAbs, aTolRel, aStep1, mEikonal)
+  , mSolver(aStepper, aDistAlongRay, aTolAbs, aTolRel, aStep1, mEikonal)
   , mObject(aObject) {}
 
   uint8_t trace(Ray const& aRay);

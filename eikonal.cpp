@@ -82,7 +82,7 @@ public:
   }
 };
 
-void comp(double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aTempAmb, Eikonal::Mode aMode, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
+void comp(StepperType aStepper, double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aTempAmb, Eikonal::Mode aMode, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
 /*  constexpr uint32_t cNvar = 6u;
   VecDoub yStart(cNvar);
   yStart[0] = 0.0;
@@ -133,7 +133,7 @@ void comp(double aDir, double aDist, double aHeight, double aStep1, double aStep
   std::cout << "znrrb=[" << aHeight << ", " << final(2) << "];\n";*/
 
   auto u = eikonal.getSlowness(aHeight);
-  OdeSolverGsl<Eikonal> gsl(0.0, aDist, aTolAbs, aTolRel, aStep1, eikonal);
+  OdeSolverGsl<Eikonal> gsl(aStepper, 0.0, aDist, aTolAbs, aTolRel, aStep1, eikonal);
   typename Eikonal::Variables yStart3;
   yStart3[0] = 0.0;
   yStart3[1] = aHeight;
@@ -178,6 +178,7 @@ int main(int aArgc, char **aArgv) {
                     ("help", "produce this message")
                     ("samples", boost::program_options::value<uint32_t>(), "number of samples on ray [100]")
                     ("step1", boost::program_options::value<double>(), "initial step size [1e-6]")
+                    ("stepper", boost::program_options::value<std::string>(), "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKutta23]")
                     ("stepmin", boost::program_options::value<double>(), "minimal step size [0.0]")
                     ("target", boost::program_options::value<double>(), "horizontal distance to travel [1000]")
                     ("tempamb", boost::program_options::value<double>(), "ambient temperature (Celsius) [20 for conventional, 38.5 for porous]")
@@ -201,13 +202,34 @@ int main(int aArgc, char **aArgv) {
     double height = (varMap.count("height") ? varMap["height"].as<double>() : 1.0);
     uint32_t samples = (varMap.count("samples") ? varMap["samples"].as<uint32_t>() : 100);
     double step1 = (varMap.count("step1") ? varMap["step1"].as<double>() : 1e-6);
+    name = (varMap.count("stepper") ? varMap["stepper"].as<std::string>() : std::string("RungeKutta23"));
+    StepperType stepper = StepperType::cRungeKutta23;
+    if(name == "RungeKutta23") {
+      stepper = StepperType::cRungeKutta23;
+    }
+    else if(name == "RungeKuttaClass4") {
+      stepper = StepperType::cRungeKuttaClass4;
+    }
+    else if(name == "RungeKuttaFehlberg45") {
+      stepper = StepperType::cRungeKuttaFehlberg45;
+    }
+    else if(name == "RungeKuttaCashKarp45") {
+      stepper = StepperType::cRungeKuttaCashKarp45;
+    }
+    else if(name == "RungeKuttaPrinceDormand89") {
+      stepper = StepperType::cRungeKuttaPrinceDormand89;
+    }
+    else if(name == "BulirschStoerBaderDeuflhard") {
+      stepper = StepperType::cBulirschStoerBaderDeuflhard;
+    }
+    else {} // nothing to do
     double stepMin = (varMap.count("stepmin") ? varMap["stepmin"].as<double>() : 0.0);
     double target = (varMap.count("target") ? varMap["target"].as<double>() : 1000.0);
     double tempAmb = (varMap.count("tempamb") ? varMap["tempamb"].as<double>() : (asphalt == Eikonal::Mode::cConventional ? 20.0 : 38.5));
     double tempDiff = (varMap.count("tempdiff") ? varMap["tempdiff"].as<double>() : 6.37);
     double tolAbs = (varMap.count("tolabs") ? varMap["tolabs"].as<double>() : 1e-6);
     double tolRel = (varMap.count("tolrel") ? varMap["tolrel"].as<double>() : 1e-6);
-    comp(dir, dist, height, step1, stepMin, tempAmb, asphalt, tolAbs, tolRel, target, samples);
+    comp(stepper, dir, dist, height, step1, stepMin, tempAmb, asphalt, tolAbs, tolRel, target, samples);
   }
   return 0;
 }

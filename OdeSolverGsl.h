@@ -9,9 +9,19 @@
 #include <functional>
 
 
+enum class StepperType : uint8_t {
+  cRungeKutta23                = 0u,
+  cRungeKuttaClass4            = 1u,
+  cRungeKuttaFehlberg45        = 2u,
+  cRungeKuttaCashKarp45        = 3u,
+  cRungeKuttaPrinceDormand89   = 4u,
+  cBulirschStoerBaderDeuflhard = 5u
+};
+
 template <typename tOdeDefinition>
 class OdeSolverGsl final {
 public:
+
   static constexpr uint32_t csNvar = tOdeDefinition::csNvar;
   using Variables                  = std::array<double, csNvar>;
 
@@ -23,27 +33,47 @@ private:
   double                    mTend;
   double                    mStepStart;
   OdeDefinition const&      mOdeDef;
-  gsl_odeiv2_step          *mStepper;
+  gsl_odeiv2_step          *mStepper = nullptr;
   gsl_odeiv2_control       *mController;
   gsl_odeiv2_evolve        *mEvolver;
   gsl_odeiv2_system         mSystem;
 
 public:
-  OdeSolverGsl(const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef);
+  OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef);
   ~OdeSolverGsl();
 
   std::pair<double, Variables> solve(Variables const &aYstart, std::function<bool(std::array<double, csNvar> const&)> aJudge);
 };
 
 template <typename tOdeDefinition>
-OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef)
+OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef)
   : mTstart(aTstart)
   , mTend(aTend)
   , mStepStart(aStepStart)
   , mOdeDef(aOdeDef)
-  , mStepper(gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk8pd, csNvar))
   , mController(gsl_odeiv2_control_y_new(aAtol, aRtol))
   , mEvolver(gsl_odeiv2_evolve_alloc(csNvar)) {
+
+  if(aStepper == StepperType::cRungeKutta23) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk2, csNvar);
+  }
+  else if(aStepper == StepperType::cRungeKuttaClass4) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk4, csNvar);
+  }
+  if(aStepper == StepperType::cRungeKuttaFehlberg45) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rkf45, csNvar);
+  }
+  if(aStepper == StepperType::cRungeKuttaCashKarp45) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rkck, csNvar);
+  }
+  else if(aStepper == StepperType::cRungeKuttaPrinceDormand89) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk8pd, csNvar);
+  }
+  else if(aStepper == StepperType::cBulirschStoerBaderDeuflhard) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_bsimp, csNvar);
+  }
+  else {} // nothing to do
+
   mSystem.function = [](double aT, double const aY[], double aDydt[], void *aObject)->int {
     auto object = reinterpret_cast<OdeDefinition*>(aObject);
     return object->differentials(aT, aY, aDydt);
