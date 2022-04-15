@@ -29,20 +29,10 @@ private:
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
 
-/*private:
-  struct Static final {
-    std::unique_ptr<PolynomApprox> mHeightLimit;
-    std::unique_ptr<PolynomApprox> mB;
-    std::unique_ptr<PolynomApprox> mDelta;
-
-    Static();
-  };*/
-
   double mTempAmbient;      // Celsius
   Mode   mMode;
-  double mHeightLimit;
-  double mB;
-  double mDelta;
+
+  std::array<uint32_t, 2048u> mExpCounter;
 
 public:
   static constexpr uint32_t csNvar = 6u;
@@ -60,7 +50,7 @@ public:
     aDyds[1] = v * aY[4];
     aDyds[2] = v * aY[5];
     aDyds[3] = 0.0;
-    aDyds[4] = getRefractDiff(aY[1]) / v / n;
+    aDyds[4] = getRefractDiff(aY[1]) / csC;
     aDyds[5] = 0.0;
     //aDyds[5] = -1.0 / v / v * dvdz;
   }
@@ -73,11 +63,12 @@ public:
     aDydt[1] = v * aY[4];
     aDydt[2] = v * aY[5];
     aDydt[3] = 0.0;
-    aDydt[4] = getRefractDiff(aY[1]) / v / n;
+    aDydt[4] = getRefractDiff(aY[1]) / csC;
     aDydt[5] = 0.0;
     return GSL_SUCCESS;
   }
 
+  // Most probably wrong.
   int jacobian(double, const double aY[], double *aDfdy, double aDfdt[]) const {
     gsl_matrix_view dfdy_mat = gsl_matrix_view_array (aDfdy, csNvar, csNvar);  // TODO do directly
     gsl_matrix * m = &dfdy_mat.matrix;
