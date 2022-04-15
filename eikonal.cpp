@@ -141,7 +141,7 @@ void comp(StepperType aStepper, double aDir, double aDist, double aHeight, doubl
   yStart3[3] = u * std::cos(aDir / 180.0 * 3.1415926539);
   yStart3[4] = u * std::sin(aDir / 180.0 * 3.1415926539);
   yStart3[5] = 0.0;
-std::cout << "cos-1:" << std::setprecision(20) << (yStart3[3] - 1.0) << " sin-0:" << std::setprecision(20) << yStart3[4] << '\n';
+std::cout << "cos-1:" << std::setprecision(20) << (std::cos(aDir / 180.0 * 3.1415926539) - 1.0) << " sin-0:" << std::setprecision(20) << std::sin(aDir / 180.0 * 3.1415926539) << '\n';
   std::vector<typename Eikonal::Variables> stuff;
   ofstream out("values.txt");
   for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
