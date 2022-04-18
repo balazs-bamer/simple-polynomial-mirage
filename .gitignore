@@ -1,0 +1,16 @@
+*.eps
+*.png
+*.txt
+*.png
+*.so
+CMakeFiles/**
+*.cmake
+.cmake/**
+3dGeomUtil.h
+Makefile
+eikonal
+googleTest
+gslode
+main
+octave-workspace
+octave-workspace/**

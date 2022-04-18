@@ -41,13 +41,19 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--width", width, "width of bulletin [12.0]");
   CLI11_PARSE(opt, aArgc, aArgv);
 
-  Eikonal::Mode asphalt = Eikonal::Mode::cConventional;
-  if(name == "porous") {
+  Eikonal::Mode asphalt;
+  if(name == "conventional") {
+    asphalt = Eikonal::Mode::cConventional;
+  }
+  else if(name == "porous") {
     asphalt = Eikonal::Mode::cPorous;
   }
-  else {} // nothing to do
+  else {
+    std::cerr << "Illegal asphalt value: " << name << '\n';
+    return 1;
+  }
 
-  StepperType stepper = StepperType::cRungeKuttaPrinceDormand89;
+  StepperType stepper;
   if(name2 == "RungeKutta23") {
     stepper = StepperType::cRungeKutta23;
   }
@@ -66,7 +72,10 @@ int main(int aArgc, char **aArgv) {
   else if(name2 == "BulirschStoerBaderDeuflhard") {
     stepper = StepperType::cBulirschStoerBaderDeuflhard;
   }
-  else {} // nothing to do
+  else {
+    std::cerr << "Illegal stepper value: " << name2 << '\n';
+    return 1;
+  }
 
   if(std::isnan(tempAmb)) {
     tempAmb = (asphalt == Eikonal::Mode::cConventional ? 20.0 : 38.5);
