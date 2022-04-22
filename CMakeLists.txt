@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
 project(RungeKuttaRayBending)
 
-enable_testing()
-find_package(GTest REQUIRED)
+#enable_testing()
+#find_package(GTest REQUIRED)
 
 add_compile_options(-ggdb -D_GLIBCXX_DEBUG -std=c++17)
 #add_compile_options(-O2 -std=c++17)
@@ -15,9 +15,9 @@ INCLUDE_DIRECTORIES ( "/usr/include/eigen3"
                       "../repos/eigen-initializer_list/src" )
 ADD_LIBRARY (RungeKuttaRayBendingLib SHARED RungeKuttaRayBending.cpp mathUtil.cpp)
 
-add_executable(googleTest googleTest.cpp)
-target_link_libraries(googleTest GTest::GTest GTest::Main RungeKuttaRayBendingLib quadmath)
-add_test(google-test googleTest)
+#add_executable(googleTest googleTest.cpp)
+#target_link_libraries(googleTest GTest::GTest GTest::Main RungeKuttaRayBendingLib quadmath)
+#add_test(google-test googleTest)
 
 add_executable(main main.cpp simpleRaytracer.cpp)
 target_link_libraries(main RungeKuttaRayBendingLib quadmath png gsl)

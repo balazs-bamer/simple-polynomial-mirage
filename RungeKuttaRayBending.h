@@ -26,7 +26,7 @@ public:
     start[3u] = aDir(0u) * slowness;
     start[4u] = aDir(1u) * slowness;
     start[5u] = aDir(2u) * slowness;
-    auto [t, solution] = mSolver.solve(start, [aX](typename Eikonal::Variables const& aY){ return aY[0] >= aX; });
+    auto [t, solution] = mSolver.solve(start, [aX](double const, typename Eikonal::Variables const& aY){ return aY[0] >= aX; });
     Vertex result;
     result(0u) = solution[0u];
     result(1u) = solution[1u];

@@ -1,36 +1,67 @@
-#include "nr3.h"
-#include "stepper.h"
-#include "stepperdopr853.h"
-#include "odeint.h"
+#include "OdeSolverGsl.h"
+#include <iostream>
+#include <utility>
+#include <cmath>
+
+
+//clang++ -std=c++17 sin.cpp -o sin -ggdb -lgsl
+ 
 
 class Sin final {
-private:
-  Doub eps;
-
 public:
-  Sin(Doub const aEps) : eps(aEps) {}
+  static constexpr uint32_t csNvar = 1u; 
+  using Real                       = double;
+  using Variables                  = std::array<Real, csNvar>; 
 
-  void operator() (const Doub aX, VecDoub_I const &aY, VecDoub_O &aDydx) {
-    aDydx[0] = std::cos(aX);   // dy/dx = cos(x)
+  int differentials(double const aX, const double aY[], double aDydt[]) const {
+    aDydt[0] = std::cos(aX);
+    return GSL_SUCCESS;
+  }
+
+  int jacobian(double, const double aY[], double *aDfdy, double aDfdt[]) const { 
+    return GSL_SUCCESS;
   }
 };
 
+class Sin2 final { // y''=-y  y''+y=0  D=-4 r=+-j  y=cos(x)+jsin(x) 
+// dy/dt = z     0 1
+// dz/dt = -y
+public:
+  static constexpr uint32_t csNvar = 2u; 
+  using Real                       = double;
+  using Variables                  = std::array<Real, csNvar>; 
+
+  int differentials(double const aX, const double aY[], double aDydt[]) const {
+    aDydt[0] = aY[1];
+    aDydt[1] = -aX;
+    return GSL_SUCCESS;
+  }
+
+  int jacobian(double, const double aY[], double *aDfdy, double aDfdt[]) const { 
+    return GSL_SUCCESS;
+  }
+};
+
+using Diff = Sin;
+
 int main() {
-  const Int nvar = 1;
-  const Doub atol=1.0e-6, rtol=atol, h1=0.01, hmin=0.0, x1=0.0, x2=3.1415926539 * 6.0;
-  VecDoub ystart(nvar);
+  const double atol=1.0e-6, rtol=atol, h1=0.01, hmin=0.0, x1=0.0, x2=3.1415926539 * 60, dx = 3.1415926539 / 5.0;
+  Diff diffEq;
+  OdeSolverGsl solver(StepperType::cRungeKutta23, x1, x2, atol, rtol, h1, diffEq);
+  typename Diff::Variables ystart;
   ystart[0]=0.0;
-  Output out(-1);
-  Sin sin(1.0);   // epsilon not used now
-  Odeint<StepperDopr853<Sin>> ode(ystart, x1, x2, atol, rtol, h1, hmin, out, sin);
-  ode.integrate();
+  std::vector<double> ys;
+  std::vector<double> xs;
   std::cout << "x=[";
-  for (Int i=0; i<out.count; i++) {
-    std::cout << out.xsave[i] << ", ";
+  for (double x = x1; x < x2; x += dx) {
+    auto [t, solution] = solver.solve(ystart, [x](double const aX, typename Diff::Variables const&){ return x <= aX; });
+    xs.push_back(t);
+    ys.push_back(solution[0]);
+    std::cout << t << ", ";
   }
   std::cout << "\ny=[";
-  for (Int i=0; i<out.count; i++) {
-    std::cout << out.ysave[0][i] - std::sin(out.xsave[i]) << ", ";
+  for(uint32_t i = 0u; i < ys.size(); ++i) {
+    std::cout << ys[i] - std::sin(xs[i]) << ", ";
   }
   std::cout << "\n";
 }

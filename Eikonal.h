@@ -6,6 +6,24 @@
 #include <cmath>
 
 
+/*
+function dyds = f(s, y)
+  global flat
+  if flat
+    elevation = y(3);
+    zenith = [0 0 1].';
+  else
+    earth_radius = 6371e3;
+    earth_centre_distance = y(1:3) - [0 0 -earth_radius].';
+    elevation = norm(earth_centre_distance.') - earth_radius;
+    zenith = earth_centre_distance./norm(earth_centre_distance);
+  end
+  
+  [v, dvdz] = refract(elevation);
+  dyds = [v.*y(4:6); -(1/(v^2)).*(dvdz*zenith)];
+end
+*/
+
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
 class Eikonal final {
 public:

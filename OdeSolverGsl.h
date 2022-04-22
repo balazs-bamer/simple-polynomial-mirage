@@ -42,7 +42,7 @@ public:
   OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef);
   ~OdeSolverGsl();
 
-  std::pair<double, Variables> solve(Variables const &aYstart, std::function<bool(std::array<double, csNvar> const&)> aJudge);
+  std::pair<double, Variables> solve(Variables const &aYstart, std::function<bool(double const, std::array<double, csNvar> const&)> aJudge);
 };
 
 template <typename tOdeDefinition>
@@ -94,7 +94,7 @@ OdeSolverGsl<tOdeDefinition>::~OdeSolverGsl() {
 }
 
 template <typename tOdeDefinition>
-std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl<tOdeDefinition>::solve(Variables const &aYstart, std::function<bool(Variables const&)> aJudge) {
+std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl<tOdeDefinition>::solve(Variables const &aYstart, std::function<bool(double const, Variables const&)> aJudge) {
   std::pair<double, Variables> result;
   double start = mTstart;
   double end = mTend;
@@ -103,7 +103,7 @@ std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl
   while(stepsAll < csMaxStep) {
     double h = mStepStart;
     double t = start;
-    bool verdictPrev = aJudge(y);
+    bool verdictPrev = aJudge(t, y);
     Variables yPrev;
     double tPrev;
     uint32_t stepsNow = 0;
@@ -122,7 +122,7 @@ std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl
       else {} // Nothing to do
       ++stepsAll;
       ++stepsNow;
-      if(verdictPrev != aJudge(y)) {
+      if(verdictPrev != aJudge(t, y)) {
         break;
       }
       else {} // Nothing to do

@@ -1,3 +1,8 @@
+*.swp
+*.dll
+*.a
+*.stackdump
+*.exe
 *.eps
 *.png
 *.txt
