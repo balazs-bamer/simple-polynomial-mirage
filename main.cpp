@@ -15,8 +15,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--dist", dist, "distance of bulletin and camera [1000]");
   double height = 9.0;
   opt.add_option("--height", height, "height of bulletin (m) [9.0]");
-  std::string nameIn = "monoscope.png";
-  opt.add_option("--nameIn", nameIn, "input filename [monoscope.png]");
+  std::string nameIn = "monoscopeRca.png";
+  opt.add_option("--nameIn", nameIn, "input filename [monoscopeRca.png]");
   std::string nameOut = "result.png";
   opt.add_option("--nameOut", nameOut, "output filename [result.png]");
   double pinholeDist = 4.0;
