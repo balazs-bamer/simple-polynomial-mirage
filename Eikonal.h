@@ -6,36 +6,24 @@
 #include <cmath>
 
 
-/*
-function dyds = f(s, y)
-  global flat
-  if flat
-    elevation = y(3);
-    zenith = [0 0 1].';
-  else
-    earth_radius = 6371e3;
-    earth_centre_distance = y(1:3) - [0 0 -earth_radius].';
-    elevation = norm(earth_centre_distance.') - earth_radius;
-    zenith = earth_centre_distance./norm(earth_centre_distance);
-  end
-  
-  [v, dvdz] = refract(elevation);
-  dyds = [v.*y(4:6); -(1/(v^2)).*(dvdz*zenith)];
-end
-*/
-
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
 class Eikonal final {
 public:
-  enum class Mode : uint8_t {
+  enum class Model : uint8_t {
     cConventional = 0u,
     cPorous       = 1u
   };
 
-private:
+  enum class EarthForm : uint8_t {
+    cFlat  = 0u,
+    cRound = 1u
+  };
+
   static constexpr double   csCelsius2kelvin                = 273.15;
   static constexpr double   csC                             = 299792458.0; // m/s
+  static constexpr double   csRadius                        = 6371000;
 
+private:
   static constexpr uint32_t csTempProfilePointCount         =   8u;
   static constexpr uint32_t csTempProfileDegree             =   4u;
   static constexpr double   csTplate[csTempProfilePointCount]      = { 336.7, 331.7, 326.7, 321.7, 316.7, 311.7, 306.7, 301.7 };  // Kelvin
@@ -47,42 +35,51 @@ private:
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
 
-  double mTempAmbient;      // Celsius
-  Mode   mMode;
-
-  std::array<uint32_t, 2048u> mExpCounter;
+  double    mTempAmbient;      // Celsius
+  Model     mModel;
+  EarthForm mEarthForm;
 
 public:
   static constexpr uint32_t csNvar = 6u;
   using Real                       = double;
   using Variables                  = std::array<Real, csNvar>;
+  // For flat Earth, surface has v[4] == 0, the light travels mostly in v[3] direction, v[5] is depth.
+  // The light starts close to the origin.
+  // 
+  // For round Earth, the origin is in the Earth center. We are on the sea on the radius of csRadius.
+  // The light starts around v[3] and v[5] == 0, and travels mostly in v[3] direction.
 
-  Eikonal(double const aTempAmbient, Mode const aMode) : mTempAmbient(aTempAmbient), mMode(aMode) {}
+  Eikonal(double const aTempAmbient, Model const aModel, EarthForm const aEarthForm)
+  : mTempAmbient(aTempAmbient)
+  , mModel(aModel)
+  , mEarthForm(aEarthForm) {}
 
-  void operator() (const double/* aS*/, std::array<Real, csNvar> const &aY, std::array<Real, csNvar> &aDyds) const {
-    double n    = getRefract(aY[1]);
-    double v    = csC / n;
-//    double dvdz = -v / n * refractDiff(aY[2]);
-
-    aDyds[0] = v * aY[3];
-    aDyds[1] = v * aY[4];
-    aDyds[2] = v * aY[5];
-    aDyds[3] = 0.0;
-    aDyds[4] = getRefractDiff(aY[1]) / csC;
-    aDyds[5] = 0.0;
-    //aDyds[5] = -1.0 / v / v * dvdz;
-  }
+  EarthForm getEarthForm() const { return mEarthForm; }
 
   int differentials(double, const double aY[], double aDydt[]) const {
     double n    = getRefract(aY[1]);
     double v    = csC / n;
-
+    double elevation;
+    std::array<double, 3u> zenith;
+    if(mEarthForm == EarthForm::cFlat) {
+      elevation = aY[1];
+      zenith[0] = zenith[2] = 0.0;
+      zenith[1] = 1.0;
+    }
+    else {
+      double fromCenter = std::sqrt(aY[0] * aY[0] + aY[1] * aY[1] + aY[2] * aY[2]);
+      elevation = fromCenter - csRadius;
+      zenith[0] = aY[0] / fromCenter;
+      zenith[1] = aY[1] / fromCenter;
+      zenith[2] = aY[2] / fromCenter;
+    }
     aDydt[0] = v * aY[3];
     aDydt[1] = v * aY[4];
     aDydt[2] = v * aY[5];
-    aDydt[3] = 0.0;
-    aDydt[4] = getRefractDiff(aY[1]) / csC;
-    aDydt[5] = 0.0;
+    double u = getRefractDiff(elevation) / csC;
+    aDydt[3] = zenith[0] * u;
+    aDydt[4] = zenith[1] * u;
+    aDydt[5] = zenith[2] * u;
     return GSL_SUCCESS;
   }
 
@@ -109,24 +106,24 @@ public:
     gsl_matrix_set (m, 3u, 1u, 0.0);
     gsl_matrix_set (m, 4u, 1u, v * (nd2 / n - 2.0 * nd1 * nd1 / n / n));
     gsl_matrix_set (m, 5u, 1u, 0.0);
-    return GSL_SUCCESS;
+    return GSL_FAILURE; // because wrong
   }
 
 public:
   double getRefract(double const aH) const {
-    return mMode == Mode::cConventional ? getConventionalRefract(aH) : getPorousRefract(aH);
+    return mModel == Model::cConventional ? getConventionalRefract(aH) : getPorousRefract(aH);
   }
 
   double getSlowness(double const aH) const {
-    return mMode == Mode::cConventional ? getConventionalSlowness(aH) : getPorousSlowness(aH);
+    return mModel == Model::cConventional ? getConventionalSlowness(aH) : getPorousSlowness(aH);
   }
 
   double getRefractDiff(double const aH) const {
-    return mMode == Mode::cConventional ? getConventionalRefractDiff(aH) : getPorousRefractDiff(aH);
+    return mModel == Model::cConventional ? getConventionalRefractDiff(aH) : getPorousRefractDiff(aH);
   }
 
   double getRefractDiff2(double const aH) const {
-    return mMode == Mode::cConventional ? getConventionalRefractDiff2(aH) : getPorousRefractDiff2(aH);
+    return mModel == Model::cConventional ? getConventionalRefractDiff2(aH) : getPorousRefractDiff2(aH);
   }
 
 private:

@@ -4,15 +4,15 @@
 #include <iostream> // TODO remove
 #include <iomanip> // TODO remove
 
-Object::Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight)
+Object::Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight)
   : mImage(aName)
   , mDy(aHeight / mImage.get_height())
-  , mDz(aWidth / mImage.get_width())
-  , mMinY(aCenterY - aHeight / 2.0)
-  , mMaxY(aCenterY + aHeight / 2.0)
-  , mMinZ(-aWidth / 2.0)
-  , mMaxZ(aWidth / 2.0)
-  , mX(aCenterX) {
+  , mDz(mDy)
+  , mMinY(aLiftY)
+  , mMaxY(aLiftY + aHeight)
+  , mMinZ(-static_cast<double>(mImage.get_width()) * aHeight / static_cast<double>(mImage.get_height()) / 2.0)
+  , mMaxZ(-mMinZ)
+  , mX(aDispX) {
 std::cout << mMinZ << ' ' << mMaxZ << ' ' << mMinY << ' ' << mMaxY << '\n';
 }
 

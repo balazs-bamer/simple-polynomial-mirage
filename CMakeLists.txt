@@ -14,6 +14,7 @@ INCLUDE_DIRECTORIES ( "/usr/include/eigen3"
                       "../repos/stl_reader"
                       "../repos/eigen-initializer_list/src" )
 ADD_LIBRARY (RungeKuttaRayBendingLib SHARED RungeKuttaRayBending.cpp mathUtil.cpp)
+target_link_libraries(RungeKuttaRayBendingLib quadmath png gsl)
 
 #add_executable(googleTest googleTest.cpp)
 #target_link_libraries(googleTest GTest::GTest GTest::Main RungeKuttaRayBendingLib quadmath)

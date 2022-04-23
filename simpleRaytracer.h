@@ -17,7 +17,7 @@ private:
   double const mX;
 
 public:
-  Object(char const * const aName, double const aCenterX, double const aCenterY, double const aWidth, double const aHeight);
+  Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight);
   double  getX() const { return mX; }
   uint8_t getPixel(Vertex const &aHit) const;
 };
@@ -29,9 +29,9 @@ private:
   Object const&        mObject;
 
 public:
-  Medium(StepperType const aStepper, double const aTempAmb, Eikonal::Mode const aMode,
+  Medium(StepperType const aStepper, double const aTempAmb, Eikonal::Model const aModel, Eikonal::EarthForm aEarthForm,
          double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Object const& aObject)
-  : mEikonal(aTempAmb, aMode)
+  : mEikonal(aTempAmb, aModel, aEarthForm)
   , mSolver(aStepper, aDistAlongRay, aTolAbs, aTolRel, aStep1, mEikonal)
   , mObject(aObject) {}
 

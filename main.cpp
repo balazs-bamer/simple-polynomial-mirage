@@ -5,16 +5,18 @@
 
 int main(int aArgc, char **aArgv) {
   CLI::App opt{"Usage"};
-  std::string name = "conventional";
-  opt.add_option("--asphalt", name, "asphalt type (conventional / porous) [conventional]");
-  double bullCenter = 5.0;
-  opt.add_option("--bullCenter", bullCenter, "height of bulletin center (m) [5.0]");
+  std::string nameAsphalt = "conventional";
+  opt.add_option("--asphalt", nameAsphalt, "asphalt type (conventional / porous) [conventional]");
+  double bullLift = 0.5;
+  opt.add_option("--bullLift", bullLift, "lift of bulletin from ground (m) [0.5]");
   double camCenter = 1.1;
   opt.add_option("--camCenter", camCenter, "height of camera center (m) [1.1]");
   double dist = 1000.0;
   opt.add_option("--dist", dist, "distance of bulletin and camera [1000]");
+  std::string nameForm = "round";
+  opt.add_option("--earthForm", nameForm, "Earth form (flat / round) [round]");
   double height = 9.0;
-  opt.add_option("--height", height, "height of bulletin (m) [9.0]");
+  opt.add_option("--height", height, "height of bulletin (m) [9.0]  its width will be calculated");
   std::string nameIn = "monoscopeRca.png";
   opt.add_option("--nameIn", nameIn, "input filename [monoscopeRca.png]");
   std::string nameOut = "result.png";
@@ -25,8 +27,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--resolution", resolution, "film resulution in both directions (pixel) [1000]");
   double step1 = 0.01;
   opt.add_option("--step1", step1, "initial step size [0.01]");
-  std::string name2 = "RungeKutta23";
-  opt.add_option("--stepper", name2, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKutta23]");
+  std::string nameStepper = "RungeKutta23";
+  opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKutta23]");
   uint32_t subsample = 2u;
   opt.add_option("--subsample", subsample, "subsampling each pixel in both directions (count) [2]");
   double tempAmb = std::nan("");
@@ -37,53 +39,63 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--tolAbs", tolAbs, "absolute tolerance [1e-3]");
   double tolRel = 0.001;
   opt.add_option("--tolRel", tolRel, "relative tolerance [1e-3]");
-  double width = 12.0;
-  opt.add_option("--width", width, "width of bulletin [12.0]");
   CLI11_PARSE(opt, aArgc, aArgv);
 
-  Eikonal::Mode asphalt;
-  if(name == "conventional") {
-    asphalt = Eikonal::Mode::cConventional;
+  Eikonal::Model asphalt;
+  if(nameAsphalt == "conventional") {
+    asphalt = Eikonal::Model::cConventional;
   }
-  else if(name == "porous") {
-    asphalt = Eikonal::Mode::cPorous;
+  else if(nameAsphalt == "porous") {
+    asphalt = Eikonal::Model::cPorous;
   }
   else {
-    std::cerr << "Illegal asphalt value: " << name << '\n';
+    std::cerr << "Illegal asphalt value: " << nameAsphalt << '\n';
+    return 1;
+  }
+
+  Eikonal::EarthForm earthForm;
+  if(nameForm == "flat") {
+    earthForm = Eikonal::EarthForm::cFlat;
+  }
+  else if(nameForm == "round") {
+    earthForm = Eikonal::EarthForm::cRound;
+  }
+  else {
+    std::cerr << "Illegal Earth form value: " << nameForm << '\n';
     return 1;
   }
 
   StepperType stepper;
-  if(name2 == "RungeKutta23") {
+  if(nameStepper == "RungeKutta23") {
     stepper = StepperType::cRungeKutta23;
   }
-  else if(name2 == "RungeKuttaClass4") {
+  else if(nameStepper == "RungeKuttaClass4") {
     stepper = StepperType::cRungeKuttaClass4;
   }
-  else if(name2 == "RungeKuttaFehlberg45") {
+  else if(nameStepper == "RungeKuttaFehlberg45") {
     stepper = StepperType::cRungeKuttaFehlberg45;
   }
-  else if(name2 == "RungeKuttaCashKarp45") {
+  else if(nameStepper == "RungeKuttaCashKarp45") {
     stepper = StepperType::cRungeKuttaCashKarp45;
   }
-  else if(name2 == "RungeKuttaPrinceDormand89") {
+  else if(nameStepper == "RungeKuttaPrinceDormand89") {
     stepper = StepperType::cRungeKuttaPrinceDormand89;
   }
-  else if(name2 == "BulirschStoerBaderDeuflhard") {
+  else if(nameStepper == "BulirschStoerBaderDeuflhard") {
     stepper = StepperType::cBulirschStoerBaderDeuflhard;
   }
   else {
-    std::cerr << "Illegal stepper value: " << name2 << '\n';
+    std::cerr << "Illegal stepper value: " << nameStepper << '\n';
     return 1;
   }
 
   if(std::isnan(tempAmb)) {
-    tempAmb = (asphalt == Eikonal::Mode::cConventional ? 20.0 : 38.5);
+    tempAmb = (asphalt == Eikonal::Model::cConventional ? 20.0 : 38.5);
   }
   else {} // nothing to do
 
-  Object object(nameIn.c_str(), dist, bullCenter, width, height);
-  Medium medium(stepper, tempAmb, asphalt, dist * 2.0, tolAbs, tolRel, step1, object);
+  Object object(nameIn.c_str(), dist, bullLift, height);
+  Medium medium(stepper, tempAmb, asphalt, earthForm, dist * 2.0, tolAbs, tolRel, step1, object);
   Image image(true, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.process(nameOut.c_str());
   return 0;
