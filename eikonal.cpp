@@ -20,7 +20,8 @@ void comp(StepperType aStepper, Eikonal::EarthForm const aEarthForm, double aDir
 
   std::vector<Vertex> stuff;
   std::ofstream out("values.txt");
-  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
+//  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
+auto t = 980.0;
     Vertex y;
     if(t == 0.0) {
       y[0] = 0.0;
@@ -32,8 +33,8 @@ void comp(StepperType aStepper, Eikonal::EarthForm const aEarthForm, double aDir
     }
     stuff.push_back(y);
     out << std::setprecision(10) << y[0] << '\t' << std::setprecision(10) << y[1] << '\n';
-  }
-  std::cout << "x=[";
+//  }
+/*  std::cout << "x=[";
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << stuff[i][0] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
@@ -41,7 +42,11 @@ void comp(StepperType aStepper, Eikonal::EarthForm const aEarthForm, double aDir
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
-  std::cout << "\n";
+  std::cout << "d=[";
+  for (int i = 0; i < stuff.size(); ++i) {
+    std::cout << std::setprecision(10) << std::sqrt(Eikonal::csRadius * Eikonal::csRadius - stuff[i][0] * stuff[i][0]) - Eikonal::csRadius << (i < stuff.size() - 1 ? ", " : "];\n");
+  }
+  std::cout << "\n";*/
 /*  std::cout << "h=[";
   for (auto i = 0.01; i < 1; i += .01) {
     std::cout << std::setprecision(10) << i << ", ";
