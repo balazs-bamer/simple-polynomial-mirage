@@ -5,8 +5,8 @@
 
 int main(int aArgc, char **aArgv) {
   CLI::App opt{"Usage"};
-  std::string nameAsphalt = "conventional";
-  opt.add_option("--asphalt", nameAsphalt, "asphalt type (conventional / porous) [conventional]");
+  std::string nameBase = "water";
+  opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
   double bullLift = 0.5;
   opt.add_option("--bullLift", bullLift, "lift of bulletin from ground (m) [0.5]");
   double camCenter = 1.1;
@@ -32,7 +32,9 @@ int main(int aArgc, char **aArgv) {
   uint32_t subsample = 2u;
   opt.add_option("--subsample", subsample, "subsampling each pixel in both directions (count) [2]");
   double tempAmb = std::nan("");
-  opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous]");
+  opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
+  double tempBase = 13.0;
+  opt.add_option("--tempBase", tempAmb, "base temperature, only for water (Celsius) [13]");
   double tilt = 0.0;
   opt.add_option("--tilt", tilt, "camera tilt in degrees, neg downwards [0.0]");
   double tolAbs = 0.001;
@@ -41,15 +43,18 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--tolRel", tolRel, "relative tolerance [1e-3]");
   CLI11_PARSE(opt, aArgc, aArgv);
 
-  Eikonal::Model asphalt;
-  if(nameAsphalt == "conventional") {
-    asphalt = Eikonal::Model::cConventional;
+  Eikonal::Model base;
+  if(nameBase == "conventional") {
+    base = Eikonal::Model::cConventional;
   }
-  else if(nameAsphalt == "porous") {
-    asphalt = Eikonal::Model::cPorous;
+  else if(nameBase == "porous") {
+    base = Eikonal::Model::cPorous;
+  }
+  else if(nameBase == "water") {
+    base = Eikonal::Model::cWater;
   }
   else {
-    std::cerr << "Illegal asphalt value: " << nameAsphalt << '\n';
+    std::cerr << "Illegal base value: " << nameBase << '\n';
     return 1;
   }
 
@@ -90,12 +95,13 @@ int main(int aArgc, char **aArgv) {
   }
 
   if(std::isnan(tempAmb)) {
-    tempAmb = (asphalt == Eikonal::Model::cConventional ? 20.0 : 38.5);
+    tempAmb = (base == Eikonal::Model::cConventional ? 20.0 :
+              (base == Eikonal::Model::cPorous ? 38.5 : 10.0));
   }
   else {} // nothing to do
 
   Object object(nameIn.c_str(), dist, bullLift, height);
-  Medium medium(stepper, tempAmb, asphalt, earthForm, dist * 2.0, tolAbs, tolRel, step1, object);
+  Medium medium(stepper, earthForm, base, tempAmb, tempBase, dist * 2.0, tolAbs, tolRel, step1, object);
   Image image(true, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.process(nameOut.c_str());
   return 0;
