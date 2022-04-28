@@ -29,9 +29,10 @@ private:
   Object const&        mObject;
 
 public:
-  Medium(StepperType const aStepper, double const aTempAmb, Eikonal::Model const aModel, Eikonal::EarthForm aEarthForm,
+  Medium(StepperType const aStepper,
+         Eikonal::EarthForm const aEarthForm, Eikonal::Model const aModel, double const aTempAmbient, double const aTempBase,
          double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Object const& aObject)
-  : mEikonal(aTempAmb, aModel, aEarthForm)
+  : mEikonal(aEarthForm, aModel, aTempAmbient, aTempBase)
   , mSolver(aStepper, aDistAlongRay, aTolAbs, aTolRel, aStep1, mEikonal)
   , mObject(aObject) {}
 

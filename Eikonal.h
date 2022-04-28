@@ -11,7 +11,8 @@ class Eikonal final {
 public:
   enum class Model : uint8_t {
     cConventional = 0u,
-    cPorous       = 1u
+    cPorous       = 1u,
+    cWater        = 2u
   };
 
   enum class EarthForm : uint8_t {
@@ -35,9 +36,10 @@ private:
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
 
-  double    mTempAmbient;      // Celsius
-  Model     mModel;
   EarthForm mEarthForm;
+  Model     mModel;
+  double    mTempAmbient;      // Celsius
+  double    mTempBase;         // Celsius
 
 public:
   static constexpr uint32_t csNvar = 6u;
@@ -49,10 +51,17 @@ public:
   // For round Earth, the origin is in the Earth center. We are on the sea on the radius of csRadius.
   // The light starts around v[3] and v[5] == 0, and travels mostly in v[3] direction.
 
-  Eikonal(double const aTempAmbient, Model const aModel, EarthForm const aEarthForm)
-  : mTempAmbient(aTempAmbient)
+  Eikonal(EarthForm const aEarthForm, Model const aModel, double const aTempAmbient)
+  : mEarthForm(aEarthForm)
   , mModel(aModel)
-  , mEarthForm(aEarthForm) {}
+  , mTempAmbient(aTempAmbient)
+  , mTempBase(aTempAmbient) {}
+
+  Eikonal(EarthForm const aEarthForm, Model const aModel, double const aTempAmbient, double const aTempBase)
+  : mEarthForm(aEarthForm)
+  , mModel(aModel)
+  , mTempAmbient(aTempAmbient)
+  , mTempBase(aTempBase) {}
 
   EarthForm getEarthForm() const { return mEarthForm; }
 
@@ -111,19 +120,23 @@ public:
 
 public:
   double getRefract(double const aH) const {
-    return mModel == Model::cConventional ? getConventionalRefract(aH) : getPorousRefract(aH);
+    return mModel == Model::cConventional ? getConventionalRefract(aH) :
+          (mModel == Model::cPorous ? getPorousRefract(aH) : getWaterRefract(aH));
   }
 
   double getSlowness(double const aH) const {
-    return mModel == Model::cConventional ? getConventionalSlowness(aH) : getPorousSlowness(aH);
+    return mModel == Model::cConventional ? getConventionalSlowness(aH) :
+          (mModel == Model::cPorous ? getPorousSlowness(aH) : getWaterSlowness(aH));
   }
 
   double getRefractDiff(double const aH) const {
-    return mModel == Model::cConventional ? getConventionalRefractDiff(aH) : getPorousRefractDiff(aH);
+    return mModel == Model::cConventional ? getConventionalRefractDiff(aH) :
+          (mModel == Model::cPorous ? getPorousRefractDiff(aH) : getWaterRefractDiff(aH));
   }
 
   double getRefractDiff2(double const aH) const {
-    return mModel == Model::cConventional ? getConventionalRefractDiff2(aH) : getPorousRefractDiff2(aH);
+    return mModel == Model::cConventional ? getConventionalRefractDiff2(aH) :
+          (mModel == Model::cPorous ? getPorousRefractDiff2(aH) : getWaterRefractDiff2(aH));
   }
 
 private:
@@ -143,8 +156,8 @@ private:
 
   double getConventionalRefractDiff2(double const aH) const {
     auto t = mTempAmbient + 6.37 * std::exp(-10.08 * aH) + 273.168;
-    return 0.079386 * ((8245.75 * std::exp(-20.16 * aH)) / t / t / t
-                     - (647.233 * std::exp(-10.08 * aH)) / t / t);
+    return 0.079386 / t / t * ((8245.75 * std::exp(-20.16 * aH)) / t
+                             - (647.233 * std::exp(-10.08 * aH)));
   }
 
   double getPorousRefract(double const aH) const {
@@ -164,8 +177,29 @@ private:
   double getPorousRefractDiff2(double const aH) const {
     auto t = (1.9 * mTempAmbient - 66.8) * (0.002 + 0.994 * std::exp(-8.35 * aH)) + mTempAmbient + 273.15;
     auto d = 1.9 * mTempAmbient - 66.8;
-    return 0.079386 * ((137.777 * d * d * std::exp(-16.7 * aH)) / t / t / t
-                     - (69.3042 * d * std::exp(-8.35 * aH)) / t / t);
+    return 0.079386 / t / t * d * ((137.777 * d * std::exp(-16.7 * aH)) / t
+                                 - (69.3042 * std::exp(-8.35 * aH)));
+  }
+
+  double getWaterRefract(double const aH) const {
+    auto celsius = mTempAmbient + (mTempBase - mTempAmbient)*(0.011 + 1.05 * std::exp(-20.1 * aH));
+    return 1.0 + 7.86e-4 * 101 / (celsius + 273.15);
+  }
+
+  double getWaterSlowness(double const aH) const {
+    return getWaterRefract(aH) / csC;
+  }
+
+  double getWaterRefractDiff(double const aH) const {
+    auto t = (mTempBase - mTempAmbient) * (0.011 + 1.05 * std::exp(-20.1 * aH)) + mTempAmbient + 273.15;
+    return 1.67544 * std::exp(-20.1 * aH) * (mTempBase - mTempAmbient) / t / t;
+  }
+
+  double getWaterRefractDiff2(double const aH) const {
+    auto t = (mTempBase - mTempAmbient) * (0.011 + 1.05 * std::exp(-20.1 * aH)) + mTempAmbient + 273.15;
+    auto d = mTempBase - mTempAmbient;
+    return 0.079386 / t / t * d * ((890.842 * d * std::exp(-40.2 * aH)) / t
+                                -  (424.211 * std::exp(-20.1 * aH)));
   }
 };
 

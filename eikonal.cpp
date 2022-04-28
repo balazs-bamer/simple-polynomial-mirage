@@ -11,9 +11,11 @@
 
 //clang++ -I/usr/include/eigen3 -I../repos/eigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp RungeKuttaRayBending.cpp -o eikonal -ggdb -lgsl
 
-void comp(StepperType aStepper, Eikonal::EarthForm const aEarthForm, double aDir, double aDist, double aHeight, double aStep1, double aTempAmb, Eikonal::Model aMode, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
+void comp(StepperType aStepper,
+Eikonal::EarthForm const aEarthForm, Eikonal::Model aMode, double aTempAmb, double aTempBase,
+double aDir, double aDist, double aHeight, double aStep1, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
 
-  Eikonal eikonal(aTempAmb, aMode, aEarthForm);
+  Eikonal eikonal(aEarthForm, aMode, aTempAmb, aTempBase);
   RungeKuttaRayBending rk(aStepper, aDist, aTolAbs, aTolRel, aStep1, eikonal);
   Vertex start(0.0, aHeight, 0.0);
   Vector dir(std::cos(aDir / 180.0 * 3.1415926539), std::sin(aDir / 180.0 * 3.1415926539), 0.0);
@@ -55,8 +57,8 @@ void comp(StepperType aStepper, Eikonal::EarthForm const aEarthForm, double aDir
 
 int main(int aArgc, char **aArgv) {
   CLI::App opt{"Usage"};
-  std::string nameAsphalt = "conventional";
-  opt.add_option("--asphalt", nameAsphalt, "asphalt type (conventional / porous) [conventional]");
+  std::string nameBase = "water";
+  opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
   double dir = 0.0;
   opt.add_option("--dir", dir, "start direction (degrees), neg is down, 0 horizontal [0]");
   double dist = 2000.0;
@@ -74,22 +76,27 @@ int main(int aArgc, char **aArgv) {
   double target = 1000.0;
   opt.add_option("--target", target, "horizontal distance to travel [1000]");
   double tempAmb = std::nan("");
-  opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous]");
+  opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
+  double tempBase = 13.0;
+  opt.add_option("--tempBase", tempAmb, "base temperature, only for water (Celsius) [13]");
   double tolAbs = 0.001;
   opt.add_option("--tolAbs", tolAbs, "absolute tolerance [1e-3]");
   double tolRel = 0.001;
   opt.add_option("--tolRel", tolRel, "relative tolerance [1e-3]");
   CLI11_PARSE(opt, aArgc, aArgv);
 
-  Eikonal::Model asphalt;
-  if(nameAsphalt == "conventional") {
-    asphalt = Eikonal::Model::cConventional;
+  Eikonal::Model base;
+  if(nameBase == "conventional") {
+    base = Eikonal::Model::cConventional;
   }
-  else if(nameAsphalt == "porous") {
-    asphalt = Eikonal::Model::cPorous;
+  else if(nameBase == "porous") {
+    base = Eikonal::Model::cPorous;
+  }
+  else if(nameBase == "water") {
+    base = Eikonal::Model::cWater;
   }
   else {
-    std::cerr << "Illegal asphalt value: " << nameAsphalt << '\n';
+    std::cerr << "Illegal base value: " << nameBase << '\n';
     return 1;
   }
 
@@ -130,10 +137,11 @@ int main(int aArgc, char **aArgv) {
   }
 
   if(std::isnan(tempAmb)) {
-    tempAmb = (asphalt == Eikonal::Model::cConventional ? 20.0 : 38.5);
+    tempAmb = (base == Eikonal::Model::cConventional ? 20.0 :
+              (base == Eikonal::Model::cPorous ? 38.5 : 10.0));
   }
   else {} // nothing to do
   
-  comp(stepper, earthForm, dir, dist, height, step1, tempAmb, asphalt, tolAbs, tolRel, target, samples);
+  comp(stepper, earthForm, base, tempAmb, tempBase, dir, dist, height, step1, tolAbs, tolRel, target, samples);
   return 0;
 }
