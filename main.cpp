@@ -22,11 +22,13 @@ int main(int aArgc, char **aArgv) {
   std::string nameOut = "result.png";
   opt.add_option("--nameOut", nameOut, "output filename [result.png]");
   double pinholeDist = 4.0;
-  opt.add_option("--pinholeDist", pinholeDist, "pinhole distance from film (m) [20.0]");
+  opt.add_option("--pinholeDist", pinholeDist, "pinhole distance from film (m) [4.0]");
   uint32_t resolution = 1000u;
   opt.add_option("--resolution", resolution, "film resulution in both directions (pixel) [1000]");
+  bool silent = false;
+  opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
   double step1 = 0.01;
-  opt.add_option("--step1", step1, "initial step size [0.01]");
+  opt.add_option("--step1", step1, "initial step size (m) [0.01]");
   std::string nameStepper = "RungeKutta23";
   opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKutta23]");
   uint32_t subsample = 2u;
@@ -36,11 +38,11 @@ int main(int aArgc, char **aArgv) {
   double tempBase = 13.0;
   opt.add_option("--tempBase", tempAmb, "base temperature, only for water (Celsius) [13]");
   double tilt = 0.0;
-  opt.add_option("--tilt", tilt, "camera tilt in degrees, neg downwards [0.0]");
+  opt.add_option("--tilt", tilt, "camera tilt, neg downwards (degrees) [0.0]");
   double tolAbs = 0.001;
-  opt.add_option("--tolAbs", tolAbs, "absolute tolerance [1e-3]");
+  opt.add_option("--tolAbs", tolAbs, "absolute tolerance (m) [1e-3]");
   double tolRel = 0.001;
-  opt.add_option("--tolRel", tolRel, "relative tolerance [1e-3]");
+  opt.add_option("--tolRel", tolRel, "relative tolerance (m) [1e-3]");
   CLI11_PARSE(opt, aArgc, aArgv);
 
   Eikonal::Model base;
@@ -97,6 +99,28 @@ int main(int aArgc, char **aArgv) {
   if(std::isnan(tempAmb)) {
     tempAmb = (base == Eikonal::Model::cConventional ? 20.0 :
               (base == Eikonal::Model::cPorous ? 38.5 : 10.0));
+  }
+  else {} // nothing to do
+
+  if(!silent) {
+    std::cout << "base type: " << nameBase << ' ' << static_cast<int>(base) << '\n';
+    std::cout << "lift of bulletin from ground (m): " << bullLift << '\n';
+    std::cout << "height of camera center (m): " << camCenter << '\n';
+    std::cout << "distance of bulletin and camera (m): " << dist << '\n';
+    std::cout << "Earth form: " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "height of bulletin (m): " << height << '\n';
+    std::cout << "input filename: " << nameIn << '\n';
+    std::cout << "output filename: " << nameOut << '\n';
+    std::cout << "pinhole distance from film (m): " << pinholeDist << '\n';
+    std::cout << "film resolution in both directions (pixel): " << resolution << '\n';
+    std::cout << "initial step size (m): " << step1 << '\n';
+    std::cout << "stepper type: " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
+    std::cout << "subsampling each pixel in both directions (count): " << subsample << '\n';
+    std::cout << "ambient temperature (Celsius): " << tempAmb << '\n';
+    std::cout << "base temperature, only for water (Celsius): " << tempBase << '\n';
+    std::cout << "camera tilt, neg downwards (degrees): " << tilt << '\n';
+    std::cout << "absolute tolerance (m): " << tolAbs << '\n';
+    std::cout << "relative tolerance (m): " << tolRel << '\n';
   }
   else {} // nothing to do
 

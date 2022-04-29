@@ -60,29 +60,31 @@ int main(int aArgc, char **aArgv) {
   std::string nameBase = "water";
   opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
   double dir = 0.0;
-  opt.add_option("--dir", dir, "start direction (degrees), neg is down, 0 horizontal [0]");
+  opt.add_option("--dir", dir, "start direction, neg downwards (degrees) [0]");
   double dist = 2000.0;
-  opt.add_option("--dist", dist, "distance along the ray to track [2000]");
+  opt.add_option("--dist", dist, "distance along the ray to track (m) [2000]");
   std::string nameForm = "round";
   opt.add_option("--earthForm", nameForm, "Earth form (flat / round) [round]");
   double height = 1.0;
   opt.add_option("--height", height, "start height (m) [1]");
   double samples = 100;
   opt.add_option("--samples", samples, "number of samples on ray [100]");
+  bool silent = false;
+  opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
   double step1 = 0.01;
-  opt.add_option("--step1", step1, "initial step size [0.01]");
+  opt.add_option("--step1", step1, "initial step size (m) [0.01]");
   std::string nameStepper = "RungeKutta23";
   opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKutta23]");
   double target = 1000.0;
-  opt.add_option("--target", target, "horizontal distance to travel [1000]");
+  opt.add_option("--target", target, "horizontal distance to travel (m) [1000]");
   double tempAmb = std::nan("");
   opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
   double tempBase = 13.0;
   opt.add_option("--tempBase", tempAmb, "base temperature, only for water (Celsius) [13]");
   double tolAbs = 0.001;
-  opt.add_option("--tolAbs", tolAbs, "absolute tolerance [1e-3]");
+  opt.add_option("--tolAbs", tolAbs, "absolute tolerance (m) [1e-3]");
   double tolRel = 0.001;
-  opt.add_option("--tolRel", tolRel, "relative tolerance [1e-3]");
+  opt.add_option("--tolRel", tolRel, "relative tolerance (m) [1e-3]");
   CLI11_PARSE(opt, aArgc, aArgv);
 
   Eikonal::Model base;
@@ -139,6 +141,23 @@ int main(int aArgc, char **aArgv) {
   if(std::isnan(tempAmb)) {
     tempAmb = (base == Eikonal::Model::cConventional ? 20.0 :
               (base == Eikonal::Model::cPorous ? 38.5 : 10.0));
+  }
+  else {} // nothing to do
+
+  if(!silent) {
+    std::cout << "base type: " << nameBase << ' ' << static_cast<int>(base) << '\n';
+    std::cout << "start direction, neg downwards (degrees): " << dir << '\n';
+    std::cout << "distance along the ray to track (m): " << dist << '\n';
+    std::cout << "Earth form: " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "start height (m): " << height << '\n';
+    std::cout << "number of samples on ray: " << samples << '\n';
+    std::cout << "initial step size (m): " << step1 << '\n';
+    std::cout << "stepper type: " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
+    std::cout << "horizontal distance to travel (m): " << target << '\n';
+    std::cout << "ambient temperature (Celsius): " << tempAmb << '\n';
+    std::cout << "base temperature, only for water (Celsius): " << tempBase << '\n';
+    std::cout << "absolute tolerance (m): " << tolAbs << '\n';
+    std::cout << "relative tolerance (m): " << tolRel << '\n';
   }
   else {} // nothing to do
   
