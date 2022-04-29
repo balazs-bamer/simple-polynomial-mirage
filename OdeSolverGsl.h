@@ -111,8 +111,10 @@ std::vector<Variables> stuff;
     Variables yPrev;
     double tPrev;
     uint32_t stepsNow = 0;
-if(stuff.empty() || y[0] > stuff.back()[0])
+if(stuff.empty() || y[0] > stuff.back()[0]) {
+  std::cout << "pre while x: " << y[0] << " y: " << y[1] << " z: " << y[2] << '\n';
   stuff.push_back(y);
+}
     while (t < end && stepsAll < csMaxStep) {
       yPrev = y;
       tPrev = t;
@@ -128,8 +130,10 @@ if(stuff.empty() || y[0] > stuff.back()[0])
       else {} // Nothing to do
       ++stepsAll;
       ++stepsNow;
-if(y[0] < mTend)
+if(y[0] < mTend) {
+  std::cout << " in while x: " << y[0] << " y: " << y[1] << " z: " << y[2] << '\n';
   stuff.push_back(y);
+}
       if(verdictPrev != aJudge(t, y)) {
         break;
       }

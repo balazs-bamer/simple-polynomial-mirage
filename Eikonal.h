@@ -5,6 +5,9 @@
 #include <gsl/gsl_matrix.h>
 #include <cmath>
 
+#include <vector>
+#include <iostream>
+#include <iomanip>
 
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
 class Eikonal final {
@@ -65,6 +68,9 @@ public:
 
   EarthForm getEarthForm() const { return mEarthForm; }
 
+mutable std::vector<double> dstuff;
+mutable std::vector<int>    lstuff;
+
   int differentials(double, const double aY[], double aDydt[]) const {
     double n    = getRefract(aY[1]);
     double v    = csC / n;
@@ -89,7 +95,13 @@ public:
     aDydt[3] = zenith[0] * u;
     aDydt[4] = zenith[1] * u;
     aDydt[5] = zenith[2] * u;
-    return GSL_SUCCESS;
+std::cout << "  eikonal x: " << std::setprecision(13) << aY[0] << " y: " << std::setprecision(13) << aY[1] << " z: " << std::setprecision(13) << aY[2]
+                  << " ux: " << std::setprecision(13) << aY[3] << " uy: " << std::setprecision(13) << aY[4] << " uz: " << std::setprecision(13) << aY[5]
+                  << " zx: " << std::setprecision(13) << zenith[0] << " zy: " << std::setprecision(13) << zenith[1] << " zz: " << std::setprecision(13) << zenith[2] << " ele: " << std::setprecision(13) << elevation << '\n';
+auto x = aY[0];
+dstuff.push_back(x);
+lstuff.push_back(ilogb(x));
+    return elevation > 0.0 ? GSL_SUCCESS : GSL_EBADFUNC;
   }
 
   // Most probably wrong.

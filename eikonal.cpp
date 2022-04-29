@@ -58,6 +58,27 @@ auto t = 980.0;
     std::cout << std::setprecision(10) << eikonal.getRefract(i) << ", ";
   }
   std::cout << "\n";*/
+  for(auto i : eikonal.lstuff) {
+    std::string out;
+    if(i == FP_ILOGB0) {
+      out = "zero";
+    }
+    else if(i == INT_MAX) {
+      out = "inf";
+    }
+    else if(i == FP_ILOGBNAN) {
+      out = "NaN";
+    }
+    else {
+      out = std::to_string(i);
+    }
+    std::cout << out << ", ";
+  }
+  std::cout << '\n';
+  for(auto i : eikonal.dstuff) {
+    std::cout << i << ", ";
+  }
+  std::cout << '\n';
 }
 
 int main(int aArgc, char **aArgv) {
