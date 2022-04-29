@@ -36,7 +36,7 @@ int main(int aArgc, char **aArgv) {
   double tempAmb = std::nan("");
   opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
   double tempBase = 13.0;
-  opt.add_option("--tempBase", tempAmb, "base temperature, only for water (Celsius) [13]");
+  opt.add_option("--tempBase", tempBase, "base temperature, only for water (Celsius) [13]");
   double tilt = 0.0;
   opt.add_option("--tilt", tilt, "camera tilt, neg downwards (degrees) [0.0]");
   double tolAbs = 0.001;
@@ -103,24 +103,24 @@ int main(int aArgc, char **aArgv) {
   else {} // nothing to do
 
   if(!silent) {
-    std::cout << "base type: " << nameBase << ' ' << static_cast<int>(base) << '\n';
-    std::cout << "lift of bulletin from ground (m): " << bullLift << '\n';
-    std::cout << "height of camera center (m): " << camCenter << '\n';
-    std::cout << "distance of bulletin and camera (m): " << dist << '\n';
-    std::cout << "Earth form: " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
-    std::cout << "height of bulletin (m): " << height << '\n';
-    std::cout << "input filename: " << nameIn << '\n';
-    std::cout << "output filename: " << nameOut << '\n';
-    std::cout << "pinhole distance from film (m): " << pinholeDist << '\n';
-    std::cout << "film resolution in both directions (pixel): " << resolution << '\n';
-    std::cout << "initial step size (m): " << step1 << '\n';
-    std::cout << "stepper type: " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
+    std::cout << "base type:                                         " << nameBase << ' ' << static_cast<int>(base) << '\n';
+    std::cout << "lift of bulletin from ground (m):                  " << bullLift << '\n';
+    std::cout << "height of camera center (m):         .  .  .  .  . " << camCenter << '\n';
+    std::cout << "distance of bulletin and camera (m):               " << dist << '\n';
+    std::cout << "Earth form:                                        " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "height of bulletin (m):    .   .  .  .  .  .  .  . " << height << '\n';
+    std::cout << "input filename:                                    " << nameIn << '\n';
+    std::cout << "output filename:                                   " << nameOut << '\n';
+    std::cout << "pinhole distance from film (m):            .  .  . " << pinholeDist << '\n';
+    std::cout << "film resolution in both directions (pixel):        " << resolution << '\n';
+    std::cout << "initial step size (m):                             " << step1 << '\n';
+    std::cout << "stepper type:                                      " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
     std::cout << "subsampling each pixel in both directions (count): " << subsample << '\n';
-    std::cout << "ambient temperature (Celsius): " << tempAmb << '\n';
-    std::cout << "base temperature, only for water (Celsius): " << tempBase << '\n';
-    std::cout << "camera tilt, neg downwards (degrees): " << tilt << '\n';
-    std::cout << "absolute tolerance (m): " << tolAbs << '\n';
-    std::cout << "relative tolerance (m): " << tolRel << '\n';
+    std::cout << "ambient temperature (Celsius):                     " << tempAmb << '\n';
+    std::cout << "base temperature, only for water (Celsius):        " << tempBase << '\n';
+    std::cout << "camera tilt, neg downwards (degrees):      .  .  . " << tilt << '\n';
+    std::cout << "absolute tolerance (m):                            " << tolAbs << '\n';
+    std::cout << "relative tolerance (m):                            " << tolRel << '\n';
   }
   else {} // nothing to do
 

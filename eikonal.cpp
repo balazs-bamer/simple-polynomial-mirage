@@ -80,7 +80,7 @@ int main(int aArgc, char **aArgv) {
   double tempAmb = std::nan("");
   opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
   double tempBase = 13.0;
-  opt.add_option("--tempBase", tempAmb, "base temperature, only for water (Celsius) [13]");
+  opt.add_option("--tempBase", tempBase, "base temperature, only for water (Celsius) [13]");
   double tolAbs = 0.001;
   opt.add_option("--tolAbs", tolAbs, "absolute tolerance (m) [1e-3]");
   double tolRel = 0.001;
@@ -145,19 +145,19 @@ int main(int aArgc, char **aArgv) {
   else {} // nothing to do
 
   if(!silent) {
-    std::cout << "base type: " << nameBase << ' ' << static_cast<int>(base) << '\n';
-    std::cout << "start direction, neg downwards (degrees): " << dir << '\n';
-    std::cout << "distance along the ray to track (m): " << dist << '\n';
-    std::cout << "Earth form: " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
-    std::cout << "start height (m): " << height << '\n';
-    std::cout << "number of samples on ray: " << samples << '\n';
-    std::cout << "initial step size (m): " << step1 << '\n';
-    std::cout << "stepper type: " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
-    std::cout << "horizontal distance to travel (m): " << target << '\n';
-    std::cout << "ambient temperature (Celsius): " << tempAmb << '\n';
+    std::cout << "base type:                                  " << nameBase << ' ' << static_cast<int>(base) << '\n';
+    std::cout << "start direction, neg downwards (degrees):   " << dir << '\n';
+    std::cout << "distance along the ray to track (m):        " << dist << '\n';
+    std::cout << "Earth form:                                 " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "start height (m):         .  .  .  .  .  .  " << height << '\n';
+    std::cout << "number of samples on ray:                   " << samples << '\n';
+    std::cout << "initial step size (m):                      " << step1 << '\n';
+    std::cout << "stepper type:                      .  .  .  " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
+    std::cout << "horizontal distance to travel (m):          " << target << '\n';
+    std::cout << "ambient temperature (Celsius):              " << tempAmb << '\n';
     std::cout << "base temperature, only for water (Celsius): " << tempBase << '\n';
-    std::cout << "absolute tolerance (m): " << tolAbs << '\n';
-    std::cout << "relative tolerance (m): " << tolRel << '\n';
+    std::cout << "absolute tolerance (m):                     " << tolAbs << '\n';
+    std::cout << "relative tolerance (m):                     " << tolRel << '\n';
   }
   else {} // nothing to do
   
