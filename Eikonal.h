@@ -101,7 +101,7 @@ std::cout << "  eikonal x: " << std::setprecision(13) << aY[0] << " y: " << std:
 auto x = aY[0];
 dstuff.push_back(x);
 lstuff.push_back(ilogb(x));
-    return elevation > 0.0 ? GSL_SUCCESS : GSL_EBADFUNC;
+    return elevation > 0.0 ? GSL_SUCCESS : GSL_FAILURE;
   }
 
   // Most probably wrong.

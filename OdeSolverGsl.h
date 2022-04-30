@@ -118,10 +118,14 @@ if(stuff.empty() || y[0] > stuff.back()[0]) {
     while (t < end && stepsAll < csMaxStep) {
       yPrev = y;
       tPrev = t;
-      int status = gsl_odeiv2_evolve_apply (mEvolver, mController, mStepper,
-                                           &mSystem,
-                                           &t, end,
-                                           &h, y.data());
+      int status;
+      do {
+        status = gsl_odeiv2_evolve_apply (mEvolver, mController, mStepper,
+                                         &mSystem,
+                                         &t, end,
+                                         &h, y.data());
+        h /= 2.0;
+      } while(status == GSL_FAILURE);
       if (status != GSL_SUCCESS) {
         gsl_odeiv2_evolve_reset(mEvolver);
         gsl_odeiv2_step_reset(mStepper);
