@@ -23,7 +23,7 @@ double aDir, double aDist, double aHeight, double aStep1, double aTolAbs, double
   std::vector<Vertex> stuff;
   std::ofstream out("values.txt");
 //  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
-auto t = 980.0;
+auto t = 640.0;
     Vertex y;
     if(t == 0.0) {
       y[0] = 0.0;

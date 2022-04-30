@@ -72,6 +72,7 @@ mutable std::vector<double> dstuff;
 mutable std::vector<int>    lstuff;
 
   int differentials(double, const double aY[], double aDydt[]) const {
+    int result;
     double n    = getRefract(aY[1]);
     double v    = csC / n;
     double elevation;
@@ -84,24 +85,34 @@ mutable std::vector<int>    lstuff;
     else {
       double fromCenter = std::sqrt(aY[0] * aY[0] + aY[1] * aY[1] + aY[2] * aY[2]);
       elevation = fromCenter - csRadius;
-      zenith[0] = aY[0] / fromCenter;
-      zenith[1] = aY[1] / fromCenter;
-      zenith[2] = aY[2] / fromCenter;
+      if(elevation > 0.0) {
+        zenith[0] = aY[0] / fromCenter;
+        zenith[1] = aY[1] / fromCenter;
+        zenith[2] = aY[2] / fromCenter;
+      }
+      else {} // nothing to do
     }
-    aDydt[0] = v * aY[3];
-    aDydt[1] = v * aY[4];
-    aDydt[2] = v * aY[5];
-    double u = getRefractDiff(elevation) / csC;
-    aDydt[3] = zenith[0] * u;
-    aDydt[4] = zenith[1] * u;
-    aDydt[5] = zenith[2] * u;
+    if(elevation > 0.0) {
+      result = GSL_SUCCESS;
+      aDydt[0] = v * aY[3];
+      aDydt[1] = v * aY[4];
+      aDydt[2] = v * aY[5];
+      double u = getRefractDiff(elevation) / csC;
+      aDydt[3] = zenith[0] * u;
+      aDydt[4] = zenith[1] * u;
+      aDydt[5] = zenith[2] * u;
 std::cout << "  eikonal x: " << std::setprecision(13) << aY[0] << " y: " << std::setprecision(13) << aY[1] << " z: " << std::setprecision(13) << aY[2]
                   << " ux: " << std::setprecision(13) << aY[3] << " uy: " << std::setprecision(13) << aY[4] << " uz: " << std::setprecision(13) << aY[5]
                   << " zx: " << std::setprecision(13) << zenith[0] << " zy: " << std::setprecision(13) << zenith[1] << " zz: " << std::setprecision(13) << zenith[2] << " ele: " << std::setprecision(13) << elevation << '\n';
 auto x = aY[0];
 dstuff.push_back(x);
 lstuff.push_back(ilogb(x));
-    return elevation > 0.0 ? GSL_SUCCESS : GSL_FAILURE;
+    }
+    else {
+std::cout << "  eikonal FAILURE \n";
+      result = GSL_FAILURE;
+    }
+    return result;
   }
 
   // Most probably wrong.
