@@ -115,6 +115,7 @@ if(stuff.empty() || y[0] > stuff.back()[0]) {
   std::cout << "pre while x: " << y[0] << " y: " << y[1] << " z: " << y[2] << '\n';
   stuff.push_back(y);
 }
+    bool wasBigH = false;
     while (t < end && stepsAll < csMaxStep) {
       yPrev = y;
       tPrev = t;
@@ -141,13 +142,20 @@ std::cout << " in while x: " << y[0] << " y: " << y[1] << " z: " << y[2] << '\n'
 stuff.push_back(y);
 //}
       if(verdictPrev != aJudge(t, y)) {
+std::cout << " judge --------------------------\n";
+        break;
+      }
+      else {} // Nothing to do
+      if(h > 111.1) {                                  // If h is too big, it may make a too big step yielding false results, which it won't detect.
+std::cout << " h big --------------------------\n";
+        wasBigH = true;
         break;
       }
       else {} // Nothing to do
     }
     gsl_odeiv2_evolve_reset(mEvolver);
     gsl_odeiv2_step_reset(mStepper);
-    if(stepsNow == 1u) {
+    if(!wasBigH && stepsNow == 1u) {
       result.first = t;
       result.second = y;
       break;
@@ -155,7 +163,10 @@ stuff.push_back(y);
     else {
       y = yPrev;
       start = tPrev;
-      end = t;
+      if(!wasBigH) {
+        end = t;
+      }
+      else{} // nothing to do
     }
   }
   if(stepsAll == csMaxStep) {

@@ -22,8 +22,8 @@ double aDir, double aDist, double aHeight, double aStep1, double aTolAbs, double
 
   std::vector<Vertex> stuff;
   std::ofstream out("values.txt");
-//  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
-auto t = 640.0;
+  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
+//auto t = 640.0;
     Vertex y;
     if(t == 0.0) {
       y[0] = 0.0;
@@ -35,8 +35,8 @@ auto t = 640.0;
     }
     stuff.push_back(y);
     out << std::setprecision(10) << y[0] << '\t' << std::setprecision(10) << y[1] << '\n';
-//  }
-/*  std::cout << "x=[";
+  }
+  std::cout << "x=[";
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << stuff[i][0] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
@@ -48,7 +48,7 @@ auto t = 640.0;
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << std::sqrt(Eikonal::csRadius * Eikonal::csRadius - stuff[i][0] * stuff[i][0]) - Eikonal::csRadius << (i < stuff.size() - 1 ? ", " : "];\n");
   }
-  std::cout << "\n";*/
+  std::cout << "\n";
 /*  std::cout << "h=[";
   for (auto i = 0.01; i < 1; i += .01) {
     std::cout << std::setprecision(10) << i << ", ";
@@ -58,7 +58,7 @@ auto t = 640.0;
     std::cout << std::setprecision(10) << eikonal.getRefract(i) << ", ";
   }
   std::cout << "\n";*/
-  for(auto i : eikonal.lstuff) {
+/*  for(auto i : eikonal.lstuff) {
     std::string out;
     if(i == FP_ILOGB0) {
       out = "zero";
@@ -78,7 +78,7 @@ auto t = 640.0;
   for(auto i : eikonal.dstuff) {
     std::cout << i << ", ";
   }
-  std::cout << '\n';
+  std::cout << '\n';*/
 }
 
 int main(int aArgc, char **aArgv) {
