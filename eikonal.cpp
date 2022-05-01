@@ -23,17 +23,20 @@ double aDir, double aDist, double aHeight, double aStep1, double aStepMax, doubl
   std::vector<Vertex> stuff;
   std::ofstream out("values.txt");
   for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
-    Vertex y;
+    RungeKuttaRayBending::Result solution;
     if(t == 0.0) {
-      y[0] = 0.0;
-      y[1] = aHeight;
-      y[2] = 0.0;
+      solution.mValid = true;
+      solution.mValue[0] = 0.0;
+      solution.mValue[1] = aHeight;
+      solution.mValue[2] = 0.0;
     }
     else {
-      y = rk.solve4x(start, dir, t);
+      solution = rk.solve4x(start, dir, t);
     }
-    stuff.push_back(y);
-    out << std::setprecision(10) << y[0] << '\t' << std::setprecision(10) << y[1] << '\n';
+    if(solution.mValid) {
+      stuff.push_back(solution.mValue);
+      out << std::setprecision(10) << solution.mValue[0] << '\t' << std::setprecision(10) << solution.mValue[1] << '\n';
+    }
   }
   std::cout << "x=[";
   for (int i = 0; i < stuff.size(); ++i) {

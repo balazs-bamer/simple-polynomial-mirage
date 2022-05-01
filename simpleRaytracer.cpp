@@ -33,13 +33,17 @@ bool eq(double a, double b) { return std::abs(a-b)<1e-7; }
 uint8_t Medium::trace(Ray const& aRay) {
   try {
     auto hit = mSolver.solve4x(aRay.mStart, aRay.mDirection, mObject.getX());
-    return mObject.getPixel(hit);
+    if(hit.mValid) {
+      return mObject.getPixel(hit.mValue);
+    }
+    else {
+      return 0;
+    }
   }
   catch(...) {
 std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) << ' '
           << aRay.mDirection(0) << ' ' << aRay.mDirection(1) << ' ' << aRay.mDirection(2) << '\n';
-return 0;
-   // throw 0u;
+    throw 0u;
   }
 }
 
