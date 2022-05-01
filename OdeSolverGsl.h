@@ -32,6 +32,7 @@ private:
   double                    mTstart;
   double                    mTend;
   double                    mStepStart;
+  double                    mStepMax;
   OdeDefinition const&      mOdeDef;
   gsl_odeiv2_step          *mStepper = nullptr;
   gsl_odeiv2_control       *mController;
@@ -39,17 +40,18 @@ private:
   gsl_odeiv2_system         mSystem;
 
 public:
-  OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef);
+  OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, double const aStepMax, OdeDefinition const& aOdeDef);
   ~OdeSolverGsl();
 
   std::pair<double, Variables> solve(Variables const &aYstart, std::function<bool(double const, std::array<double, csNvar> const&)> aJudge);
 };
 
 template <typename tOdeDefinition>
-OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef)
+OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, double const aStepMax, OdeDefinition const& aOdeDef)
   : mTstart(aTstart)
   , mTend(aTend)
   , mStepStart(aStepStart)
+  , mStepMax(aStepMax)
   , mOdeDef(aOdeDef)
   , mController(gsl_odeiv2_control_y_new(aAtol, aRtol))
   , mEvolver(gsl_odeiv2_evolve_alloc(csNvar)) {
@@ -100,20 +102,25 @@ std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl
   double end = mTend;
   Variables y = aYstart;
   uint32_t stepsAll = 0;
-  while(stepsAll < csMaxStep) {
+  while(true) {
     double h = mStepStart;
     double t = start;
     bool verdictPrev = aJudge(t, y);
     Variables yPrev;
     double tPrev;
     uint32_t stepsNow = 0;
+    bool wasBigH = false;
     while (t < end && stepsAll < csMaxStep) {
       yPrev = y;
       tPrev = t;
-      int status = gsl_odeiv2_evolve_apply (mEvolver, mController, mStepper,
-                                           &mSystem,
-                                           &t, end,
-                                           &h, y.data());
+      int status;
+      do {
+        status = gsl_odeiv2_evolve_apply (mEvolver, mController, mStepper,
+                                         &mSystem,
+                                         &t, end,
+                                         &h, y.data());
+        h /= 2.0;
+      } while(status == GSL_FAILURE);
       if (status != GSL_SUCCESS) {
         gsl_odeiv2_evolve_reset(mEvolver);
         gsl_odeiv2_step_reset(mStepper);
@@ -126,10 +133,15 @@ std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl
         break;
       }
       else {} // Nothing to do
+      if(h > mStepMax) {              // If h is too big, it may make a too big step yielding false results GSL unable to detect.
+        wasBigH = true;
+        break;
+      }
+      else {} // Nothing to do
     }
     gsl_odeiv2_evolve_reset(mEvolver);
     gsl_odeiv2_step_reset(mStepper);
-    if(stepsNow == 1u) {
+    if(!wasBigH && stepsNow == 1u) {
       result.first = t;
       result.second = y;
       break;
@@ -137,13 +149,16 @@ std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl
     else {
       y = yPrev;
       start = tPrev;
-      end = t;
+      if(!wasBigH) {
+        end = t;
+      }
+      else{} // nothing to do
     }
+    if(stepsAll == csMaxStep) {
+      throw std::out_of_range("OdeSolverGsl: Too many steps.");
+    }
+    else {} // Nothing to do
   }
-  if(stepsAll == csMaxStep) {
-    throw std::out_of_range("OdeSolverGsl: Too many steps.");
-  }
-  else {} // Nothing to do
   return result;
 }
 

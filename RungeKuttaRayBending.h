@@ -13,9 +13,9 @@ private:
   OdeSolverGsl<Eikonal> mSolver;
 
 public:
-  RungeKuttaRayBending(StepperType const aStepper, double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Eikonal const &aDiffEq)
+  RungeKuttaRayBending(StepperType const aStepper, double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, double const aStepMax, Eikonal const &aDiffEq)
     : mDiffEq(aDiffEq)
-    , mSolver(aStepper, 0.0, aDistAlongRay, aTolAbs, aTolRel, aStep1, aDiffEq) {}
+    , mSolver(aStepper, 0.0, aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMax, aDiffEq) {}
 
   Vertex solve4x(Vertex const &aStart, Vector const &aDir, double const aX) {
     return mDiffEq.getEarthForm() == Eikonal::EarthForm::cFlat ? solve4xFlat(aStart, aDir, aX) : solve4xRound(aStart, aDir, aX);

@@ -31,15 +31,16 @@ uint8_t Object::getPixel(Vertex const &aHit) const {
 bool eq(double a, double b) { return std::abs(a-b)<1e-7; }
 
 uint8_t Medium::trace(Ray const& aRay) {
-  //try {
+  try {
     auto hit = mSolver.solve4x(aRay.mStart, aRay.mDirection, mObject.getX());
     return mObject.getPixel(hit);
-  /*}
+  }
   catch(...) {
 std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) << ' '
           << aRay.mDirection(0) << ' ' << aRay.mDirection(1) << ' ' << aRay.mDirection(2) << '\n';
-    throw 0u;
-  }*/
+return 0;
+   // throw 0u;
+  }
 }
 
 

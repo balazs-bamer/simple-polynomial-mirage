@@ -66,6 +66,7 @@ public:
   EarthForm getEarthForm() const { return mEarthForm; }
 
   int differentials(double, const double aY[], double aDydt[]) const {
+    int result;
     double n    = getRefract(aY[1]);
     double v    = csC / n;
     double elevation;
@@ -78,18 +79,27 @@ public:
     else {
       double fromCenter = std::sqrt(aY[0] * aY[0] + aY[1] * aY[1] + aY[2] * aY[2]);
       elevation = fromCenter - csRadius;
-      zenith[0] = aY[0] / fromCenter;
-      zenith[1] = aY[1] / fromCenter;
-      zenith[2] = aY[2] / fromCenter;
+      if(elevation > 0.0) {
+        zenith[0] = aY[0] / fromCenter;
+        zenith[1] = aY[1] / fromCenter;
+        zenith[2] = aY[2] / fromCenter;
+      }
+      else {} // nothing to do
     }
-    aDydt[0] = v * aY[3];
-    aDydt[1] = v * aY[4];
-    aDydt[2] = v * aY[5];
-    double u = getRefractDiff(elevation) / csC;
-    aDydt[3] = zenith[0] * u;
-    aDydt[4] = zenith[1] * u;
-    aDydt[5] = zenith[2] * u;
-    return GSL_SUCCESS;
+    if(elevation > 0.0) {
+      result = GSL_SUCCESS;
+      aDydt[0] = v * aY[3];
+      aDydt[1] = v * aY[4];
+      aDydt[2] = v * aY[5];
+      double u = getRefractDiff(elevation) / csC;
+      aDydt[3] = zenith[0] * u;
+      aDydt[4] = zenith[1] * u;
+      aDydt[5] = zenith[2] * u;
+    }
+    else {
+      result = GSL_FAILURE;
+    }
+    return result;
   }
 
   // Most probably wrong.
