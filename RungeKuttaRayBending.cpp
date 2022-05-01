@@ -1,8 +1,8 @@
-#include "RungeKuttaRayBending.h"
+﻿#include "RungeKuttaRayBending.h"
 #include <cmath>
 
 
-Vertex RungeKuttaRayBending::solve4xFlat(Vertex const &aStart, Vector const &aDir, double const aX) {
+RungeKuttaRayBending::Result RungeKuttaRayBending::solve4xFlat(Vertex const &aStart, Vector const &aDir, double const aX) {
   typename Eikonal::Variables start;
   start[0u] = aStart(0u);
   start[1u] = aStart(1u);
@@ -11,15 +11,16 @@ Vertex RungeKuttaRayBending::solve4xFlat(Vertex const &aStart, Vector const &aDi
   start[3u] = aDir(0u) * slowness;
   start[4u] = aDir(1u) * slowness;
   start[5u] = aDir(2u) * slowness;
-  auto [t, solution] = mSolver.solve(start, [aX](double const, typename Eikonal::Variables const& aY){ return aY[0] >= aX; });
-  Vertex result;
-  result(0u) = solution[0u];
-  result(1u) = solution[1u];
-  result(2u) = solution[2u];
+  auto solution = mSolver.solve(start, [aX](double const, typename Eikonal::Variables const& aY){ return aY[0] >= aX; });
+  Result result;
+  result.mValid = solution.mValid;
+  result.mValue(0u) = solution.mValue[0u];
+  result.mValue(1u) = solution.mValue[1u];
+  result.mValue(2u) = solution.mValue[2u];
   return result;
 }
 
-Vertex RungeKuttaRayBending::solve4xRound(Vertex const &aStart, Vector const &aDir, double const aX) {
+RungeKuttaRayBending::Result RungeKuttaRayBending::solve4xRound(Vertex const &aStart, Vector const &aDir, double const aX) {
   typename Eikonal::Variables start;
   start[0u] = aStart(0u);
   start[1u] = aStart(1u) + Eikonal::csRadius;
@@ -28,11 +29,12 @@ Vertex RungeKuttaRayBending::solve4xRound(Vertex const &aStart, Vector const &aD
   start[3u] = aDir(0u) * slowness;
   start[4u] = aDir(1u) * slowness;
   start[5u] = aDir(2u) * slowness;
-  auto [t, solution] = mSolver.solve(start, [aX](double const, typename Eikonal::Variables const& aY){ return aY[0] >= aX; });     // We now neglect the variation in perpendicular along the travelled distance.
-  Vertex result;
-  result(0u) = solution[0u];
-  result(1u) = solution[1u] - Eikonal::csRadius ;
-  result(2u) = solution[2u];
+  auto solution = mSolver.solve(start, [aX](double const, typename Eikonal::Variables const& aY){ return aY[0] >= aX; });     // We now neglect the variation in perpendicular along the travelled distance.
+  Result result;
+  result.mValid = solution.mValid;
+  result.mValue(0u) = solution.mValue[0u];
+  result.mValue(1u) = solution.mValue[1u] - Eikonal::csRadius ;
+  result.mValue(2u) = solution.mValue[2u];
   return result;
 }
 

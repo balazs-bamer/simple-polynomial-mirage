@@ -24,9 +24,14 @@ enum class StepperType : uint8_t {
 template <typename tOdeDefinition>
 class OdeSolverGsl final {
 public:
-
   static constexpr uint32_t csNvar = tOdeDefinition::csNvar;
   using Variables                  = std::array<double, csNvar>;
+
+  struct Result final {
+    bool      mValid;
+    double    mAtIndependent;
+    Variables mValue;
+  };
 
 private:
   using OdeDefinition              = tOdeDefinition;
@@ -45,7 +50,7 @@ public:
   OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef);
   ~OdeSolverGsl();
 
-  std::pair<double, Variables> solve(Variables const &aYstart, std::function<bool(double const, std::array<double, csNvar> const&)> aJudge);
+  Result solve(Variables const &aYstart, std::function<bool(double const, std::array<double, csNvar> const&)> aJudge);
 };
 
 template <typename tOdeDefinition>
@@ -97,8 +102,9 @@ OdeSolverGsl<tOdeDefinition>::~OdeSolverGsl() {
 }
 
 template <typename tOdeDefinition>
-std::pair<double, typename OdeSolverGsl<tOdeDefinition>::Variables> OdeSolverGsl<tOdeDefinition>::solve(Variables const &aYstart, std::function<bool(double const, Variables const&)> aJudge) {
-  std::pair<double, Variables> result;
+typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solve(Variables const &aYstart, std::function<bool(double const, Variables const&)> aJudge) {
+  Result result;
+  result.mValid = true;
   double start = mTstart;
   double end = mTend;
   Variables y = aYstart;
@@ -120,6 +126,7 @@ if(stuff.empty() || y[0] > stuff.back()[0]) {
       yPrev = y;
       tPrev = t;
       int status;
+      auto hPrev = h;
       do {
 std::cout << "          h: " << h << " t: " << t << " end: " << end << '\n';
         status = gsl_odeiv2_evolve_apply (mEvolver, mController, mStepper,
@@ -141,6 +148,11 @@ std::cout << " after in h: " << h << " t: " << t << " end: " << end << '\n';
 std::cout << " in while x: " << y[0] << " y: " << y[1] << " z: " << y[2] << '\n';
 stuff.push_back(y);
 //}
+      if(hPrev > h) {
+        result.mValid = false;
+        break;
+      }
+      else {} // Nothing to do
       if(verdictPrev != aJudge(t, y)) {
 std::cout << " judge --------------------------\n";
         break;
@@ -155,9 +167,9 @@ std::cout << " h big --------------------------\n";
     }
     gsl_odeiv2_evolve_reset(mEvolver);
     gsl_odeiv2_step_reset(mStepper);
-    if(!wasBigH && stepsNow == 1u) {
-      result.first = t;
-      result.second = y;
+    if(!result.mValid || !wasBigH && stepsNow == 1u) {
+      result.mAtIndependent = t;
+      result.mValue = y;
       break;
     }
     else {
@@ -169,10 +181,6 @@ std::cout << " h big --------------------------\n";
       else{} // nothing to do
     }
   }
-  if(stepsAll == csMaxStep) {
-    throw std::out_of_range("OdeSolverGsl: Too many steps.");
-  }
-  else {} // Nothing to do
 
 std::cout << "x=[";
 for (int i = 0; i < stuff.size(); ++i) {
@@ -183,6 +191,10 @@ for (int i = 0; i < stuff.size(); ++i) {
   std::cout << std::setprecision(10) << stuff[i][1] - Eikonal::csRadius << (i < stuff.size() - 1 ? ", " : "];\n");
 }
 
+  if(stepsAll == csMaxStep) {
+    throw std::out_of_range("OdeSolverGsl: Too many steps.");
+  }
+  else {} // Nothing to do
   return result;
 }
 
