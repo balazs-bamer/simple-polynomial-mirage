@@ -9,7 +9,7 @@
 #include "RungeKuttaRayBending.h"
 
 
-//clang++ -I/usr/include/eigen3 -I../repos/eigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp RungeKuttaRayBending.cpp -o eikonal -ggdb -lgsl
+// g++ -I/usr/include/eigen3 -I../repos/eigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp RungeKuttaRayBending.cpp -o eikonal -ggdb -lgsl
 
 void comp(StepperType aStepper,
 Eikonal::EarthForm const aEarthForm, Eikonal::Model aMode, double aTempAmb, double aTempBase,
@@ -22,7 +22,8 @@ double aDir, double aDist, double aHeight, double aStep1, double aStepMax, doubl
 
   std::vector<Vertex> stuff;
   std::ofstream out("values.txt");
-  for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
+  auto end = aTarget * (1.0 + 0.5 / aSamples);
+  for(double t = 0.0; t <= end; t += aTarget / aSamples) {
     RungeKuttaRayBending::Result solution;
     if(t == 0.0) {
       solution.mValid = true;
