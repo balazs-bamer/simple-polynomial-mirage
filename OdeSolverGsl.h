@@ -136,7 +136,7 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
       else {} // Nothing to do
       ++stepsAll;
       ++stepsNow;
-      if(hPrev > h) {
+      if(h < mStepStart) {
         result.mValid = false;
         break;
       }
