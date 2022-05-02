@@ -148,8 +148,9 @@ std::cout << " after in h: " << h << " t: " << t << " end: " << end << '\n';
 std::cout << " in while x: " << y[0] << " y: " << y[1] << " z: " << y[2] << '\n';
 stuff.push_back(y);
 //}
-      if(hPrev > h) {
+      if(h < mStepStart) {
         result.mValid = false;
+std::cout << " h small ------------------------\n";
         break;
       }
       else {} // Nothing to do

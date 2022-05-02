@@ -23,7 +23,7 @@ double aDir, double aDist, double aHeight, double aStep1, double aTolAbs, double
   std::vector<Vertex> stuff;
   std::ofstream out("values.txt");
   for(double t = 0.0; t < aTarget; t += aTarget / aSamples) {
-//auto t = 300.0;
+//auto t = 60.0;
     RungeKuttaRayBending::Result solution;
     if(t == 0.0) {
       solution.mValid = true;
@@ -38,7 +38,7 @@ double aDir, double aDist, double aHeight, double aStep1, double aTolAbs, double
       stuff.push_back(solution.mValue);
       out << std::setprecision(10) << solution.mValue[0] << '\t' << std::setprecision(10) << solution.mValue[1] << '\n';
     }
-//std::cout << t << '\n';
+std::cout << t << '\n';
   }
   std::cout << "x=[";
   for (int i = 0; i < stuff.size(); ++i) {
