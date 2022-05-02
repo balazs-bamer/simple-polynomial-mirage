@@ -37,6 +37,7 @@ private:
   double                    mTstart;
   double                    mTend;
   double                    mStepStart;
+  double                    mStepMin;
   double                    mStepMax;
   OdeDefinition const&      mOdeDef;
   gsl_odeiv2_step          *mStepper = nullptr;
@@ -45,17 +46,20 @@ private:
   gsl_odeiv2_system         mSystem;
 
 public:
-  OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, double const aStepMax, OdeDefinition const& aOdeDef);
+  OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol,
+               const double aStepStart, double const aStepMin, double const aStepMax, OdeDefinition const& aOdeDef);
   ~OdeSolverGsl();
 
   Result solve(Variables const &aYstart, std::function<bool(double const, std::array<double, csNvar> const&)> aJudge);
 };
 
 template <typename tOdeDefinition>
-OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, double const aStepMax, OdeDefinition const& aOdeDef)
+OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol,
+                                           const double aStepStart, double const aStepMin, double const aStepMax, OdeDefinition const& aOdeDef)
   : mTstart(aTstart)
   , mTend(aTend)
   , mStepStart(aStepStart)
+  , mStepMin(aStepMin)
   , mStepMax(aStepMax)
   , mOdeDef(aOdeDef)
   , mController(gsl_odeiv2_control_y_new(aAtol, aRtol))
@@ -136,7 +140,7 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
       else {} // Nothing to do
       ++stepsAll;
       ++stepsNow;
-      if(h < mStepStart) {
+      if(h < mStepMin) {
         result.mValid = false;
         break;
       }

@@ -13,10 +13,10 @@
 
 void comp(StepperType aStepper,
 Eikonal::EarthForm const aEarthForm, Eikonal::Model aMode, double aTempAmb, double aTempBase,
-double aDir, double aDist, double aHeight, double aStep1, double aStepMax, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
+double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aStepMax, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
 
   Eikonal eikonal(aEarthForm, aMode, aTempAmb, aTempBase);
-  RungeKuttaRayBending rk(aStepper, aDist, aTolAbs, aTolRel, aStep1, aStepMax, eikonal);
+  RungeKuttaRayBending rk(aStepper, aDist, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, eikonal);
   Vertex start(0.0, aHeight, 0.0);
   Vector dir(std::cos(aDir / 180.0 * 3.1415926539), std::sin(aDir / 180.0 * 3.1415926539), 0.0);
 
@@ -84,6 +84,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
   double step1 = 0.01;
   opt.add_option("--step1", step1, "initial step size (m) [0.01]");
+  double stepMin = 1e-7;
+  opt.add_option("--stepMin", stepMin, "maximal step size (m) [1e-7]");
   double stepMax = 111.1;
   opt.add_option("--stepMax", stepMax, "maximal step size (m) [111.1]");
   std::string nameStepper = "RungeKutta23";
@@ -165,7 +167,8 @@ int main(int aArgc, char **aArgv) {
     std::cout << "start height (m):         .  .  .  .  .  .  " << height << '\n';
     std::cout << "number of samples on ray:                   " << samples << '\n';
     std::cout << "initial step size (m):                      " << step1 << '\n';
-    std::cout << "maximal step size (m): .  .  .  .  .  .  .  " << stepMax << '\n';
+    std::cout << "minimal step size (m): .  .  .  .  .  .  .  " << stepMin << '\n';
+    std::cout << "maximal step size (m):                      " << stepMax << '\n';
     std::cout << "stepper type:                               " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
     std::cout << "horizontal distance to travel (m):          " << target << '\n';
     std::cout << "ambient temperature (Celsius):              " << tempAmb << '\n';
@@ -175,6 +178,6 @@ int main(int aArgc, char **aArgv) {
   }
   else {} // nothing to do
   
-  comp(stepper, earthForm, base, tempAmb, tempBase, dir, dist, height, step1, stepMax, tolAbs, tolRel, target, samples);
+  comp(stepper, earthForm, base, tempAmb, tempBase, dir, dist, height, step1, stepMin, stepMax, tolAbs, tolRel, target, samples);
   return 0;
 }
