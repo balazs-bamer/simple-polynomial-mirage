@@ -59,7 +59,7 @@ Image::Image(bool const aRestrictCpu, double const aCenterY,
   , mSsFactor(1.0 / aSubSample)
   , mPixelSize(aPixelSize)
   , mCenter(0.0, aCenterY, 0.0)
-  , mNormal(::cos(aTilt), -::sin(aTilt), 0.0)
+  , mNormal(::cos(aTilt * cgPi / 180.0), ::sin(aTilt * cgPi / 180.0), 0.0)
   , mInPlaneZ(0.0, 0.0, 1.0)
   , mInPlaneY(mNormal.cross(mInPlaneZ))
   , mPinhole(mCenter + aPinholeDist * mNormal)
