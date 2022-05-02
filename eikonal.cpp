@@ -46,6 +46,13 @@ double aDir, double aDist, double aHeight, double aStep1, double aStepMax, doubl
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
+  if(aEarthForm == Eikonal::EarthForm::cRound) {
+    std::cout << "d=[";
+    for (int i = 0; i < stuff.size(); ++i) {
+      std::cout << std::setprecision(10) << std::sqrt(Eikonal::csRadius * Eikonal::csRadius - stuff[i][0] * stuff[i][0]) - Eikonal::csRadius << (i < stuff.size() - 1 ? ", " : "];\n");
+    }
+  } 
+  else {} // nothing to do
   std::cout << "\n";
 /*  std::cout << "h=[";
   for (auto i = 0.01; i < 1; i += .01) {
