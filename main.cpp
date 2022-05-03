@@ -29,8 +29,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
   double step1 = 0.01;
   opt.add_option("--step1", step1, "initial step size (m) [0.01]");
-  double stepMin = 1e-7;
-  opt.add_option("--stepMin", stepMin, "maximal step size (m) [1e-7]");
+  double stepMin = 1e-4;
+  opt.add_option("--stepMin", stepMin, "maximal step size (m) [1e-4]");
   double stepMax = 111.1;
   opt.add_option("--stepMax", stepMax, "maximal step size (m) [111.1]");
   std::string nameStepper = "RungeKutta23";
