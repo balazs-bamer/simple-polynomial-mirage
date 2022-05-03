@@ -171,7 +171,7 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
       else{} // nothing to do
     }
     if(stepsAll == csMaxStep) {
-      throw std::out_of_range("OdeSolverGsl: Too many steps.");
+      result.mValid = false;
     }
     else {} // Nothing to do
   }
