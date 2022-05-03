@@ -40,6 +40,8 @@ private:
   double                    mTstart;
   double                    mTend;
   double                    mStepStart;
+  double                    mStepMin;
+  double                    mStepMax;
   OdeDefinition const&      mOdeDef;
   gsl_odeiv2_step          *mStepper = nullptr;
   gsl_odeiv2_control       *mController;
@@ -47,17 +49,21 @@ private:
   gsl_odeiv2_system         mSystem;
 
 public:
-  OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef);
+  OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol,
+               const double aStepStart, double const aStepMin, double const aStepMax, OdeDefinition const& aOdeDef);
   ~OdeSolverGsl();
 
   Result solve(Variables const &aYstart, std::function<bool(double const, std::array<double, csNvar> const&)> aJudge);
 };
 
 template <typename tOdeDefinition>
-OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol, const double aStepStart, OdeDefinition const& aOdeDef)
+OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol,
+                                           const double aStepStart, double const aStepMin, double const aStepMax, OdeDefinition const& aOdeDef)
   : mTstart(aTstart)
   , mTend(aTend)
   , mStepStart(aStepStart)
+  , mStepMin(aStepMin)
+  , mStepMax(aStepMax)
   , mOdeDef(aOdeDef)
   , mController(gsl_odeiv2_control_y_new(aAtol, aRtol))
   , mEvolver(gsl_odeiv2_evolve_alloc(csNvar)) {
@@ -148,7 +154,7 @@ std::cout << " after in h: " << h << " t: " << t << " end: " << end << '\n';
 std::cout << " in while x: " << y[0] << " y: " << y[1] << " z: " << y[2] << '\n';
 stuff.push_back(y);
 //}
-      if(h < mStepStart) {
+      if(h < mStepMin) {
         result.mValid = false;
 std::cout << " h small ------------------------\n";
         break;
@@ -159,7 +165,7 @@ std::cout << " judge --------------------------\n";
         break;
       }
       else {} // Nothing to do
-      if(h > 111.1) {                                  // If h is too big, it may make a too big step yielding false results, which it won't detect.
+      if(h > mStepMax) {                                  // If h is too big, it may make a too big step yielding false results, which it won't detect.
 std::cout << " h big --------------------------\n";
         wasBigH = true;
         break;
@@ -181,6 +187,10 @@ std::cout << " h big --------------------------\n";
       }
       else{} // nothing to do
     }
+    if(stepsAll == csMaxStep) {
+      result.mValid = false;
+    }
+    else {} // Nothing to do
   }
 
 std::cout << "x=[";
@@ -191,11 +201,6 @@ std::cout << "y=[";
 for (int i = 0; i < stuff.size(); ++i) {
   std::cout << std::setprecision(10) << stuff[i][1] - Eikonal::csRadius << (i < stuff.size() - 1 ? ", " : "];\n");
 }
-
-  if(stepsAll == csMaxStep) {
-    throw std::out_of_range("OdeSolverGsl: Too many steps.");
-  }
-  else {} // Nothing to do
   return result;
 }
 

@@ -31,9 +31,10 @@ private:
 public:
   Medium(StepperType const aStepper,
          Eikonal::EarthForm const aEarthForm, Eikonal::Model const aModel, double const aTempAmbient, double const aTempBase,
-         double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, Object const& aObject)
+         double const aDistAlongRay, double const aTolAbs, double const aTolRel,
+         double const aStep1, double const aStepMin, double const aStepMax, Object const& aObject)
   : mEikonal(aEarthForm, aModel, aTempAmbient, aTempBase)
-  , mSolver(aStepper, aDistAlongRay, aTolAbs, aTolRel, aStep1, mEikonal)
+  , mSolver(aStepper, aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, mEikonal)
   , mObject(aObject) {}
 
   uint8_t trace(Ray const& aRay);

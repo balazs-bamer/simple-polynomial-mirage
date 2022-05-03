@@ -7,8 +7,8 @@ int main(int aArgc, char **aArgv) {
   CLI::App opt{"Usage"};
   std::string nameBase = "water";
   opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
-  double bullLift = 0.5;
-  opt.add_option("--bullLift", bullLift, "lift of bulletin from ground (m) [0.5]");
+  double bullLift = 0.0;
+  opt.add_option("--bullLift", bullLift, "lift of bulletin from ground (m) [0.0]");
   double camCenter = 1.1;
   opt.add_option("--camCenter", camCenter, "height of camera center (m) [1.1]");
   double dist = 1000.0;
@@ -29,6 +29,10 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
   double step1 = 0.01;
   opt.add_option("--step1", step1, "initial step size (m) [0.01]");
+  double stepMin = 1e-7;
+  opt.add_option("--stepMin", stepMin, "maximal step size (m) [1e-7]");
+  double stepMax = 111.1;
+  opt.add_option("--stepMax", stepMax, "maximal step size (m) [111.1]");
   std::string nameStepper = "RungeKutta23";
   opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKutta23]");
   uint32_t subsample = 2u;
@@ -114,6 +118,8 @@ int main(int aArgc, char **aArgv) {
     std::cout << "pinhole distance from film (m):            .  .  . " << pinholeDist << '\n';
     std::cout << "film resolution in both directions (pixel):        " << resolution << '\n';
     std::cout << "initial step size (m):                             " << step1 << '\n';
+    std::cout << "minimal step size (m):   .  .  .  .  .  .  .  .  . " << stepMin << '\n';
+    std::cout << "maximal step size (m):                             " << stepMax << '\n';
     std::cout << "stepper type:                                      " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
     std::cout << "subsampling each pixel in both directions (count): " << subsample << '\n';
     std::cout << "ambient temperature (Celsius):                     " << tempAmb << '\n';
@@ -125,7 +131,7 @@ int main(int aArgc, char **aArgv) {
   else {} // nothing to do
 
   Object object(nameIn.c_str(), dist, bullLift, height);
-  Medium medium(stepper, earthForm, base, tempAmb, tempBase, dist * 2.0, tolAbs, tolRel, step1, object);
+  Medium medium(stepper, earthForm, base, tempAmb, tempBase, dist * 2.0, tolAbs, tolRel, step1, stepMin, stepMax, object);
   Image image(true, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.process(nameOut.c_str());
   return 0;
