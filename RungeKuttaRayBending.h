@@ -22,6 +22,12 @@ public:
     : mDiffEq(aDiffEq)
     , mSolver(aStepper, 0.0, aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, aDiffEq) {}
 
+  RungeKuttaRayBending(RungeKuttaRayBending const&) = default;
+  RungeKuttaRayBending(RungeKuttaRayBending &&) = delete;
+  RungeKuttaRayBending& operator=(RungeKuttaRayBending const&) = delete;
+  RungeKuttaRayBending& operator=(RungeKuttaRayBending &&) = delete;
+
+
   Result solve4x(Vertex const &aStart, Vector const &aDir, double const aX) {
     return mDiffEq.getEarthForm() == Eikonal::EarthForm::cFlat ? solve4xFlat(aStart, aDir, aX) : solve4xRound(aStart, aDir, aX);
   }

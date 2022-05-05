@@ -1,8 +1,6 @@
 #include "simpleRaytracer.h"
 #include <thread>
 
-#include <iostream> // TODO remove
-#include <iomanip> // TODO remove
 
 Object::Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight)
   : mImage(aName)
@@ -54,6 +52,7 @@ Image::Image(bool const aRestrictCpu, double const aCenterY,
         uint32_t const aResZ, uint32_t const aResY,
         uint32_t const aSubSample, Medium &aMedium)
   : mRestrictCpu(aRestrictCpu)
+  , mBuffer(aResZ * aResY)
   , mImage(aResZ, aResY)
   , mSubSample(aSubSample)
   , mSsFactor(1.0 / aSubSample)
@@ -71,21 +70,37 @@ Image::Image(bool const aRestrictCpu, double const aCenterY,
 void Image::process(char const * const aName) {
   uint32_t nCpus = std::thread::hardware_concurrency();
   nCpus -= (nCpus > 1u && mRestrictCpu ? 1u : 0u);
-  Ray ray;
-  ray.mStart = mPinhole;
-  for(int y = 0; y < mImage.get_height(); ++y) {
-    for(int z = 0; z < mImage.get_width(); ++z) {
-      double sum = 0.0;
-      for(uint32_t i = 0; i < mSubSample; ++i) {
-        for(uint32_t j = 0; j < mSubSample; ++j) {
-          Vertex subpixel = mCenter + mPixelSize * (
-                (z - mBiasZ + mSsFactor * (i - mBiasSub)) * mInPlaneZ +
-                (y - mBiasY + mSsFactor * (j - mBiasSub)) * mInPlaneY);
-          ray.mDirection = (mPinhole - subpixel).normalized();
-          sum += mMedium.trace(ray);
+  std::vector<std::thread> threads(nCpus);
+  for (uint32_t i = 0u; i < nCpus; ++i) {
+    threads[i] = std::thread([this, nCpus, i] {
+      Ray ray;
+      ray.mStart = mPinhole;
+      Medium localMedium(mMedium);
+      auto yBegin = i * mImage.get_height() / nCpus;
+      auto yEnd = (i + 1u) * mImage.get_height() / nCpus;
+      for(int y = yBegin; y < yEnd; ++y) {
+        for(int z = 0; z < mImage.get_width(); ++z) {
+          double sum = 0.0;
+          for(uint32_t i = 0; i < mSubSample; ++i) {
+            for(uint32_t j = 0; j < mSubSample; ++j) {
+              Vertex subpixel = mCenter + mPixelSize * (
+                    (z - mBiasZ + mSsFactor * (i - mBiasSub)) * mInPlaneZ +
+                    (y - mBiasY + mSsFactor * (j - mBiasSub)) * mInPlaneY);
+              ray.mDirection = (mPinhole - subpixel).normalized();
+              sum += localMedium.trace(ray);
+            }
+          }
+          mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = ::round(sum / static_cast<double>(mSubSample * mSubSample));
         }
       }
-      mImage.set_pixel(mImage.get_width() - z - 1u, mImage.get_height() - y - 1u, ::round(sum / static_cast<double>(mSubSample * mSubSample)));
+    });
+  }
+  for (auto& t : threads) {
+    t.join();
+  }
+  for(int y = 0; y < mImage.get_height(); ++y) {
+    for(int z = 0; z < mImage.get_width(); ++z) {
+      mImage.set_pixel(z, y, mBuffer[y * mImage.get_width() + z]);
     }
   }
   mImage.write(aName);

@@ -37,12 +37,18 @@ public:
   , mSolver(aStepper, aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, mEikonal)
   , mObject(aObject) {}
 
+  Medium(Medium const&) = default;
+  Medium(Medium &&) = delete;
+  Medium& operator=(Medium const&) = delete;
+  Medium& operator=(Medium &&) = delete;
+
   uint8_t trace(Ray const& aRay);
 };
 
 class Image final {
 private:
   bool     const  mRestrictCpu;
+  std::vector<uint8_t>        mBuffer;
   png::image<png::gray_pixel> mImage;
   uint32_t const  mSubSample;
   double   const  mSsFactor;

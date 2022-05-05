@@ -34,8 +34,12 @@ private:
   using OdeDefinition              = tOdeDefinition;
 
   static constexpr uint32_t csMaxStep = 1000u;
+
+  StepperType               mStepperType;
   double                    mTstart;
   double                    mTend;
+  double                    mTolAbs;
+  double                    mTolRel;
   double                    mStepStart;
   double                    mStepMin;
   double                    mStepMax;
@@ -48,7 +52,12 @@ private:
 public:
   OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol,
                const double aStepStart, double const aStepMin, double const aStepMax, OdeDefinition const& aOdeDef);
+  OdeSolverGsl(OdeSolverGsl const& aOther);
+  OdeSolverGsl(OdeSolverGsl && aOther) = delete;
   ~OdeSolverGsl();
+
+  OdeSolverGsl& operator=(OdeSolverGsl const&) = delete;
+  OdeSolverGsl& operator=(OdeSolverGsl &&) = delete;
 
   Result solve(Variables const &aYstart, std::function<bool(double const, std::array<double, csNvar> const&)> aJudge);
 };
@@ -56,8 +65,11 @@ public:
 template <typename tOdeDefinition>
 OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const double aTstart, const double aTend, const double aAtol, const double aRtol,
                                            const double aStepStart, double const aStepMin, double const aStepMax, OdeDefinition const& aOdeDef)
-  : mTstart(aTstart)
+  : mStepperType(aStepper)
+  , mTstart(aTstart)
   , mTend(aTend)
+  , mTolAbs(aAtol)
+  , mTolRel(aRtol)
   , mStepStart(aStepStart)
   , mStepMin(aStepMin)
   , mStepMax(aStepMax)
@@ -81,6 +93,50 @@ OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(StepperType const aStepper, const dou
     mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk8pd, csNvar);
   }
   else if(aStepper == StepperType::cBulirschStoerBaderDeuflhard) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_bsimp, csNvar);
+  }
+  else {} // nothing to do
+
+  mSystem.function = [](double aT, double const aY[], double aDydt[], void *aObject)->int {
+    auto object = reinterpret_cast<OdeDefinition*>(aObject);
+    return object->differentials(aT, aY, aDydt);
+  };
+  mSystem.jacobian = [](double aT, double const aY[], double *aDfdy, double aDfdt[], void *aObject)->int {
+    auto object = reinterpret_cast<OdeDefinition*>(aObject);
+    return object->jacobian(aT, aY, aDfdy, aDfdt);
+  };
+  mSystem.dimension = csNvar;
+  mSystem.params = const_cast<OdeDefinition*>(&mOdeDef);
+}
+
+template <typename tOdeDefinition>
+OdeSolverGsl<tOdeDefinition>::OdeSolverGsl(OdeSolverGsl const& aOther)
+  : mStepperType(aOther.mStepperType)
+  , mTstart(aOther.mTstart)
+  , mTend(aOther.mTend)
+  , mStepStart(aOther.mStepStart)
+  , mStepMin(aOther.mStepMin)
+  , mStepMax(aOther.mStepMax)
+  , mOdeDef(aOther.mOdeDef)
+  , mController(gsl_odeiv2_control_y_new(aOther.mTolAbs, aOther.mTolRel))
+  , mEvolver(gsl_odeiv2_evolve_alloc(csNvar)) {
+
+  if(mStepperType == StepperType::cRungeKutta23) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk2, csNvar);
+  }
+  else if(mStepperType == StepperType::cRungeKuttaClass4) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk4, csNvar);
+  }
+  if(mStepperType == StepperType::cRungeKuttaFehlberg45) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rkf45, csNvar);
+  }
+  if(mStepperType == StepperType::cRungeKuttaCashKarp45) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rkck, csNvar);
+  }
+  else if(mStepperType == StepperType::cRungeKuttaPrinceDormand89) {
+    mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk8pd, csNvar);
+  }
+  else if(mStepperType == StepperType::cBulirschStoerBaderDeuflhard) {
     mStepper = gsl_odeiv2_step_alloc(gsl_odeiv2_step_bsimp, csNvar);
   }
   else {} // nothing to do

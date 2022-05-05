@@ -63,6 +63,11 @@ public:
   , mTempAmbient(aTempAmbient)
   , mTempBase(aTempBase) {}
 
+  Eikonal(Eikonal const&) = default;
+  Eikonal(Eikonal &&) = default;
+  Eikonal& operator=(Eikonal const&) = delete;
+  Eikonal& operator=(Eikonal &&) = delete;
+
   EarthForm getEarthForm() const { return mEarthForm; }
 
   int differentials(double, const double aY[], double aDydt[]) const {

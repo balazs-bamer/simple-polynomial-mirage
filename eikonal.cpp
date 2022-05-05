@@ -86,10 +86,10 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--step1", step1, "initial step size (m) [0.01]");
   double stepMin = 1e-7;
   opt.add_option("--stepMin", stepMin, "maximal step size (m) [1e-7]");
-  double stepMax = 111.1;
-  opt.add_option("--stepMax", stepMax, "maximal step size (m) [111.1]");
-  std::string nameStepper = "RungeKutta23";
-  opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKutta23]");
+  double stepMax = 55.5;
+  opt.add_option("--stepMax", stepMax, "maximal step size (m) [55.5]");
+  std::string nameStepper = "RungeKuttaFehlberg45";
+  opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKuttaFehlberg45]");
   double target = 1000.0;
   opt.add_option("--target", target, "horizontal distance to travel (m) [1000]");
   double tempAmb = std::nan("");

@@ -1,6 +1,7 @@
 ﻿#include "simpleRaytracer.h"
 #include "CLI11.hpp"
 #include <iostream>
+#include <thread>
 
 
 int main(int aArgc, char **aArgv) {
@@ -25,16 +26,18 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--pinholeDist", pinholeDist, "pinhole distance from film (m) [4.0]");
   uint32_t resolution = 1000u;
   opt.add_option("--resolution", resolution, "film resulution in both directions (pixel) [1000]");
+  bool save1cpu = true;
+  opt.add_option("--save1cpu", save1cpu, "save 1 CPU to keep the system responsive (true, false) [true]");
   bool silent = false;
   opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
   double step1 = 0.01;
   opt.add_option("--step1", step1, "initial step size (m) [0.01]");
   double stepMin = 1e-4;
   opt.add_option("--stepMin", stepMin, "maximal step size (m) [1e-4]");
-  double stepMax = 111.1;
-  opt.add_option("--stepMax", stepMax, "maximal step size (m) [111.1]");
-  std::string nameStepper = "RungeKutta23";
-  opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKutta23]");
+  double stepMax = 55.5;
+  opt.add_option("--stepMax", stepMax, "maximal step size (m) [55.5]");
+  std::string nameStepper = "RungeKuttaFehlberg45";
+  opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKuttaFehlberg45]");
   uint32_t subsample = 2u;
   opt.add_option("--subsample", subsample, "subsampling each pixel in both directions (count) [2]");
   double tempAmb = std::nan("");
@@ -127,12 +130,15 @@ int main(int aArgc, char **aArgv) {
     std::cout << "camera tilt, neg downwards (degrees):      .  .  . " << tilt << '\n';
     std::cout << "absolute tolerance (m):                            " << tolAbs << '\n';
     std::cout << "relative tolerance (m):                            " << tolRel << '\n';
+    uint32_t nCpus = std::thread::hardware_concurrency();
+    nCpus -= (nCpus > 1u && save1cpu ? 1u : 0u);
+    std::cout << "Using " << nCpus << " thread(s)" << std::endl;
   }
   else {} // nothing to do
 
   Object object(nameIn.c_str(), dist, bullLift, height);
   Medium medium(stepper, earthForm, base, tempAmb, tempBase, dist * 2.0, tolAbs, tolRel, step1, stepMin, stepMax, object);
-  Image image(true, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
+  Image image(save1cpu, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.process(nameOut.c_str());
   return 0;
 }
