@@ -141,8 +141,16 @@ int main(int aArgc, char **aArgv) {
   }
   else {} // nothing to do
 
+  RungeKuttaRayBending::Parameters parameters;
+  parameters.mStepper      = stepper;
+  parameters.mDistAlongRay = dist * 2.0;
+  parameters.mTolAbs       = tolAbs;
+  parameters.mTolRel       = tolRel;
+  parameters.mStep1        = step1;
+  parameters.mStepMin      = stepMin;
+  parameters.mStepMax      = stepMax;
   Object object(nameIn.c_str(), dist, bullLift, height);
-  Medium medium(stepper, earthForm, earthRadius, base, tempAmb, tempBase, dist * 2.0, tolAbs, tolRel, step1, stepMin, stepMax, object);
+  Medium medium(parameters, earthForm, earthRadius, base, tempAmb, tempBase, object);
   Image image(saveCpus, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.process(nameOut.c_str());
   return 0;

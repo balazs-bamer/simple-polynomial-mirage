@@ -11,12 +11,11 @@
 
 // g++ -I/usr/include/eigen3 -I../repos/eigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp RungeKuttaRayBending.cpp -o eikonal -ggdb -lgsl
 
-void comp(StepperType aStepper,
-Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
-double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aStepMax, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
+void comp(RungeKuttaRayBending::Parameters const& aParameters, Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
+double aDir, double aHeight, double aTarget, uint32_t aSamples) {
 
   Eikonal eikonal(aEarthForm, aEarthRadius, aMode, aTempAmb, aTempBase);
-  RungeKuttaRayBending rk(aStepper, aDist, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, eikonal);
+  RungeKuttaRayBending rk(aParameters, eikonal);
   Vertex start(0.0, aHeight, 0.0);
   Vector dir(std::cos(aDir / 180.0 * 3.1415926539), std::sin(aDir / 180.0 * 3.1415926539), 0.0);
 
@@ -73,6 +72,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
   double dir = 0.0;
   opt.add_option("--dir", dir, "start direction, neg downwards (degrees) [0]");
+  bool findTouch = false;
+  opt.add_option("--findTouch", findTouch, "whether to find direction to touch the surface (true, false) [false]");
   double dist = 2000.0;
   opt.add_option("--dist", dist, "distance along the ray to track (m) [2000]");
   std::string nameForm = "round";
@@ -183,7 +184,15 @@ int main(int aArgc, char **aArgv) {
     std::cout << "relative tolerance (m):                     " << tolRel << '\n';
   }
   else {} // nothing to do
-  
-  comp(stepper, earthForm, earthRadius, base, tempAmb, tempBase, dir, dist, height, step1, stepMin, stepMax, tolAbs, tolRel, target, samples);
+ 
+  RungeKuttaRayBending::Parameters parameters;
+  parameters.mStepper      = stepper;
+  parameters.mDistAlongRay = dist;
+  parameters.mTolAbs       = tolAbs;
+  parameters.mTolRel       = tolRel;
+  parameters.mStep1        = step1;
+  parameters.mStepMin      = stepMin;
+  parameters.mStepMax      = stepMax; 
+  comp(parameters, earthForm, earthRadius, base, tempAmb, tempBase, dir, height, target, samples);
   return 0;
 }

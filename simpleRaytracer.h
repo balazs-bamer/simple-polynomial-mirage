@@ -29,13 +29,11 @@ private:
   Object const&        mObject;
 
 public:
-  Medium(StepperType const aStepper,
+  Medium(RungeKuttaRayBending::Parameters const& aParameters,
          Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model const aModel,
-         double const aTempAmbient, double const aTempBase,
-         double const aDistAlongRay, double const aTolAbs, double const aTolRel,
-         double const aStep1, double const aStepMin, double const aStepMax, Object const& aObject)
+         double const aTempAmbient, double const aTempBase, Object const& aObject)
   : mEikonal(aEarthForm, aEarthRadius, aModel, aTempAmbient, aTempBase)
-  , mSolver(aStepper, aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, mEikonal)
+  , mSolver(aParameters, mEikonal)
   , mObject(aObject) {}
 
   Medium(Medium const&) = default;

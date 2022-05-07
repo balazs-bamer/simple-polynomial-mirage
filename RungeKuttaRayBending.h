@@ -13,14 +13,25 @@ private:
   OdeSolverGsl<Eikonal> mSolver;
 
 public:
+  struct Parameters {
+    StepperType mStepper;
+    double      mDistAlongRay;
+    double      mTolAbs;
+    double      mTolRel;
+    double      mStep1;
+    double      mStepMin;
+    double      mStepMax;
+  };
+
   struct Result {
     bool   mValid;
     Vertex mValue;
   };
 
-  RungeKuttaRayBending(StepperType const aStepper, double const aDistAlongRay, double const aTolAbs, double const aTolRel, double const aStep1, double const aStepMin, double const aStepMax, Eikonal const &aDiffEq)
+  RungeKuttaRayBending(Parameters const &aParameters, Eikonal const &aDiffEq)
     : mDiffEq(aDiffEq)
-    , mSolver(aStepper, 0.0, aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, aDiffEq) {}
+    , mSolver(aParameters.mStepper, 0.0, aParameters.mDistAlongRay, aParameters.mTolAbs, aParameters.mTolRel,
+              aParameters.mStep1, aParameters.mStepMin, aParameters.mStepMax, aDiffEq) {}
 
   RungeKuttaRayBending(RungeKuttaRayBending const&) = default;
   RungeKuttaRayBending(RungeKuttaRayBending &&) = delete;
