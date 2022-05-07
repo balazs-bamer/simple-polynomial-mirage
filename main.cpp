@@ -16,6 +16,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--dist", dist, "distance of bulletin and camera [1000]");
   std::string nameForm = "round";
   opt.add_option("--earthForm", nameForm, "Earth form (flat / round) [round]");
+  double rawRadius = 6371.0;
+  opt.add_option("--earthRadius", rawRadius, "Earth radius (km) [6371.0]");
   double height = 9.0;
   opt.add_option("--height", height, "height of bulletin (m) [9.0]  its width will be calculated");
   std::string nameIn = "monoscopeRca.png";
@@ -26,8 +28,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--pinholeDist", pinholeDist, "pinhole distance from film (m) [4.0]");
   uint32_t resolution = 1000u;
   opt.add_option("--resolution", resolution, "film resulution in both directions (pixel) [1000]");
-  bool save1cpu = true;
-  opt.add_option("--save1cpu", save1cpu, "save 1 CPU to keep the system responsive (true, false) [true]");
+  uint32_t saveCpus = 0u;
+  opt.add_option("--saveCpus", saveCpus, "amount of CPUs to save to keep the system responsive (natural integer) [0]");
   bool silent = false;
   opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
   double step1 = 0.01;
@@ -79,6 +81,8 @@ int main(int aArgc, char **aArgv) {
     return 1;
   }
 
+  double earthRadius = rawRadius * 1000.0;
+
   StepperType stepper;
   if(nameStepper == "RungeKutta23") {
     stepper = StepperType::cRungeKutta23;
@@ -110,11 +114,12 @@ int main(int aArgc, char **aArgv) {
   else {} // nothing to do
 
   if(!silent) {
-    std::cout << "base type:                                         " << nameBase << ' ' << static_cast<int>(base) << '\n';
+    std::cout << "base type:                        .  .  .  .  .  . " << nameBase << ' ' << static_cast<int>(base) << '\n';
     std::cout << "lift of bulletin from ground (m):                  " << bullLift << '\n';
-    std::cout << "height of camera center (m):         .  .  .  .  . " << camCenter << '\n';
-    std::cout << "distance of bulletin and camera (m):               " << dist << '\n';
+    std::cout << "height of camera center (m):                       " << camCenter << '\n';
+    std::cout << "distance of bulletin and camera (m): .  .  .  .  . " << dist << '\n';
     std::cout << "Earth form:                                        " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "Earth radius (km):                                 " << earthRadius / 1000.0 << '\n';
     std::cout << "height of bulletin (m):    .   .  .  .  .  .  .  . " << height << '\n';
     std::cout << "input filename:                                    " << nameIn << '\n';
     std::cout << "output filename:                                   " << nameOut << '\n';
@@ -131,14 +136,14 @@ int main(int aArgc, char **aArgv) {
     std::cout << "absolute tolerance (m):                            " << tolAbs << '\n';
     std::cout << "relative tolerance (m):                            " << tolRel << '\n';
     uint32_t nCpus = std::thread::hardware_concurrency();
-    nCpus -= (nCpus > 1u && save1cpu ? 1u : 0u);
+    nCpus -= (nCpus <= saveCpus ? nCpus - 1u : saveCpus);
     std::cout << "Using " << nCpus << " thread(s)" << std::endl;
   }
   else {} // nothing to do
 
   Object object(nameIn.c_str(), dist, bullLift, height);
-  Medium medium(stepper, earthForm, base, tempAmb, tempBase, dist * 2.0, tolAbs, tolRel, step1, stepMin, stepMax, object);
-  Image image(save1cpu, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
+  Medium medium(stepper, earthForm, earthRadius, base, tempAmb, tempBase, dist * 2.0, tolAbs, tolRel, step1, stepMin, stepMax, object);
+  Image image(saveCpus, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.process(nameOut.c_str());
   return 0;
 }

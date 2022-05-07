@@ -23,7 +23,7 @@ RungeKuttaRayBending::Result RungeKuttaRayBending::solve4xFlat(Vertex const &aSt
 RungeKuttaRayBending::Result RungeKuttaRayBending::solve4xRound(Vertex const &aStart, Vector const &aDir, double const aX) {
   typename Eikonal::Variables start;
   start[0u] = aStart(0u);
-  start[1u] = aStart(1u) + Eikonal::csRadius;
+  start[1u] = aStart(1u) + mDiffEq.getEarthRadius();
   start[2u] = aStart(2u);
   auto slowness = mDiffEq.getSlowness(aStart(1u));  // from height
   start[3u] = aDir(0u) * slowness;
@@ -33,7 +33,7 @@ RungeKuttaRayBending::Result RungeKuttaRayBending::solve4xRound(Vertex const &aS
   Result result;
   result.mValid = solution.mValid;
   result.mValue(0u) = solution.mValue[0u];
-  result.mValue(1u) = solution.mValue[1u] - Eikonal::csRadius ;
+  result.mValue(1u) = solution.mValue[1u] - mDiffEq.getEarthRadius();
   result.mValue(2u) = solution.mValue[2u];
   return result;
 }

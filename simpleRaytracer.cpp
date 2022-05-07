@@ -46,7 +46,7 @@ std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) <<
 }
 
 
-Image::Image(bool const aRestrictCpu, double const aCenterY,
+Image::Image(uint32_t const aRestrictCpu, double const aCenterY,
         double const aTilt, double const aPinholeDist,
         double const aPixelSize,
         uint32_t const aResZ, uint32_t const aResY,
@@ -69,7 +69,7 @@ Image::Image(bool const aRestrictCpu, double const aCenterY,
 
 void Image::process(char const * const aName) {
   uint32_t nCpus = std::thread::hardware_concurrency();
-  nCpus -= (nCpus > 1u && mRestrictCpu ? 1u : 0u);
+  nCpus -= (nCpus <= mRestrictCpu ? nCpus - 1u : mRestrictCpu);
   std::vector<std::thread> threads(nCpus);
   for (uint32_t i = 0u; i < nCpus; ++i) {
     threads[i] = std::thread([this, nCpus, i] {

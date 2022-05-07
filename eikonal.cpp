@@ -12,10 +12,10 @@
 // g++ -I/usr/include/eigen3 -I../repos/eigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp RungeKuttaRayBending.cpp -o eikonal -ggdb -lgsl
 
 void comp(StepperType aStepper,
-Eikonal::EarthForm const aEarthForm, Eikonal::Model aMode, double aTempAmb, double aTempBase,
+Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
 double aDir, double aDist, double aHeight, double aStep1, double aStepMin, double aStepMax, double aTolAbs, double aTolRel, double aTarget, uint32_t aSamples) {
 
-  Eikonal eikonal(aEarthForm, aMode, aTempAmb, aTempBase);
+  Eikonal eikonal(aEarthForm, aEarthRadius, aMode, aTempAmb, aTempBase);
   RungeKuttaRayBending rk(aStepper, aDist, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, eikonal);
   Vertex start(0.0, aHeight, 0.0);
   Vector dir(std::cos(aDir / 180.0 * 3.1415926539), std::sin(aDir / 180.0 * 3.1415926539), 0.0);
@@ -48,9 +48,10 @@ double aDir, double aDist, double aHeight, double aStep1, double aStepMin, doubl
     std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
   if(aEarthForm == Eikonal::EarthForm::cRound) {
+    auto radius = eikonal.getEarthRadius();
     std::cout << "d=[";
     for (int i = 0; i < stuff.size(); ++i) {
-      std::cout << std::setprecision(10) << std::sqrt(Eikonal::csRadius * Eikonal::csRadius - stuff[i][0] * stuff[i][0]) - Eikonal::csRadius << (i < stuff.size() - 1 ? ", " : "];\n");
+      std::cout << std::setprecision(10) << std::sqrt(radius * radius - stuff[i][0] * stuff[i][0]) - radius << (i < stuff.size() - 1 ? ", " : "];\n");
     }
   } 
   else {} // nothing to do
@@ -76,6 +77,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--dist", dist, "distance along the ray to track (m) [2000]");
   std::string nameForm = "round";
   opt.add_option("--earthForm", nameForm, "Earth form (flat / round) [round]");
+  double rawRadius = 6371.0;
+  opt.add_option("--earthRadius", rawRadius, "Earth radius (km) [6371.0]");
   double height = 1.0;
   opt.add_option("--height", height, "start height (m) [1]");
   double samples = 100;
@@ -129,6 +132,8 @@ int main(int aArgc, char **aArgv) {
     return 1;
   }
 
+  double earthRadius = rawRadius * 1000.0;
+
   StepperType stepper;
   if(nameStepper == "RungeKutta23") {
     stepper = StepperType::cRungeKutta23;
@@ -162,15 +167,16 @@ int main(int aArgc, char **aArgv) {
   if(!silent) {
     std::cout << "base type:                                  " << nameBase << ' ' << static_cast<int>(base) << '\n';
     std::cout << "start direction, neg downwards (degrees):   " << dir << '\n';
-    std::cout << "distance along the ray to track (m):        " << dist << '\n';
+    std::cout << "distance along the ray to track (m):  .  .  " << dist << '\n';
     std::cout << "Earth form:                                 " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "Earth radius (km):                          " << earthRadius / 1000.0 << '\n';
     std::cout << "start height (m):         .  .  .  .  .  .  " << height << '\n';
     std::cout << "number of samples on ray:                   " << samples << '\n';
     std::cout << "initial step size (m):                      " << step1 << '\n';
     std::cout << "minimal step size (m): .  .  .  .  .  .  .  " << stepMin << '\n';
     std::cout << "maximal step size (m):                      " << stepMax << '\n';
     std::cout << "stepper type:                               " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
-    std::cout << "horizontal distance to travel (m):          " << target << '\n';
+    std::cout << "horizontal distance to travel (m): .  .  .  " << target << '\n';
     std::cout << "ambient temperature (Celsius):              " << tempAmb << '\n';
     std::cout << "base temperature, only for water (Celsius): " << tempBase << '\n';
     std::cout << "absolute tolerance (m):                     " << tolAbs << '\n';
@@ -178,6 +184,6 @@ int main(int aArgc, char **aArgv) {
   }
   else {} // nothing to do
   
-  comp(stepper, earthForm, base, tempAmb, tempBase, dir, dist, height, step1, stepMin, stepMax, tolAbs, tolRel, target, samples);
+  comp(stepper, earthForm, earthRadius, base, tempAmb, tempBase, dir, dist, height, step1, stepMin, stepMax, tolAbs, tolRel, target, samples);
   return 0;
 }

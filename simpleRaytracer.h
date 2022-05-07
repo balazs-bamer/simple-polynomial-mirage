@@ -30,10 +30,11 @@ private:
 
 public:
   Medium(StepperType const aStepper,
-         Eikonal::EarthForm const aEarthForm, Eikonal::Model const aModel, double const aTempAmbient, double const aTempBase,
+         Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model const aModel,
+         double const aTempAmbient, double const aTempBase,
          double const aDistAlongRay, double const aTolAbs, double const aTolRel,
          double const aStep1, double const aStepMin, double const aStepMax, Object const& aObject)
-  : mEikonal(aEarthForm, aModel, aTempAmbient, aTempBase)
+  : mEikonal(aEarthForm, aEarthRadius, aModel, aTempAmbient, aTempBase)
   , mSolver(aStepper, aDistAlongRay, aTolAbs, aTolRel, aStep1, aStepMin, aStepMax, mEikonal)
   , mObject(aObject) {}
 
@@ -47,7 +48,7 @@ public:
 
 class Image final {
 private:
-  bool     const  mRestrictCpu;
+  uint32_t const  mRestrictCpu;
   std::vector<uint8_t>        mBuffer;
   png::image<png::gray_pixel> mImage;
   uint32_t const  mSubSample;
@@ -64,7 +65,7 @@ private:
   Medium         &mMedium;
 
 public:
-  Image(bool const aRestrictCpu, double const aCenterY,
+  Image(uint32_t const aRestrictCpu, double const aCenterY,
         double const aTilt, double const aPinholeDist,
         double const aPixelSize,
         uint32_t const aResZ, uint32_t const aResY,

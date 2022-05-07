@@ -22,7 +22,6 @@ public:
 
   static constexpr double   csCelsius2kelvin                = 273.15;
   static constexpr double   csC                             = 299792458.0; // m/s
-  static constexpr double   csRadius                        = 6371000;
 
 private:
   static constexpr uint32_t csTempProfilePointCount         =   8u;
@@ -37,6 +36,7 @@ private:
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
 
   EarthForm mEarthForm;
+  double    mEarthRadius;
   Model     mModel;
   double    mTempAmbient;      // Celsius
   double    mTempBase;         // Celsius
@@ -51,14 +51,16 @@ public:
   // For round Earth, the origin is in the Earth center. We are on the sea on the radius of csRadius.
   // The light starts around v[3] and v[5] == 0, and travels mostly in v[3] direction.
 
-  Eikonal(EarthForm const aEarthForm, Model const aModel, double const aTempAmbient)
+  Eikonal(EarthForm const aEarthForm, double const aEarthRadius, Model const aModel, double const aTempAmbient)
   : mEarthForm(aEarthForm)
+  , mEarthRadius(aEarthRadius)
   , mModel(aModel)
   , mTempAmbient(aTempAmbient)
   , mTempBase(aTempAmbient) {}
 
-  Eikonal(EarthForm const aEarthForm, Model const aModel, double const aTempAmbient, double const aTempBase)
+  Eikonal(EarthForm const aEarthForm, double const aEarthRadius, Model const aModel, double const aTempAmbient, double const aTempBase)
   : mEarthForm(aEarthForm)
+  , mEarthRadius(aEarthRadius)
   , mModel(aModel)
   , mTempAmbient(aTempAmbient)
   , mTempBase(aTempBase) {}
@@ -68,7 +70,8 @@ public:
   Eikonal& operator=(Eikonal const&) = delete;
   Eikonal& operator=(Eikonal &&) = delete;
 
-  EarthForm getEarthForm() const { return mEarthForm; }
+  EarthForm getEarthForm()   const { return mEarthForm; }
+  double    getEarthRadius() const { return mEarthRadius; }
 
   int differentials(double, const double aY[], double aDydt[]) const {
     int result;
@@ -83,7 +86,7 @@ public:
     }
     else {
       double fromCenter = std::sqrt(aY[0] * aY[0] + aY[1] * aY[1] + aY[2] * aY[2]);
-      elevation = fromCenter - csRadius;
+      elevation = fromCenter - mEarthRadius;
       if(elevation > 0.0) {
         zenith[0] = aY[0] / fromCenter;
         zenith[1] = aY[1] / fromCenter;
