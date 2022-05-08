@@ -4,6 +4,8 @@
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_matrix.h>
 #include <cmath>
+#include <array>
+#include <cstdint>
 
 
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.

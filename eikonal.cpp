@@ -1,38 +1,43 @@
-#include  <boost/program_options.hpp>
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-#include "CLI11.hpp"
 #include "Eikonal.h"
 #include "3dGeomUtil.h"
 #include "OdeSolverGsl.h"
 #include "RungeKuttaRayBending.h"
+#include "mathUtil.h"
+#include "CLI11.hpp"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 
-// g++ -I/usr/include/eigen3 -I../repos/eigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp RungeKuttaRayBending.cpp -o eikonal -ggdb -lgsl
+// g++ -I/usr/include/eigen3 -I../repos/eigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp RungeKuttaRayBending.cpp mathUtil.cpp -o eikonal -ggdb -lgsl
 
-void comp(RungeKuttaRayBending::Parameters const& aParameters, Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
-double aDir, double aHeight, double aTarget, uint32_t aSamples) {
+RungeKuttaRayBending::Result comp1(RungeKuttaRayBending::Parameters const& aParameters, Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
+double aDir, double aHeight, double aTarget) {
 
   Eikonal eikonal(aEarthForm, aEarthRadius, aMode, aTempAmb, aTempBase);
   RungeKuttaRayBending rk(aParameters, eikonal);
   Vertex start(0.0, aHeight, 0.0);
   Vector dir(std::cos(aDir / 180.0 * 3.1415926539), std::sin(aDir / 180.0 * 3.1415926539), 0.0);
+  RungeKuttaRayBending::Result solution;
+  if(aTarget == 0.0) {
+    solution.mValid = true;
+    solution.mValue[0] = 0.0;
+    solution.mValue[1] = aHeight;
+    solution.mValue[2] = 0.0;
+  }
+  else {
+    solution = rk.solve4x(start, dir, aTarget);
+  }
+  return solution;
+}
 
+void comp(RungeKuttaRayBending::Parameters const& aParameters, Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
+double aDir, double aHeight, double aTarget, uint32_t aSamples) {
   std::vector<Vertex> stuff;
   std::ofstream out("values.txt");
   auto end = aTarget * (1.0 + 0.5 / aSamples);
   for(double t = 0.0; t <= end; t += aTarget / aSamples) {
-    RungeKuttaRayBending::Result solution;
-    if(t == 0.0) {
-      solution.mValid = true;
-      solution.mValue[0] = 0.0;
-      solution.mValue[1] = aHeight;
-      solution.mValue[2] = 0.0;
-    }
-    else {
-      solution = rk.solve4x(start, dir, t);
-    }
+    RungeKuttaRayBending::Result solution = comp1(aParameters, aEarthForm, aEarthRadius, aMode, aTempAmb, aTempBase, aDir, aHeight, t);
     if(solution.mValid) {
       stuff.push_back(solution.mValue);
       out << std::setprecision(10) << solution.mValue[0] << '\t' << std::setprecision(10) << solution.mValue[1] << '\n';
@@ -47,31 +52,21 @@ double aDir, double aHeight, double aTarget, uint32_t aSamples) {
     std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
   if(aEarthForm == Eikonal::EarthForm::cRound) {
-    auto radius = eikonal.getEarthRadius();
     std::cout << "d=[";
     for (int i = 0; i < stuff.size(); ++i) {
-      std::cout << std::setprecision(10) << std::sqrt(radius * radius - stuff[i][0] * stuff[i][0]) - radius << (i < stuff.size() - 1 ? ", " : "];\n");
+      std::cout << std::setprecision(10) << std::sqrt(aEarthRadius * aEarthRadius - stuff[i][0] * stuff[i][0]) - aEarthRadius << (i < stuff.size() - 1 ? ", " : "];\n");
     }
   } 
   else {} // nothing to do
   std::cout << "\n";
-/*  std::cout << "h=[";
-  for (auto i = 0.01; i < 1; i += .01) {
-    std::cout << std::setprecision(10) << i << ", ";
-  }
-  std::cout << "n=[";
-  for (auto i = 0.01; i < 1; i += .01) {
-    std::cout << std::setprecision(10) << eikonal.getRefract(i) << ", ";
-  }
-  std::cout << "\n";*/
 }
 
 int main(int aArgc, char **aArgv) {
   CLI::App opt{"Usage"};
   std::string nameBase = "water";
   opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
-  double dir = 0.0;
-  opt.add_option("--dir", dir, "start direction, neg downwards (degrees) [0]");
+  double dir = std::nan("");
+  opt.add_option("--dir", dir, "start direction, neg downwards (degrees) [computed to touch surface]");
   bool findTouch = false;
   opt.add_option("--findTouch", findTouch, "whether to find direction to touch the surface (true, false) [false]");
   double dist = 2000.0;
@@ -165,6 +160,22 @@ int main(int aArgc, char **aArgv) {
   }
   else {} // nothing to do
 
+  RungeKuttaRayBending::Parameters parameters;
+  parameters.mStepper      = stepper;
+  parameters.mDistAlongRay = dist;
+  parameters.mTolAbs       = tolAbs;
+  parameters.mTolRel       = tolRel;
+  parameters.mStep1        = step1;
+  parameters.mStepMin      = stepMin;
+  parameters.mStepMax      = stepMax;
+
+  if(std::isnan(dir)) {
+    dir = binarySearch(-45, 0.0, 0.00001, [&parameters, earthForm, earthRadius, base, tempAmb, tempBase, height, target](auto const angle){
+      auto solution = comp1(parameters, earthForm, earthRadius, base, tempAmb, tempBase, angle, height, target);
+      return solution.mValid;
+    });
+  }
+
   if(!silent) {
     std::cout << "base type:                                  " << nameBase << ' ' << static_cast<int>(base) << '\n';
     std::cout << "start direction, neg downwards (degrees):   " << dir << '\n';
@@ -185,14 +196,6 @@ int main(int aArgc, char **aArgv) {
   }
   else {} // nothing to do
  
-  RungeKuttaRayBending::Parameters parameters;
-  parameters.mStepper      = stepper;
-  parameters.mDistAlongRay = dist;
-  parameters.mTolAbs       = tolAbs;
-  parameters.mTolRel       = tolRel;
-  parameters.mStep1        = step1;
-  parameters.mStepMin      = stepMin;
-  parameters.mStepMax      = stepMax; 
   comp(parameters, earthForm, earthRadius, base, tempAmb, tempBase, dir, height, target, samples);
   return 0;
 }
