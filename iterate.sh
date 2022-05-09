@@ -16,5 +16,5 @@ while [[ $i -lt $n ]]; do
   ./main --tempAmb $t $*
   mv result.png series$(printf "%03d" $i).png
   i=$((i+1))
-  t=`awk "BEGIN{print $t + $d}"`
+  t=`awk "BEGIN{print $t + $d}" | tr ',' '.'`
 done
