@@ -33,7 +33,7 @@ public:
 private:
   using OdeDefinition              = tOdeDefinition;
 
-  static constexpr uint32_t csMaxStep = 1000u;
+  static constexpr uint32_t csMaxStep = 31415u;
 
   StepperType               mStepperType;
   double                    mTstart;
