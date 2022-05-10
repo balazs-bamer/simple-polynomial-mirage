@@ -17,7 +17,7 @@ double aDir, double aHeight, double aTarget) {
   Eikonal eikonal(aEarthForm, aEarthRadius, aMode, aTempAmb, aTempBase);
   RungeKuttaRayBending rk(aParameters, eikonal);
   Vertex start(0.0, aHeight, 0.0);
-  Vector dir(std::cos(aDir / 180.0 * 3.1415926539), std::sin(aDir / 180.0 * 3.1415926539), 0.0);
+  Vector dir(std::cos(aDir / 180.0 * cgPi), std::sin(aDir / 180.0 * cgPi), 0.0);
   RungeKuttaRayBending::Result solution;
   if(aTarget == 0.0) {
     solution.mValid = true;
@@ -75,8 +75,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--earthForm", nameForm, "Earth form (flat / round) [round]");
   double rawRadius = 6371.0;
   opt.add_option("--earthRadius", rawRadius, "Earth radius (km) [6371.0]");
-  double height = 1.0;
-  opt.add_option("--height", height, "start height (m) [1]");
+  double height = 1.1;
+  opt.add_option("--height", height, "start height (m) [1.1]");
   double samples = 100;
   opt.add_option("--samples", samples, "number of samples on ray [100]");
   bool silent = false;

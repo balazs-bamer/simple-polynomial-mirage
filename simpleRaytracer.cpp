@@ -1,4 +1,6 @@
 #include "simpleRaytracer.h"
+#include <iomanip>
+#include <iostream>
 #include <thread>
 
 
@@ -14,9 +16,13 @@ Object::Object(char const * const aName, double const aDispX, double const aLift
 std::cout << mMinZ << ' ' << mMaxZ << ' ' << mMinY << ' ' << mMaxY << '\n';
 }
 
+bool Object::hasPixel(Vertex const &aHit) const {
+  return aHit(1) > mMinY && aHit(1)  < mMaxY && aHit(2) > mMinZ && aHit(2) < mMaxZ;
+}
+
 uint8_t Object::getPixel(Vertex const &aHit) const {
   uint8_t result = 0u;
-  if(aHit(1) > mMinY && aHit(1)  < mMaxY && aHit(2) > mMinZ && aHit(2) < mMaxZ) {
+  if(hasPixel(aHit)) {
     uint32_t x = std::max(0.0, (aHit(2) - mMinZ) / mDz);
     uint32_t y = mImage.get_height() - (aHit(1) - mMinY) / mDy - 1u;
     result = mImage.get_pixel(x, y);
@@ -45,6 +51,18 @@ std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) <<
   }
 }
 
+bool Medium::hits(Ray const& aRay) {
+  try {
+    auto hit = mSolver.solve4x(aRay.mStart, aRay.mDirection, mObject.getX());
+    return hit.mValid && mObject.hasPixel(hit.mValue);
+  }
+  catch(...) {
+std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) << ' '
+          << aRay.mDirection(0) << ' ' << aRay.mDirection(1) << ' ' << aRay.mDirection(2) << '\n';
+    return false;
+  }
+}
+
 
 Image::Image(uint32_t const aRestrictCpu, double const aCenterY,
         double const aTilt, double const aPinholeDist,
@@ -66,6 +84,27 @@ Image::Image(uint32_t const aRestrictCpu, double const aCenterY,
   , mBiasY((aResY - 1.0) / 2.0)
   , mBiasSub((aSubSample - 1.0) / 2.0)
   , mMedium(aMedium) {}
+
+void Image::dumpLimits() const {
+  Ray ray;
+  ray.mStart = mPinhole;
+  ray.mDirection = getDirectionInXy(csLimitLow - csLimitDelta);
+  auto lastHit = mMedium.hits(ray);
+  for(auto angle = csLimitLow; angle <= csLimitHigh; angle += csLimitDelta) {
+    ray.mDirection = getDirectionInXy(angle);
+    auto thisHit = mMedium.hits(ray);
+    if(lastHit != thisHit) {
+      auto critical = binarySearch(angle - csLimitDelta, angle, csLimitEpsilon, [this, &ray](auto const search){
+        ray.mDirection = getDirectionInXy(search);
+        return mMedium.hits(ray);
+      });
+      critical += (thisHit ? csLimitEpsilon : 0.0);
+      std::cout << (thisHit ? "enter: " : "leave: ") << std::setprecision(10) << (critical * 180.0 / cgPi) << '\n';
+    }
+    else {} // nothing to do
+    lastHit = thisHit;
+  }
+}
 
 void Image::process(char const * const aName) {
   uint32_t nCpus = std::thread::hardware_concurrency();

@@ -19,8 +19,10 @@ private:
 public:
   Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight);
   double  getX() const { return mX; }
+  bool    hasPixel(Vertex const &aHit) const;
   uint8_t getPixel(Vertex const &aHit) const;
 };
+
 
 class Medium final {
 private:
@@ -42,10 +44,17 @@ public:
   Medium& operator=(Medium &&) = delete;
 
   uint8_t trace(Ray const& aRay);
+  bool hits(Ray const& aRay);
 };
+
 
 class Image final {
 private:
+  static constexpr double csLimitHigh    =  cgPi / 33.3;
+  static constexpr double csLimitLow     = -cgPi / 33.3;
+  static constexpr double csLimitDelta   =  cgPi / 33333.3;
+  static constexpr double csLimitEpsilon =  cgPi / 1234567.8;
+
   uint32_t const  mRestrictCpu;
   std::vector<uint8_t>        mBuffer;
   png::image<png::gray_pixel> mImage;
@@ -69,7 +78,11 @@ public:
         uint32_t const aResZ, uint32_t const aResY,
         uint32_t const aSubSample, Medium &aMedium);
 
+  void dumpLimits() const;
   void process(char const * const aName);
+
+private:
+  static Vector getDirectionInXy(double const aAngle) { return Vector(std::cos(aAngle), std::sin(aAngle), 0.0); }
 };
 
 #endif

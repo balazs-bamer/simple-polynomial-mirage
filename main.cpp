@@ -152,6 +152,7 @@ int main(int aArgc, char **aArgv) {
   Object object(nameIn.c_str(), dist, bullLift, height);
   Medium medium(parameters, earthForm, earthRadius, base, tempAmb, tempBase, object);
   Image image(saveCpus, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
+  image.dumpLimits();
   image.process(nameOut.c_str());
   return 0;
 }
