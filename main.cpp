@@ -149,7 +149,8 @@ int main(int aArgc, char **aArgv) {
   parameters.mStep1        = step1;
   parameters.mStepMin      = stepMin;
   parameters.mStepMax      = stepMax;
-  Object object(nameIn.c_str(), dist, bullLift, height);
+  auto effectiveRadius = (earthForm == Eikonal::EarthForm::cFlat ? std::numeric_limits<double>::infinity() : earthRadius);
+  Object object(nameIn.c_str(), dist, bullLift, height, effectiveRadius);
   Medium medium(parameters, earthForm, earthRadius, base, tempAmb, tempBase, object);
   Image image(saveCpus, camCenter, tilt, pinholeDist, 0.1 / resolution, resolution, resolution, subsample, medium);
   image.dumpLimits();

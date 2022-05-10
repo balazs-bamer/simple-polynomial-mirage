@@ -10,14 +10,14 @@ private:
   png::image<png::gray_pixel> mImage;
   double const mDy;
   double const mDz;
-  double const mMinY;
-  double const mMaxY;
+  double       mMinY;
+  double       mMaxY;
   double const mMinZ;
   double const mMaxZ;
   double const mX;
 
 public:
-  Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight);
+  Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight, double const aEarthRadius);
   double  getX() const { return mX; }
   bool    hasPixel(Vertex const &aHit) const;
   uint8_t getPixel(Vertex const &aHit) const;

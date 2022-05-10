@@ -4,7 +4,7 @@
 #include <thread>
 
 
-Object::Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight)
+Object::Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight, double const aEarthRadius)
   : mImage(aName)
   , mDy(aHeight / mImage.get_height())
   , mDz(mDy)
@@ -13,7 +13,10 @@ Object::Object(char const * const aName, double const aDispX, double const aLift
   , mMinZ(-static_cast<double>(mImage.get_width()) * aHeight / static_cast<double>(mImage.get_height()) / 2.0)
   , mMaxZ(-mMinZ)
   , mX(aDispX) {
-std::cout << mMinZ << ' ' << mMaxZ << ' ' << mMinY << ' ' << mMaxY << '\n';
+  double shift = (std::isinf(aEarthRadius) ? 0.0 : std::sqrt(aEarthRadius * aEarthRadius - mX * mX) - aEarthRadius);
+  mMinY += shift;
+  mMaxY += shift;
+  std::cout << mMinZ << ' ' << mMaxZ << ' ' << mMinY << ' ' << mMaxY << '\n';
 }
 
 bool Object::hasPixel(Vertex const &aHit) const {
