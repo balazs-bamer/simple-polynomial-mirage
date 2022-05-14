@@ -168,8 +168,6 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
   double end = mTend;
   Variables y = aYstart;
   uint32_t stepsAll = 0;
-  Vector dirPrev(0.0, 0.0, 0.0);
-  double dirLengthPrev = 0.0;
   while(true) {
     double h = mStepStart;
     double t = start;
@@ -207,20 +205,14 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
         break;
       }
       else {} // Nothing to do
-      Vector dir(y[0u] - yPrev[0u], y[1u] - yPrev[1u], y[2u] - yPrev[2u]);
-      double dirChangeCos = 1.0;
-      double dirLength = dir.norm();
-      if(stepsAll > 2u) {
-        dirChangeCos = dir.dot(dirPrev) / dirLength / dirLengthPrev;
-      }
-      else {} // nothing to do
+      Vector dir(y[3u], y[4u], y[5u]);
+      Vector dirPrev(yPrev[3u], yPrev[4u], yPrev[5u]);
+      auto dirChangeCos = dir.dot(dirPrev) / dir.norm() / dirPrev.norm();
       if(dirChangeCos < 0.99999999999 && h > mStepMax) {              // If h is too big, it may make a too big step yielding false results GSL unable to detect.
         wasBigH = true;
         break;
       }
       else {} // Nothing to do
-      dirPrev = dir;
-      dirLengthPrev = dirLength;
     }
     gsl_odeiv2_evolve_reset(mEvolver);
     gsl_odeiv2_step_reset(mStepper);
