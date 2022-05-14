@@ -12,7 +12,6 @@
 CMakeFiles/**
 *.cmake
 .cmake/**
-3dGeomUtil.h
 Makefile
 eikonal
 googleTest
