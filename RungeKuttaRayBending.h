@@ -11,6 +11,7 @@ class RungeKuttaRayBending final {
 private:
   Eikonal const        &mDiffEq;
   OdeSolverGsl<Eikonal> mSolver;
+  double                mMaxCosDirChange;
 
 public:
   struct Parameters {
@@ -21,6 +22,7 @@ public:
     double      mStep1;
     double      mStepMin;
     double      mStepMax;
+    double      mMaxCosDirChange;
   };
 
   struct Result {
@@ -31,7 +33,8 @@ public:
   RungeKuttaRayBending(Parameters const &aParameters, Eikonal const &aDiffEq)
     : mDiffEq(aDiffEq)
     , mSolver(aParameters.mStepper, 0.0, aParameters.mDistAlongRay, aParameters.mTolAbs, aParameters.mTolRel,
-              aParameters.mStep1, aParameters.mStepMin, aParameters.mStepMax, aDiffEq) {}
+              aParameters.mStep1, aParameters.mStepMin, aParameters.mStepMax, aDiffEq)
+    , mMaxCosDirChange(aParameters.mMaxCosDirChange) {}
 
   RungeKuttaRayBending(RungeKuttaRayBending const&) = default;
   RungeKuttaRayBending(RungeKuttaRayBending &&) = delete;
@@ -46,6 +49,13 @@ public:
 private:
   Result solve4xFlat(Vertex const &aStart, Vector const &aDir, double const aX);
   Result solve4xRound(Vertex const &aStart, Vector const &aDir, double const aX);
+
+  bool decide2resetBigStep(typename Eikonal::Variables const& aYprev, typename Eikonal::Variables const& aYnow) {
+    Vector dirPrev(aYprev[3u], aYprev[4u], aYprev[5u]);
+    Vector dir(aYnow[3u], aYnow[4u], aYnow[5u]);
+    auto dirChangeCos = dir.dot(dirPrev) / dir.norm() / dirPrev.norm();
+    return dirChangeCos < 0.99999999999;
+  }
 };
 
 #endif

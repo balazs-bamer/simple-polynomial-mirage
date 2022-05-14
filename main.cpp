@@ -20,6 +20,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--earthRadius", rawRadius, "Earth radius (km) [6371.0]");
   double height = 9.0;
   opt.add_option("--height", height, "height of bulletin (m) [9.0]  its width will be calculated");
+  double maxCosDirChange = 0.99999999999;
+  opt.add_option("--maxCosDirChange", height, "Maximum of cos of direction change to reset big step [0.99999999999]");
   std::string nameIn = "monoscopeRca.png";
   opt.add_option("--nameIn", nameIn, "input filename [monoscopeRca.png]");
   std::string nameOut = "result.png";
@@ -114,13 +116,14 @@ int main(int aArgc, char **aArgv) {
   else {} // nothing to do
 
   if(!silent) {
-    std::cout << "base type:                        .  .  .  .  .  . " << nameBase << ' ' << static_cast<int>(base) << '\n';
-    std::cout << "lift of bulletin from ground (m):                  " << bullLift << '\n';
+    std::cout << "base type:                                         " << nameBase << ' ' << static_cast<int>(base) << '\n';
+    std::cout << "lift of bulletin from ground (m): .  .  .  .  .  . " << bullLift << '\n';
     std::cout << "height of camera center (m):                       " << camCenter << '\n';
-    std::cout << "distance of bulletin and camera (m): .  .  .  .  . " << dist << '\n';
-    std::cout << "Earth form:                                        " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "distance of bulletin and camera (m):               " << dist << '\n';
+    std::cout << "Earth form:        .  .  .  .  .  .  .  .  .  .  . " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
     std::cout << "Earth radius (km):                                 " << earthRadius / 1000.0 << '\n';
-    std::cout << "height of bulletin (m):    .   .  .  .  .  .  .  . " << height << '\n';
+    std::cout << "height of bulletin (m):                            " << height << '\n';
+    std::cout << "max of cos of direction change to reset big step:  " << std::setprecision(17) << maxCosDirChange << '\n';
     std::cout << "input filename:                                    " << nameIn << '\n';
     std::cout << "output filename:                                   " << nameOut << '\n';
     std::cout << "pinhole distance from film (m):            .  .  . " << pinholeDist << '\n';
@@ -142,13 +145,14 @@ int main(int aArgc, char **aArgv) {
   else {} // nothing to do
 
   RungeKuttaRayBending::Parameters parameters;
-  parameters.mStepper      = stepper;
-  parameters.mDistAlongRay = dist * 2.0;
-  parameters.mTolAbs       = tolAbs;
-  parameters.mTolRel       = tolRel;
-  parameters.mStep1        = step1;
-  parameters.mStepMin      = stepMin;
-  parameters.mStepMax      = stepMax;
+  parameters.mStepper         = stepper;
+  parameters.mDistAlongRay    = dist * 2.0;
+  parameters.mTolAbs          = tolAbs;
+  parameters.mTolRel          = tolRel;
+  parameters.mStep1           = step1;
+  parameters.mStepMin         = stepMin;
+  parameters.mStepMax         = stepMax;
+  parameters.mMaxCosDirChange = maxCosDirChange;
   auto effectiveRadius = (earthForm == Eikonal::EarthForm::cFlat ? std::numeric_limits<double>::infinity() : earthRadius);
   Object object(nameIn.c_str(), dist, bullLift, height, effectiveRadius);
   Medium medium(parameters, earthForm, earthRadius, base, tempAmb, tempBase, object);

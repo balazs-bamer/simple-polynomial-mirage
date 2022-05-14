@@ -59,7 +59,7 @@ public:
   OdeSolverGsl& operator=(OdeSolverGsl const&) = delete;
   OdeSolverGsl& operator=(OdeSolverGsl &&) = delete;
 
-  Result solve(Variables const &aYstart, std::function<bool(double const, std::array<double, csNvar> const&)> aJudge);
+  Result solve(Variables const &aYstart, std::function<bool(double const, Variables const&)> aJudge, std::function<bool(Variables const& aPrev, Variables const& aNow)> aDecide2resetBigStep);
 };
 
 template <typename tOdeDefinition>
@@ -161,7 +161,9 @@ OdeSolverGsl<tOdeDefinition>::~OdeSolverGsl() {
 }
 
 template <typename tOdeDefinition>
-typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solve(Variables const &aYstart, std::function<bool(double const, Variables const&)> aJudge) {
+typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solve(Variables const &aYstart,
+                                                                                  std::function<bool(double const, Variables const&)> aJudge,
+                                                                                  std::function<bool(Variables const& aPrev, Variables const& aNow)> aDecide2resetBigStep) {
   Result result;
   result.mValid = true;
   double start = mTstart;
@@ -205,10 +207,7 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
         break;
       }
       else {} // Nothing to do
-      Vector dir(y[3u], y[4u], y[5u]);
-      Vector dirPrev(yPrev[3u], yPrev[4u], yPrev[5u]);
-      auto dirChangeCos = dir.dot(dirPrev) / dir.norm() / dirPrev.norm();
-      if(dirChangeCos < 0.99999999999 && h > mStepMax) {              // If h is too big, it may make a too big step yielding false results GSL unable to detect.
+      if(h > mStepMax && aDecide2resetBigStep(yPrev, y)) {                    // If h is too big, it may make a too big step yielding false results GSL unable to detect.
         wasBigH = true;
         break;
       }

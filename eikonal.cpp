@@ -77,6 +77,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--earthRadius", rawRadius, "Earth radius (km) [6371.0]");
   double height = 1.1;
   opt.add_option("--height", height, "start height (m) [1.1]");
+  double maxCosDirChange = 0.99999999999;
+  opt.add_option("--maxCosDirChange", height, "Maximum of cos of direction change to reset big step [0.99999999999]");
   double samples = 100;
   opt.add_option("--samples", samples, "number of samples on ray [100]");
   bool silent = false;
@@ -161,13 +163,14 @@ int main(int aArgc, char **aArgv) {
   else {} // nothing to do
 
   RungeKuttaRayBending::Parameters parameters;
-  parameters.mStepper      = stepper;
-  parameters.mDistAlongRay = dist;
-  parameters.mTolAbs       = tolAbs;
-  parameters.mTolRel       = tolRel;
-  parameters.mStep1        = step1;
-  parameters.mStepMin      = stepMin;
-  parameters.mStepMax      = stepMax;
+  parameters.mStepper         = stepper;
+  parameters.mDistAlongRay    = dist;
+  parameters.mTolAbs          = tolAbs;
+  parameters.mTolRel          = tolRel;
+  parameters.mStep1           = step1;
+  parameters.mStepMin         = stepMin;
+  parameters.mStepMax         = stepMax;
+  parameters.mMaxCosDirChange = maxCosDirChange;
 
   if(std::isnan(dir)) {
     dir = binarySearch(-45, 0.0, 0.00001, [&parameters, earthForm, earthRadius, base, tempAmb, tempBase, height, target](auto const angle){
@@ -177,22 +180,23 @@ int main(int aArgc, char **aArgv) {
   }
 
   if(!silent) {
-    std::cout << "base type:                                  " << nameBase << ' ' << static_cast<int>(base) << '\n';
-    std::cout << "start direction, neg downwards (degrees):   " << dir << '\n';
-    std::cout << "distance along the ray to track (m):  .  .  " << dist << '\n';
-    std::cout << "Earth form:                                 " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
-    std::cout << "Earth radius (km):                          " << earthRadius / 1000.0 << '\n';
-    std::cout << "start height (m):         .  .  .  .  .  .  " << height << '\n';
-    std::cout << "number of samples on ray:                   " << samples << '\n';
-    std::cout << "initial step size (m):                      " << step1 << '\n';
-    std::cout << "minimal step size (m): .  .  .  .  .  .  .  " << stepMin << '\n';
-    std::cout << "maximal step size (m):                      " << stepMax << '\n';
-    std::cout << "stepper type:                               " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
-    std::cout << "horizontal distance to travel (m): .  .  .  " << target << '\n';
-    std::cout << "ambient temperature (Celsius):              " << tempAmb << '\n';
-    std::cout << "base temperature, only for water (Celsius): " << tempBase << '\n';
-    std::cout << "absolute tolerance (m):                     " << tolAbs << '\n';
-    std::cout << "relative tolerance (m):                     " << tolRel << '\n';
+    std::cout << "base type:                               .  .  .  " << nameBase << ' ' << static_cast<int>(base) << '\n';
+    std::cout << "start direction, neg downwards (degrees):         " << dir << '\n';
+    std::cout << "distance along the ray to track (m):              " << dist << '\n';
+    std::cout << "Earth form:         .  .  .  .  .  .  .  .  .  .  " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "Earth radius (km):                                " << earthRadius / 1000.0 << '\n';
+    std::cout << "start height (m):                                 " << height << '\n';
+    std::cout << "max of cos of direction change to reset big step: " << std::setprecision(17) << maxCosDirChange << '\n';
+    std::cout << "number of samples on ray:                         " << samples << '\n';
+    std::cout << "initial step size (m):                            " << step1 << '\n';
+    std::cout << "minimal step size (m): .  .  .  .  .  .  .  .  .  " << stepMin << '\n';
+    std::cout << "maximal step size (m):                            " << stepMax << '\n';
+    std::cout << "stepper type:                                     " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
+    std::cout << "horizontal distance to travel (m): .  .  .  .  .  " << target << '\n';
+    std::cout << "ambient temperature (Celsius):                    " << tempAmb << '\n';
+    std::cout << "base temperature, only for water (Celsius):       " << tempBase << '\n';
+    std::cout << "absolute tolerance (m):   .  .  .  .  .  .  .  .  " << tolAbs << '\n';
+    std::cout << "relative tolerance (m):                           " << tolRel << '\n';
   }
   else {} // nothing to do
  
