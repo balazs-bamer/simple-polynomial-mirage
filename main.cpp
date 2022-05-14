@@ -21,7 +21,7 @@ int main(int aArgc, char **aArgv) {
   double height = 9.0;
   opt.add_option("--height", height, "height of bulletin (m) [9.0]  its width will be calculated");
   double maxCosDirChange = 0.99999999999;
-  opt.add_option("--maxCosDirChange", height, "Maximum of cos of direction change to reset big step [0.99999999999]");
+  opt.add_option("--maxCosDirChange", maxCosDirChange, "Maximum of cos of direction change to reset big step [0.99999999999]");
   std::string nameIn = "monoscopeRca.png";
   opt.add_option("--nameIn", nameIn, "input filename [monoscopeRca.png]");
   std::string nameOut = "result.png";

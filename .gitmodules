@@ -1,0 +1,6 @@
+[submodule "eigen-initializer_list"]
+	path = eigen-initializer_list
+	url = ./eigen-initializer_list
+[submodule "stl_reader"]
+	path = stl_reader
+	url = ./stl_reader/

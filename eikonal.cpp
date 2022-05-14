@@ -78,7 +78,7 @@ int main(int aArgc, char **aArgv) {
   double height = 1.1;
   opt.add_option("--height", height, "start height (m) [1.1]");
   double maxCosDirChange = 0.99999999999;
-  opt.add_option("--maxCosDirChange", height, "Maximum of cos of direction change to reset big step [0.99999999999]");
+  opt.add_option("--maxCosDirChange", maxCosDirChange, "Maximum of cos of direction change to reset big step [0.99999999999]");
   double samples = 100;
   opt.add_option("--samples", samples, "number of samples on ray [100]");
   bool silent = false;
