@@ -34,7 +34,6 @@ private:
   using OdeDefinition              = tOdeDefinition;
 
   static constexpr uint32_t csMaxStep = 31415u;
-  static constexpr double   csMaxCosStepResetAngle = 0.9999;  // 0.81 degrees
 
   StepperType               mStepperType;
   double                    mTstart;
@@ -161,9 +160,6 @@ OdeSolverGsl<tOdeDefinition>::~OdeSolverGsl() {
   gsl_odeiv2_step_free(mStepper);
 }
 
-#include<iostream>
-#include<iomanip>
-
 template <typename tOdeDefinition>
 typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solve(Variables const &aYstart, std::function<bool(double const, Variables const&)> aJudge) {
   Result result;
@@ -174,7 +170,6 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
   uint32_t stepsAll = 0;
   Vector dirPrev(0.0, 0.0, 0.0);
   double dirLengthPrev = 0.0;
-std::cout << std::setprecision(15) << csMaxCosStepResetAngle << '\n';
   while(true) {
     double h = mStepStart;
     double t = start;
@@ -204,13 +199,11 @@ std::cout << std::setprecision(15) << csMaxCosStepResetAngle << '\n';
       ++stepsAll;
       ++stepsNow;
       if(h < mStepMin) {
-std::cout << "min\n";
         result.mValid = false;
         break;
       }
       else {} // Nothing to do
       if(verdictPrev != aJudge(t, y)) {
-std::cout << "judge\n";
         break;
       }
       else {} // Nothing to do
@@ -221,18 +214,8 @@ std::cout << "judge\n";
         dirChangeCos = dir.dot(dirPrev) / dirLength / dirLengthPrev;
       }
       else {} // nothing to do
-std::cout << std::setprecision(15) << dirPrev(0u) << ' ';
-std::cout << std::setprecision(15) << dirPrev(1u) << ' ';
-std::cout << std::setprecision(15) << dirPrev(2u) << ' ';
-std::cout << std::setprecision(15) << dir(0u) << ' ';
-std::cout << std::setprecision(15) << dir(1u) << ' ';
-std::cout << std::setprecision(15) << dir(2u) << ' ';
-std::cout << std::setprecision(15) << dirChangeCos << ' ';
-std::cout << std::setprecision(15) << y[0] << ' ';
-std::cout << std::setprecision(15) << std::sqrt(y[1]*y[1]+y[0]*y[0])-6371000.0 << '\n';
-      if(dirChangeCos < csMaxCosStepResetAngle && h > mStepMax) {              // If h is too big, it may make a too big step yielding false results GSL unable to detect.
+      if(dirChangeCos < 0.99999999999 && h > mStepMax) {              // If h is too big, it may make a too big step yielding false results GSL unable to detect.
         wasBigH = true;
-std::cout << "big\n";
         break;
       }
       else {} // Nothing to do
@@ -259,8 +242,6 @@ std::cout << "big\n";
     }
     else {} // Nothing to do
   }
-std::cout << std::endl;
-        throw std::out_of_range("OdeSolverGsl: Can't apply step in evolver.");
   return result;
 }
 

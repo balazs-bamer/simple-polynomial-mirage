@@ -36,14 +36,13 @@ double aDir, double aHeight, double aTarget, uint32_t aSamples) {
   std::vector<Vertex> stuff;
   std::ofstream out("values.txt");
   auto end = aTarget * (1.0 + 0.5 / aSamples);
-//  for(double t = 0.0; t <= end; t += aTarget / aSamples) {
-double t = aTarget;
+  for(double t = 0.0; t <= end; t += aTarget / aSamples) {
     RungeKuttaRayBending::Result solution = comp1(aParameters, aEarthForm, aEarthRadius, aMode, aTempAmb, aTempBase, aDir, aHeight, t);
     if(solution.mValid) {
       stuff.push_back(solution.mValue);
       out << std::setprecision(10) << solution.mValue[0] << '\t' << std::setprecision(10) << solution.mValue[1] << '\n';
     }
- // }
+  }
   std::cout << "x=[";
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << stuff[i][0] << (i < stuff.size() - 1 ? ", " : "];\n");
