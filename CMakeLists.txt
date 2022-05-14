@@ -10,9 +10,9 @@ add_compile_options(-O2 -std=c++17)
 
 add_definitions(-DEIGEN_MATRIX_PLUGIN="Matrix_initializer_list.h" -DEIGEN_ARRAY_PLUGIN="Array_initializer_list.h")
 
-INCLUDE_DIRECTORIES ( "/usr/include/eigen3"
-                      "../repos/stl_reader"
-                      "../repos/eigen-initializer_list/src" )
+INCLUDE_DIRECTORIES ( "eigen3"
+                      "stl_reader"
+                      "eigen-initializer_list/src" )
 ADD_LIBRARY (RungeKuttaRayBendingLib SHARED RungeKuttaRayBending.cpp mathUtil.cpp)
 target_link_libraries(RungeKuttaRayBendingLib quadmath png gsl pthread)
 

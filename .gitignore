@@ -19,3 +19,4 @@ gslode
 main
 octave-workspace
 octave-workspace/**
+eigen3
