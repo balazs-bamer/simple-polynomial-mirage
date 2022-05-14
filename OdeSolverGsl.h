@@ -34,6 +34,7 @@ private:
   using OdeDefinition              = tOdeDefinition;
 
   static constexpr uint32_t csMaxStep = 31415u;
+  static constexpr double   csMaxCosStepResetAngle = 0.9999;  // 0.81 degrees
 
   StepperType               mStepperType;
   double                    mTstart;
@@ -160,6 +161,9 @@ OdeSolverGsl<tOdeDefinition>::~OdeSolverGsl() {
   gsl_odeiv2_step_free(mStepper);
 }
 
+#include<iostream>
+#include<iomanip>
+
 template <typename tOdeDefinition>
 typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solve(Variables const &aYstart, std::function<bool(double const, Variables const&)> aJudge) {
   Result result;
@@ -168,6 +172,9 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
   double end = mTend;
   Variables y = aYstart;
   uint32_t stepsAll = 0;
+  Vector dirPrev(0.0, 0.0, 0.0);
+  double dirLengthPrev = 0.0;
+std::cout << std::setprecision(15) << csMaxCosStepResetAngle << '\n';
   while(true) {
     double h = mStepStart;
     double t = start;
@@ -197,19 +204,40 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
       ++stepsAll;
       ++stepsNow;
       if(h < mStepMin) {
+std::cout << "min\n";
         result.mValid = false;
         break;
       }
       else {} // Nothing to do
       if(verdictPrev != aJudge(t, y)) {
+std::cout << "judge\n";
         break;
       }
       else {} // Nothing to do
-      if(h > mStepMax) {              // If h is too big, it may make a too big step yielding false results GSL unable to detect.
+      Vector dir(y[0u] - yPrev[0u], y[1u] - yPrev[1u], y[2u] - yPrev[2u]);
+      double dirChangeCos = 1.0;
+      double dirLength = dir.norm();
+      if(stepsAll > 2u) {
+        dirChangeCos = dir.dot(dirPrev) / dirLength / dirLengthPrev;
+      }
+      else {} // nothing to do
+std::cout << std::setprecision(15) << dirPrev(0u) << ' ';
+std::cout << std::setprecision(15) << dirPrev(1u) << ' ';
+std::cout << std::setprecision(15) << dirPrev(2u) << ' ';
+std::cout << std::setprecision(15) << dir(0u) << ' ';
+std::cout << std::setprecision(15) << dir(1u) << ' ';
+std::cout << std::setprecision(15) << dir(2u) << ' ';
+std::cout << std::setprecision(15) << dirChangeCos << ' ';
+std::cout << std::setprecision(15) << y[0] << ' ';
+std::cout << std::setprecision(15) << std::sqrt(y[1]*y[1]+y[0]*y[0])-6371000.0 << '\n';
+      if(dirChangeCos < csMaxCosStepResetAngle && h > mStepMax) {              // If h is too big, it may make a too big step yielding false results GSL unable to detect.
         wasBigH = true;
+std::cout << "big\n";
         break;
       }
       else {} // Nothing to do
+      dirPrev = dir;
+      dirLengthPrev = dirLength;
     }
     gsl_odeiv2_evolve_reset(mEvolver);
     gsl_odeiv2_step_reset(mStepper);
@@ -231,6 +259,8 @@ typename OdeSolverGsl<tOdeDefinition>::Result OdeSolverGsl<tOdeDefinition>::solv
     }
     else {} // Nothing to do
   }
+std::cout << std::endl;
+        throw std::out_of_range("OdeSolverGsl: Can't apply step in evolver.");
   return result;
 }
 
