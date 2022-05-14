@@ -1,6 +1,7 @@
 [submodule "eigen-initializer_list"]
 	path = eigen-initializer_list
-	url = ./eigen-initializer_list
+	url = https://github.com/hauptmech/eigen-initializer_list.git
 [submodule "stl_reader"]
 	path = stl_reader
-	url = ./stl_reader/
+	url = https://github.com/sreiter/stl_reader.git
+
