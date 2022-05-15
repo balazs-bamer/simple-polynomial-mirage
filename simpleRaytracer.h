@@ -3,7 +3,7 @@
 
 #include "RungeKuttaRayBending.h"
 #include "3dGeomUtil.h"
-#include <png++/png.hpp>
+#include "png.hpp"
 
 class Object final {
 private:

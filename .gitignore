@@ -20,3 +20,4 @@ main
 octave-workspace
 octave-workspace/**
 eigen3
+png++
