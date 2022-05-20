@@ -181,14 +181,14 @@ int main(int aArgc, char **aArgv) {
     }) + cTolerance;
   }
 
-  double horizonDirection = 0.0;
+  double mirrorDirection = 0.0;
   bool   downwardsPrev = true;
   bool   validHorizon = true;
   double delta = dir;
   while(std::abs(delta) > cTolerance) {
-    horizonDirection += delta;
-std::cout << horizonDirection << '\n';
-    auto solution = comp1(parameters, earthForm, earthRadius, base, tempAmb, tempBase, horizonDirection, height, target);
+    mirrorDirection += delta;
+std::cout << mirrorDirection << '\n';
+    auto solution = comp1(parameters, earthForm, earthRadius, base, tempAmb, tempBase, mirrorDirection, height, target);
     if(!solution.mValid) {
       validHorizon = false;
       break;
@@ -224,10 +224,10 @@ std::cout << horizonDirection << '\n';
     std::cout << "absolute tolerance (m):   .  .  .  .  .  .  .  .  " << tolAbs << '\n';
     std::cout << "relative tolerance (m):                           " << tolRel << '\n';
     if(validHorizon) {
-      std::cout << "horizon (computed) (degrees):                     " << horizonDirection << '\n';
+      std::cout << "mirror direction (computed) (degrees):            " << mirrorDirection << '\n';
     }
     else {
-      std::cout << "horizon not calculable, inrease target\n";
+      std::cout << "mirror not calculable, inrease target\n";
     }
   }
   else {} // nothing to do
