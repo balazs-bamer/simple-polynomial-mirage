@@ -181,6 +181,27 @@ int main(int aArgc, char **aArgv) {
     }) + cTolerance;
   }
 
+  double horizonDirection = 0.0;
+  bool   downwardsPrev = true;
+  bool   validHorizon = true;
+  double delta = dir;
+  while(std::abs(delta) > cTolerance) {
+    horizonDirection += delta;
+std::cout << horizonDirection << '\n';
+    auto solution = comp1(parameters, earthForm, earthRadius, base, tempAmb, tempBase, horizonDirection, height, target);
+    if(!solution.mValid) {
+      validHorizon = false;
+      break;
+    }
+    else {} // nothing to do
+    bool downwardsNow = (solution.mDirection(1) < 0);
+    if(downwardsPrev != downwardsNow) {
+      delta /= -3.0;
+      downwardsPrev = downwardsNow;
+    }
+    else {} // nothing to do
+  }
+
   parameters.mTolAbs          = tolAbs;
   parameters.mTolRel          = tolRel;
 
@@ -202,6 +223,12 @@ int main(int aArgc, char **aArgv) {
     std::cout << "base temperature, only for water (Celsius):       " << tempBase << '\n';
     std::cout << "absolute tolerance (m):   .  .  .  .  .  .  .  .  " << tolAbs << '\n';
     std::cout << "relative tolerance (m):                           " << tolRel << '\n';
+    if(validHorizon) {
+      std::cout << "horizon (computed) (degrees):                     " << horizonDirection << '\n';
+    }
+    else {
+      std::cout << "horizon not calculable, inrease target\n";
+    }
   }
   else {} // nothing to do
  

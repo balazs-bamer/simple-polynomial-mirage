@@ -19,6 +19,10 @@ RungeKuttaRayBending::Result RungeKuttaRayBending::solve4xFlat(Vertex const &aSt
   result.mValue(0u) = solution.mValue[0u];
   result.mValue(1u) = solution.mValue[1u];
   result.mValue(2u) = solution.mValue[2u];
+  result.mDirection(0u) = solution.mValue[3u];
+  result.mDirection(1u) = solution.mValue[4u];
+  result.mDirection(2u) = solution.mValue[5u];
+  result.mDirection.normalize();
   return result;
 }
 
@@ -39,5 +43,9 @@ RungeKuttaRayBending::Result RungeKuttaRayBending::solve4xRound(Vertex const &aS
   result.mValue(0u) = solution.mValue[0u];
   result.mValue(1u) = solution.mValue[1u] - mDiffEq.getEarthRadius();
   result.mValue(2u) = solution.mValue[2u];
+  result.mDirection(0u) = solution.mValue[3u];
+  result.mDirection(1u) = solution.mValue[4u];
+  result.mDirection(2u) = solution.mValue[5u];
+  result.mDirection.normalize();
   return result;
 }

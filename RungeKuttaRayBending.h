@@ -28,6 +28,7 @@ public:
   struct Result {
     bool   mValid;
     Vertex mValue;
+    Vector mDirection;
   };
 
   RungeKuttaRayBending(Parameters const &aParameters, Eikonal const &aDiffEq)
