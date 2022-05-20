@@ -54,7 +54,7 @@ private:
     Vector dirPrev(aYprev[3u], aYprev[4u], aYprev[5u]);
     Vector dir(aYnow[3u], aYnow[4u], aYnow[5u]);
     auto dirChangeCos = dir.dot(dirPrev) / dir.norm() / dirPrev.norm();
-    return dirChangeCos < 0.99999999999;
+    return dirChangeCos < mMaxCosDirChange;
   }
 };
 
