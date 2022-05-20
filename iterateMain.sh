@@ -1,6 +1,6 @@
 #!/bin/bash
 if [[ "$#" -lt 4 ]]; then
-  echo "Usage: iterate <start> <diff> <count> <parameterToIterate> [rest of params to be passed to main]"
+  echo "Usage: bash iterateMain.sh <start> <diff> <count> <parameterToIterate> [rest of params to be passed to main]"
   echo "parameterToIterate <actual value> will be appended."
   echo "Do not specify output name, it will be series<n>.png"
   exit
