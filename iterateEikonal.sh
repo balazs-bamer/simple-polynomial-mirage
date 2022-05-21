@@ -15,7 +15,7 @@ shift
 shift
 shift
 shift
-echo > $p direction >iterated.txt
+echo $p direction >iterated.txt
 while [[ $i -lt $n ]]; do
   echo ./eikonal $p $t $*
   result=`./eikonal $p $t $* |grep 'start direction'|cut -d ':' -f 2`
