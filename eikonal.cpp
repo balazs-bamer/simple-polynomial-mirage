@@ -9,8 +9,6 @@
 #include <iomanip>
 
 
-// g++ -Ieigen3 -Ieigen-initializer_list/src -DEIGEN_MATRIX_PLUGIN=\"Matrix_initializer_list.h\" -DEIGEN_ARRAY_PLUGIN=\"Array_initializer_list.h\" -std=c++17 eikonal.cpp RungeKuttaRayBending.cpp mathUtil.cpp -o eikonal -O2 -lgsl
-
 RungeKuttaRayBending::Result comp1(RungeKuttaRayBending::Parameters const& aParameters, Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
 double aDir, double aHeight, double aTarget) {
 

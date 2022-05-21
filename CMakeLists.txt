@@ -19,4 +19,7 @@ target_link_libraries(RungeKuttaRayBendingLib quadmath png gsl pthread)
 #add_test(google-test googleTest)
 
 add_executable(main main.cpp simpleRaytracer.cpp)
-target_link_libraries(main RungeKuttaRayBendingLib quadmath png gsl)
+target_link_libraries(main RungeKuttaRayBendingLib png gsl)
+
+add_executable(eikonal eikonal.cpp)
+target_link_libraries(eikonal RungeKuttaRayBendingLib png gsl)
