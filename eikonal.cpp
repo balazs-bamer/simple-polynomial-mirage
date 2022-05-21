@@ -73,8 +73,15 @@ void comp(std::string const& aPrefix, RungeKuttaRayBending::Parameters const& aP
   }
 }
 
-std::tuple<bool, RungeKuttaRayBending::Parameters, MoreParameters, std::string, std::string, std::string> parse(int aArgc, char **aArgv) {
-  bool valid = true;
+enum class CliResult : uint8_t {
+  cOk          = 0u,
+  cCliError    = 1u,
+  cCliHelp     = 2u,
+  cParamError  = 3u
+};
+
+std::tuple<CliResult, RungeKuttaRayBending::Parameters, MoreParameters, std::string, std::string, std::string> parse(int aArgc, char **aArgv) {
+  CliResult result = CliResult::cOk;
   RungeKuttaRayBending::Parameters parameters;
   MoreParameters more;
 
@@ -113,66 +120,84 @@ std::tuple<bool, RungeKuttaRayBending::Parameters, MoreParameters, std::string, 
   opt.add_option("--tolAbs", parameters.mTolAbs, "absolute tolerance (m) [1e-3]");
   parameters.mTolRel = 0.001;
   opt.add_option("--tolRel", parameters.mTolRel, "relative tolerance (m) [1e-3]");
-  opt.parse(aArgc, aArgv);
+  try {
+    opt.parse(aArgc, aArgv);
 
-  if(nameBase == "conventional") {
-    more.mMode = Eikonal::Model::cConventional;
-  }
-  else if(nameBase == "porous") {
-    more.mMode = Eikonal::Model::cPorous;
-  }
-  else if(nameBase == "water") {
-    more.mMode = Eikonal::Model::cWater;
-  }
-  else {
-    std::cerr << "Illegal base value: " << nameBase << '\n';
-    valid = false;
-  }
+    if(nameBase == "conventional") {
+      more.mMode = Eikonal::Model::cConventional;
+    }
+    else if(nameBase == "porous") {
+      more.mMode = Eikonal::Model::cPorous;
+    }
+    else if(nameBase == "water") {
+      more.mMode = Eikonal::Model::cWater;
+    }
+    else {
+      std::cerr << "Illegal base value: " << nameBase << '\n';
+      result = CliResult::cParamError;
+    }
 
-  if(nameForm == "flat") {
-    more.mEarthForm = Eikonal::EarthForm::cFlat;
-  }
-  else if(nameForm == "round") {
-    more.mEarthForm = Eikonal::EarthForm::cRound;
-  }
-  else {
-    std::cerr << "Illegal Earth form value: " << nameForm << '\n';
-    valid = false;
-  }
+    if(nameForm == "flat") {
+      more.mEarthForm = Eikonal::EarthForm::cFlat;
+    }
+    else if(nameForm == "round") {
+      more.mEarthForm = Eikonal::EarthForm::cRound;
+    }
+    else {
+      std::cerr << "Illegal Earth form value: " << nameForm << '\n';
+      result = CliResult::cParamError;
+    }
 
-  more.mEarthRadius = rawRadius * 1000.0;
+    more.mEarthRadius = rawRadius * 1000.0;
 
-  if(nameStepper == "RungeKutta23") {
-    parameters.mStepper = StepperType::cRungeKutta23;
-  }
-  else if(nameStepper == "RungeKuttaClass4") {
-    parameters.mStepper = StepperType::cRungeKuttaClass4;
-  }
-  else if(nameStepper == "RungeKuttaFehlberg45") {
-    parameters.mStepper = StepperType::cRungeKuttaFehlberg45;
-  }
-  else if(nameStepper == "RungeKuttaCashKarp45") {
-    parameters.mStepper = StepperType::cRungeKuttaCashKarp45;
-  }
-  else if(nameStepper == "RungeKuttaPrinceDormand89") {
-    parameters.mStepper = StepperType::cRungeKuttaPrinceDormand89;
-  }
-  else if(nameStepper == "BulirschStoerBaderDeuflhard") {
-    parameters.mStepper = StepperType::cBulirschStoerBaderDeuflhard;
-  }
-  else {
-    std::cerr << "Illegal stepper value: " << nameStepper << '\n';
-    valid = false;
-  }
+    if(nameStepper == "RungeKutta23") {
+      parameters.mStepper = StepperType::cRungeKutta23;
+    }
+    else if(nameStepper == "RungeKuttaClass4") {
+      parameters.mStepper = StepperType::cRungeKuttaClass4;
+    }
+    else if(nameStepper == "RungeKuttaFehlberg45") {
+      parameters.mStepper = StepperType::cRungeKuttaFehlberg45;
+    }
+    else if(nameStepper == "RungeKuttaCashKarp45") {
+      parameters.mStepper = StepperType::cRungeKuttaCashKarp45;
+    }
+    else if(nameStepper == "RungeKuttaPrinceDormand89") {
+      parameters.mStepper = StepperType::cRungeKuttaPrinceDormand89;
+    }
+    else if(nameStepper == "BulirschStoerBaderDeuflhard") {
+      parameters.mStepper = StepperType::cBulirschStoerBaderDeuflhard;
+    }
+    else {
+      std::cerr << "Illegal stepper value: " << nameStepper << '\n';
+      result = CliResult::cParamError;
+    }
 
-  if(std::isnan(more.mTempAmb)) {
-    more.mTempAmb = (more.mMode == Eikonal::Model::cConventional ? 20.0 :
+    if(std::isnan(more.mTempAmb)) {
+      more.mTempAmb = (more.mMode == Eikonal::Model::cConventional ? 20.0 :
               (more.mMode == Eikonal::Model::cPorous ? 38.5 : 10.0));
+    }
+    else {} // nothing to do
   }
-  else {} // nothing to do
+  catch(CLI::RuntimeError &e) {
+    std::cout << e.get_exit_code() << '\n';
+    result = CliResult::cCliError;
+  }
+  catch(CLI::CallForHelp &) {
+    std::cout << opt.help() << '\n';
+    result = CliResult::cCliHelp;
+  }
+  catch(CLI::CallForAllHelp &) {
+    std::cout << opt.help("", CLI::AppFormatMode::All) << '\n';
+    result = CliResult::cCliHelp;
+  }
+  catch(CLI::CallForVersion &e) {
+    std::cout << e.what() << '\n';
+    result = CliResult::cCliHelp;
+  }
 
   parameters.mDistAlongRay    = more.mDist * 2.0;
-  return std::make_tuple(valid, parameters, more, nameBase, nameForm, nameStepper);
+  return std::make_tuple(result, parameters, more, nameBase, nameForm, nameStepper);
 }
 
 bool resolveCriticalIfNeeded(RungeKuttaRayBending::Parameters const& aParameters, MoreParameters &aMore) {
@@ -241,16 +266,16 @@ void dump(RungeKuttaRayBending::Parameters const& aParameters, MoreParameters co
     std::cout << "ambient temperature (Celsius):              .  .  " << aMore.mTempAmb << '\n';
     std::cout << "base temperature, only for water (Celsius):       " << aMore.mTempBase << '\n';
     std::cout << "absolute tolerance (m):                           " << aParameters.mTolAbs << '\n';
-    std::cout << "relative tolerance (m):                           " << aParameters.mTolRel << '\n';
+    std::cout << "relative tolerance (m):               .  .  .  .  " << aParameters.mTolRel << '\n';
     std::cout << "mirror direction (computed) (degrees):            " << aMirrorDirection << '\n';
   }
   else {} // nothing to do
 }
 
 int main(int aArgc, char **aArgv) {
-  auto[valid, parameters, more, nameBase, nameForm, nameStepper] = parse(aArgc, aArgv);
+  auto[result, parameters, more, nameBase, nameForm, nameStepper] = parse(aArgc, aArgv);
 
-  valid = (valid && resolveCriticalIfNeeded(parameters, more));
+  bool valid = (result == CliResult::cOk && resolveCriticalIfNeeded(parameters, more));
 
   if(valid) {
     double mirrorDirection = calculateMirrorDirection(parameters, more);
@@ -261,7 +286,13 @@ int main(int aArgc, char **aArgv) {
     std::cout << "\n";
   }
   else {
-    std::cout << "Can't compute critical ray, increase --dist.\n";
+    if(result == CliResult::cOk) {
+      std::cout << "Can't compute critical ray, increase --dist.\n";
+    }
+    else if(result == CliResult::cParamError) {
+      std::cout << "Wrong parameters.\n";
+    }
+    else {} // nothing to do
   }
   return 0;
 }
