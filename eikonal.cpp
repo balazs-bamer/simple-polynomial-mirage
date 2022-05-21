@@ -9,189 +9,210 @@
 #include <iomanip>
 
 
-RungeKuttaRayBending::Result comp1(RungeKuttaRayBending::Parameters const& aParameters, Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
-double aDir, double aHeight, double aTarget) {
+struct MoreParameters {
+  Eikonal::EarthForm mEarthForm;
+  double             mEarthRadius;
+  Eikonal::Model     mMode;
+  double             mTempAmb;
+  double             mTempBase;
+  double             mDir;
+  double             mCamCenter;
+  double             mDist;
+  uint32_t           mSamples;
+  bool               mSilent;
+};
 
-  Eikonal eikonal(aEarthForm, aEarthRadius, aMode, aTempAmb, aTempBase);
+RungeKuttaRayBending::Result comp1(RungeKuttaRayBending::Parameters const& aParameters, MoreParameters const& aMore) {
+
+  Eikonal eikonal(aMore.mEarthForm, aMore.mEarthRadius, aMore.mMode, aMore.mTempAmb, aMore.mTempBase);
   RungeKuttaRayBending rk(aParameters, eikonal);
-  Vertex start(0.0, aHeight, 0.0);
-  Vector dir(std::cos(aDir / 180.0 * cgPi), std::sin(aDir / 180.0 * cgPi), 0.0);
+  Vertex start(0.0, aMore.mCamCenter, 0.0);
+  Vector dir(std::cos(aMore.mDir / 180.0 * cgPi), std::sin(aMore.mDir / 180.0 * cgPi), 0.0);
   RungeKuttaRayBending::Result solution;
-  if(aTarget == 0.0) {
+  if(aMore.mDist == 0.0) {
     solution.mValid = true;
     solution.mValue[0] = 0.0;
-    solution.mValue[1] = aHeight;
+    solution.mValue[1] = aMore.mCamCenter;
     solution.mValue[2] = 0.0;
   }
   else {
-    solution = rk.solve4x(start, dir, aTarget);
+    solution = rk.solve4x(start, dir, aMore.mDist);
   }
   return solution;
 }
 
-void comp(RungeKuttaRayBending::Parameters const& aParameters, Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model aMode, double aTempAmb, double aTempBase,
-double aDir, double aHeight, double aTarget, uint32_t aSamples) {
+void comp(std::string const& aPrefix, RungeKuttaRayBending::Parameters const& aParameters, MoreParameters const& aMore, bool aNeedXd) {
   std::vector<Vertex> stuff;
-  std::ofstream out("values.txt");
-  auto end = aTarget * (1.0 + 0.5 / aSamples);
-  for(double t = 0.0; t <= end; t += aTarget / aSamples) {
-    RungeKuttaRayBending::Result solution = comp1(aParameters, aEarthForm, aEarthRadius, aMode, aTempAmb, aTempBase, aDir, aHeight, t);
+  std::ofstream out(aPrefix + "values.txt");
+  auto end = aMore.mDist * (1.0 + 0.5 / aMore.mSamples);
+  auto more = aMore;
+  for(more.mDist = 0.0; more.mDist <= end; more.mDist += aMore.mDist / aMore.mSamples) {
+    RungeKuttaRayBending::Result solution = comp1(aParameters, more);
     if(solution.mValid) {
       stuff.push_back(solution.mValue);
       out << std::setprecision(10) << solution.mValue[0] << '\t' << std::setprecision(10) << solution.mValue[1] << '\n';
     }
   }
-  std::cout << "x=[";
-  for (int i = 0; i < stuff.size(); ++i) {
-    std::cout << std::setprecision(10) << stuff[i][0] << (i < stuff.size() - 1 ? ", " : "];\n");
+  if(aNeedXd) {
+    if(aMore.mEarthForm == Eikonal::EarthForm::cRound) {
+      std::cout << "d=[";
+      for (int i = 0; i < stuff.size(); ++i) {
+        std::cout << std::setprecision(10) << std::sqrt(aMore.mEarthRadius * aMore.mEarthRadius - stuff[i][0] * stuff[i][0]) - aMore.mEarthRadius << (i < stuff.size() - 1 ? ", " : "];\n");
+      }
+    }
+    else {} // nothing to do
+    std::cout << "x=[";
+    for (int i = 0; i < stuff.size(); ++i) {
+      std::cout << std::setprecision(10) << stuff[i][0] << (i < stuff.size() - 1 ? ", " : "];\n");
+    }
   }
-  std::cout << "y=[";
+  else {} // nothing to do
+  std::cout << aPrefix + "y=[";
   for (int i = 0; i < stuff.size(); ++i) {
     std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
   }
-  if(aEarthForm == Eikonal::EarthForm::cRound) {
-    std::cout << "d=[";
-    for (int i = 0; i < stuff.size(); ++i) {
-      std::cout << std::setprecision(10) << std::sqrt(aEarthRadius * aEarthRadius - stuff[i][0] * stuff[i][0]) - aEarthRadius << (i < stuff.size() - 1 ? ", " : "];\n");
-    }
-  } 
-  else {} // nothing to do
-  std::cout << "\n";
 }
 
-int main(int aArgc, char **aArgv) {
+std::tuple<bool, RungeKuttaRayBending::Parameters, MoreParameters, std::string, std::string, std::string> parse(int aArgc, char **aArgv) {
+  bool valid = true;
+  RungeKuttaRayBending::Parameters parameters;
+  MoreParameters more;
+
   CLI::App opt{"Usage"};
   std::string nameBase = "water";
   opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
-  double dir = std::nan("");
-  opt.add_option("--dir", dir, "start direction, neg downwards (degrees) [computed to touch surface]");
-  bool findTouch = false;
-  opt.add_option("--findTouch", findTouch, "whether to find direction to touch the surface (true, false) [false]");
-  double dist = 2000.0;
-  opt.add_option("--dist", dist, "distance along the ray to track (m) [2000]");
+  more.mCamCenter = 1.1;
+  opt.add_option("--camCenter", more.mCamCenter, "start height (m) [1.1]");
+  more.mDir = std::nan("");
+  opt.add_option("--dir", more.mDir, "start direction, neg downwards (degrees) [computed to touch surface]");
+  more.mDist = 1000.0;
+  opt.add_option("--dist", more.mDist, "horizontal distance to travel (m) [1000]");
   std::string nameForm = "round";
   opt.add_option("--earthForm", nameForm, "Earth form (flat / round) [round]");
   double rawRadius = 6371.0;
   opt.add_option("--earthRadius", rawRadius, "Earth radius (km) [6371.0]");
-  double height = 1.1;
-  opt.add_option("--height", height, "start height (m) [1.1]");
-  double maxCosDirChange = 0.99999999999;
-  opt.add_option("--maxCosDirChange", maxCosDirChange, "Maximum of cos of direction change to reset big step [0.99999999999]");
-  double samples = 100;
-  opt.add_option("--samples", samples, "number of samples on ray [100]");
-  bool silent = false;
-  opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
-  double step1 = 0.01;
-  opt.add_option("--step1", step1, "initial step size (m) [0.01]");
-  double stepMin = 1e-7;
-  opt.add_option("--stepMin", stepMin, "maximal step size (m) [1e-7]");
-  double stepMax = 55.5;
-  opt.add_option("--stepMax", stepMax, "maximal step size (m) [55.5]");
+  parameters.mMaxCosDirChange = 0.99999999999;
+  opt.add_option("--maxCosDirChange", parameters.mMaxCosDirChange, "Maximum of cos of direction change to reset big step [0.99999999999]");
+  more.mSamples = 100;
+  opt.add_option("--samples", more.mSamples, "number of samples on ray [100]");
+  more.mSilent = false;
+  opt.add_option("--silent", more.mSilent, "surpress parameter echo (true, false) [false]");
+  parameters.mStep1 = 0.01;
+  opt.add_option("--step1", parameters.mStep1, "initial step size (m) [0.01]");
+  parameters.mStepMin = 1e-7;
+  opt.add_option("--stepMin", parameters.mStepMin, "maximal step size (m) [1e-7]");
+  parameters.mStepMax = 22.2;
+  opt.add_option("--stepMax", parameters.mStepMax, "maximal step size (m) [22.2]");
   std::string nameStepper = "RungeKuttaFehlberg45";
   opt.add_option("--stepper", nameStepper, "stepper type (RungeKutta23 / RungeKuttaClass4 / RungeKuttaFehlberg45 / RungeKuttaCashKarp45 / RungeKuttaPrinceDormand89 / BulirschStoerBaderDeuflhard) [RungeKuttaFehlberg45]");
-  double target = 1000.0;
-  opt.add_option("--target", target, "horizontal distance to travel (m) [1000]");
-  double tempAmb = std::nan("");
-  opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
-  double tempBase = 13.0;
-  opt.add_option("--tempBase", tempBase, "base temperature, only for water (Celsius) [13]");
-  double tolAbs = 0.001;
-  opt.add_option("--tolAbs", tolAbs, "absolute tolerance (m) [1e-3]");
-  double tolRel = 0.001;
-  opt.add_option("--tolRel", tolRel, "relative tolerance (m) [1e-3]");
-  CLI11_PARSE(opt, aArgc, aArgv);
+  more.mTempAmb = std::nan("");
+  opt.add_option("--tempAmb", more.mTempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
+  more.mTempBase = 13.0;
+  opt.add_option("--tempBase", more.mTempBase, "base temperature, only for water (Celsius) [13]");
+  parameters.mTolAbs = 0.001;
+  opt.add_option("--tolAbs", parameters.mTolAbs, "absolute tolerance (m) [1e-3]");
+  parameters.mTolRel = 0.001;
+  opt.add_option("--tolRel", parameters.mTolRel, "relative tolerance (m) [1e-3]");
+  opt.parse(aArgc, aArgv);
 
-  Eikonal::Model base;
   if(nameBase == "conventional") {
-    base = Eikonal::Model::cConventional;
+    more.mMode = Eikonal::Model::cConventional;
   }
   else if(nameBase == "porous") {
-    base = Eikonal::Model::cPorous;
+    more.mMode = Eikonal::Model::cPorous;
   }
   else if(nameBase == "water") {
-    base = Eikonal::Model::cWater;
+    more.mMode = Eikonal::Model::cWater;
   }
   else {
     std::cerr << "Illegal base value: " << nameBase << '\n';
-    return 1;
+    valid = false;
   }
 
-  Eikonal::EarthForm earthForm;
   if(nameForm == "flat") {
-    earthForm = Eikonal::EarthForm::cFlat;
+    more.mEarthForm = Eikonal::EarthForm::cFlat;
   }
   else if(nameForm == "round") {
-    earthForm = Eikonal::EarthForm::cRound;
+    more.mEarthForm = Eikonal::EarthForm::cRound;
   }
   else {
     std::cerr << "Illegal Earth form value: " << nameForm << '\n';
-    return 1;
+    valid = false;
   }
 
-  double earthRadius = rawRadius * 1000.0;
+  more.mEarthRadius = rawRadius * 1000.0;
 
-  StepperType stepper;
   if(nameStepper == "RungeKutta23") {
-    stepper = StepperType::cRungeKutta23;
+    parameters.mStepper = StepperType::cRungeKutta23;
   }
   else if(nameStepper == "RungeKuttaClass4") {
-    stepper = StepperType::cRungeKuttaClass4;
+    parameters.mStepper = StepperType::cRungeKuttaClass4;
   }
   else if(nameStepper == "RungeKuttaFehlberg45") {
-    stepper = StepperType::cRungeKuttaFehlberg45;
+    parameters.mStepper = StepperType::cRungeKuttaFehlberg45;
   }
   else if(nameStepper == "RungeKuttaCashKarp45") {
-    stepper = StepperType::cRungeKuttaCashKarp45;
+    parameters.mStepper = StepperType::cRungeKuttaCashKarp45;
   }
   else if(nameStepper == "RungeKuttaPrinceDormand89") {
-    stepper = StepperType::cRungeKuttaPrinceDormand89;
+    parameters.mStepper = StepperType::cRungeKuttaPrinceDormand89;
   }
   else if(nameStepper == "BulirschStoerBaderDeuflhard") {
-    stepper = StepperType::cBulirschStoerBaderDeuflhard;
+    parameters.mStepper = StepperType::cBulirschStoerBaderDeuflhard;
   }
   else {
     std::cerr << "Illegal stepper value: " << nameStepper << '\n';
-    return 1;
+    valid = false;
   }
 
-  if(std::isnan(tempAmb)) {
-    tempAmb = (base == Eikonal::Model::cConventional ? 20.0 :
-              (base == Eikonal::Model::cPorous ? 38.5 : 10.0));
+  if(std::isnan(more.mTempAmb)) {
+    more.mTempAmb = (more.mMode == Eikonal::Model::cConventional ? 20.0 :
+              (more.mMode == Eikonal::Model::cPorous ? 38.5 : 10.0));
   }
   else {} // nothing to do
 
+  parameters.mDistAlongRay    = more.mDist * 2.0;
+  return std::make_tuple(valid, parameters, more, nameBase, nameForm, nameStepper);
+}
+
+bool resolveCriticalIfNeeded(RungeKuttaRayBending::Parameters const& aParameters, MoreParameters &aMore) {
   double const cTolerance = 1e-6;
+  auto parameters = aParameters;
+  auto more = aMore;
+  parameters.mTolAbs = cTolerance;
+  parameters.mTolRel = cTolerance;
+  more.mDir = 0.0;
 
-  RungeKuttaRayBending::Parameters parameters;
-  parameters.mStepper         = stepper;
-  parameters.mDistAlongRay    = dist;
-  parameters.mTolAbs          = cTolerance;
-  parameters.mTolRel          = cTolerance;
-  parameters.mStep1           = step1;
-  parameters.mStepMin         = stepMin;
-  parameters.mStepMax         = stepMax;
-  parameters.mMaxCosDirChange = maxCosDirChange;
-
-  if(std::isnan(dir)) {
-    dir = binarySearch(-45, 0.0, cTolerance, [&parameters, earthForm, earthRadius, base, tempAmb, tempBase, height, target](auto const angle){
-      auto solution = comp1(parameters, earthForm, earthRadius, base, tempAmb, tempBase, angle, height, target);
-      return solution.mValid;
-    }) + cTolerance;
-  }
-
-  double mirrorDirection = 0.0;
-  bool   downwardsPrev = true;
-  bool   validHorizon = true;
-  double delta = dir;
-  while(std::abs(delta) > cTolerance) {
-    mirrorDirection += delta;
-std::cout << mirrorDirection << '\n';
-    auto solution = comp1(parameters, earthForm, earthRadius, base, tempAmb, tempBase, mirrorDirection, height, target);
-    if(!solution.mValid) {
-      validHorizon = false;
-      break;
+  auto solution = comp1(parameters, more);
+  if(solution.mValid) {
+    if(std::isnan(aMore.mDir)) {
+      aMore.mDir = binarySearch(-45, 0.0, cTolerance, [&parameters, &more](auto const angle){
+        more.mDir = angle;
+        auto solution = comp1(parameters, more);
+        return solution.mValid;
+      }) + cTolerance;
     }
     else {} // nothing to do
+  }
+  else {} // nothing to do
+
+  return solution.mValid;
+}
+
+double calculateMirrorDirection(RungeKuttaRayBending::Parameters const& aParameters, MoreParameters const& aMore) {
+  double const cTolerance = 1e-6;
+  auto parameters = aParameters;
+  auto more = aMore;
+  parameters.mTolAbs = cTolerance;
+  parameters.mTolRel = cTolerance;
+
+  more.mDir = 0.0;
+  bool   downwardsPrev = true;
+  double delta = aMore.mDir;
+
+  while(std::abs(delta) > cTolerance) {
+    more.mDir += delta;
+    auto solution = comp1(parameters, more);
     bool downwardsNow = (solution.mDirection(1) < 0);
     if(downwardsPrev != downwardsNow) {
       delta /= -3.0;
@@ -200,36 +221,47 @@ std::cout << mirrorDirection << '\n';
     else {} // nothing to do
   }
 
-  parameters.mTolAbs          = tolAbs;
-  parameters.mTolRel          = tolRel;
+  return more.mDir;
+}
 
-  if(!silent) {
-    std::cout << "base type:                               .  .  .  " << nameBase << ' ' << static_cast<int>(base) << '\n';
-    std::cout << "start direction, neg downwards (degrees):         " << dir << '\n';
-    std::cout << "distance along the ray to track (m):              " << dist << '\n';
-    std::cout << "Earth form:         .  .  .  .  .  .  .  .  .  .  " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
-    std::cout << "Earth radius (km):                                " << earthRadius / 1000.0 << '\n';
-    std::cout << "start height (m):                                 " << height << '\n';
-    std::cout << "max of cos of direction change to reset big step: " << std::setprecision(17) << maxCosDirChange << '\n';
-    std::cout << "number of samples on ray:                         " << samples << '\n';
-    std::cout << "initial step size (m):                            " << step1 << '\n';
-    std::cout << "minimal step size (m): .  .  .  .  .  .  .  .  .  " << stepMin << '\n';
-    std::cout << "maximal step size (m):                            " << stepMax << '\n';
-    std::cout << "stepper type:                                     " << nameStepper << ' ' << static_cast<int>(stepper) << '\n';
-    std::cout << "horizontal distance to travel (m): .  .  .  .  .  " << target << '\n';
-    std::cout << "ambient temperature (Celsius):                    " << tempAmb << '\n';
-    std::cout << "base temperature, only for water (Celsius):       " << tempBase << '\n';
-    std::cout << "absolute tolerance (m):   .  .  .  .  .  .  .  .  " << tolAbs << '\n';
-    std::cout << "relative tolerance (m):                           " << tolRel << '\n';
-    if(validHorizon) {
-      std::cout << "mirror direction (computed) (degrees):            " << mirrorDirection << '\n';
-    }
-    else {
-      std::cout << "mirror not calculable, inrease target\n";
-    }
+void dump(RungeKuttaRayBending::Parameters const& aParameters, MoreParameters const& aMore, double const aMirrorDirection, std::string const& aNameBase, std::string const& aNameForm, std::string const& aNameStepper) {
+  if(!aMore.mSilent) {
+    std::cout << "base type:                               .  .  .  " << aNameBase << ' ' << static_cast<int>(aMore.mMode) << '\n';
+    std::cout << "camera height (m):                                " << aMore.mCamCenter << '\n';
+    std::cout << "start direction, neg downwards (degrees):         " << aMore.mDir << '\n';
+    std::cout << "horizontal distance to travel (m):    .  .  .  .  " << aMore.mDist << '\n';
+    std::cout << "Earth form:                                       " << aNameForm << ' ' << static_cast<int>(aMore.mEarthForm) << '\n';
+    std::cout << "Earth radius (km):                                " << aMore.mEarthRadius / 1000.0 << '\n';
+    std::cout << "max of cos of direction change to reset big step: " << std::setprecision(17) << aParameters.mMaxCosDirChange << '\n';
+    std::cout << "number of samples on ray:                         " << aMore.mSamples << '\n';
+    std::cout << "initial step size (m):                            " << aParameters.mStep1 << '\n';
+    std::cout << "minimal step size (m): .  .  .  .  .  .  .  .  .  " << aParameters.mStepMin << '\n';
+    std::cout << "maximal step size (m):                            " << aParameters.mStepMax << '\n';
+    std::cout << "stepper type:                                     " << aNameStepper << ' ' << static_cast<int>(aParameters.mStepper) << '\n';
+    std::cout << "ambient temperature (Celsius):              .  .  " << aMore.mTempAmb << '\n';
+    std::cout << "base temperature, only for water (Celsius):       " << aMore.mTempBase << '\n';
+    std::cout << "absolute tolerance (m):                           " << aParameters.mTolAbs << '\n';
+    std::cout << "relative tolerance (m):                           " << aParameters.mTolRel << '\n';
+    std::cout << "mirror direction (computed) (degrees):            " << aMirrorDirection << '\n';
   }
   else {} // nothing to do
- 
-  comp(parameters, earthForm, earthRadius, base, tempAmb, tempBase, dir, height, target, samples);
+}
+
+int main(int aArgc, char **aArgv) {
+  auto[valid, parameters, more, nameBase, nameForm, nameStepper] = parse(aArgc, aArgv);
+
+  valid = (valid && resolveCriticalIfNeeded(parameters, more));
+
+  if(valid) {
+    double mirrorDirection = calculateMirrorDirection(parameters, more);
+    dump(parameters, more, mirrorDirection, nameBase, nameForm, nameStepper);
+    comp("crit", parameters, more, true);
+    more.mDir = mirrorDirection;
+    comp("mirr", parameters, more, false);
+    std::cout << "\n";
+  }
+  else {
+    std::cout << "Can't compute critical ray, increase --dist.\n";
+  }
   return 0;
 }
