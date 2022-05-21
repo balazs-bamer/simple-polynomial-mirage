@@ -5,7 +5,7 @@
 #define EIGEN_DEFAULT_DENSE_INDEX_TYPE int32_t
 #endif
 
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 
 #ifndef UTIL_CUDA_PREFIX_DEVICE  // When defined, should be __device__
 #define UTIL_CUDA_PREFIX_DEVICE

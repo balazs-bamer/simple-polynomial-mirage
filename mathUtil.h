@@ -1,7 +1,7 @@
 #ifndef MATHUTIL_H
 #define MATHUTIL_H
 
-#include <Eigen/Dense>
+#include "Eigen/Dense"
 #include <functional>
 #include <vector>
 #include <array>
