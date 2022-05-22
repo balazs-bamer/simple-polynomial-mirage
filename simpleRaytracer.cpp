@@ -83,7 +83,7 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mBiasY((aPara.mResolution - 1.0) / 2.0)
   , mBiasSub((aPara.mSubsample - 1.0) / 2.0)
   , mGridColor(static_cast<double>(std::max(0u, std::min(255u, aPara.mGridColor))) * aPara.mSubsample * aPara.mSubsample)
-  , mGridIndent(aPara.mGridIndent)
+  , mGridIndent(std::max(0.0, std::min(1.0, aPara.mGridIndent)))
   , mGridSpacing(aPara.mGridSpacing)
   , mMedium(aMedium) {}
 
@@ -131,7 +131,7 @@ void Image::calculateLimits() {
       (z - mBiasZ) * mInPlaneZ +
       (y - mBiasY) * mInPlaneY);
     ray.mDirection = (mPinhole - subpixel).normalized();
-    auto angleZ = std::atan(ray.mDirection(2) / ray.mDirection(0));
+    auto angleZ = -std::atan(ray.mDirection(2) / ray.mDirection(0));
     if(angleZ > mLimitAngleDeep) {
       break;
     }
