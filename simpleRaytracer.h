@@ -1,4 +1,4 @@
-#ifndef SIMPLERAYTRACER_H
+﻿#ifndef SIMPLERAYTRACER_H
 #define SIMPLERAYTRACER_H
 
 #include "RungeKuttaRayBending.h"
@@ -49,11 +49,26 @@ public:
 
 
 class Image final {
+public:
+  struct Parameters {
+    uint32_t mRestrictCpu;
+    double   mCamCenter;
+    double   mTilt;
+    double   mPinholeDist;
+    double   mResolution;
+    uint32_t mSubsample;
+    uint32_t mGridColor;
+    double   mGridIndent;
+    uint32_t mGridSpacing;
+  };
+
 private:
-  static constexpr double csLimitHigh    =  cgPi / 33.3;
-  static constexpr double csLimitLow     = -cgPi / 33.3;
-  static constexpr double csLimitDelta   =  cgPi / 33333.3;
-  static constexpr double csLimitEpsilon =  cgPi / 1234567.8;
+  static constexpr double csFilmSize        =  0.1;  // meters
+  static constexpr double csLimitHigh       =  cgPi / 33.3;
+  static constexpr double csLimitLow        = -cgPi / 33.3;
+  static constexpr double csLimitDelta      =  cgPi / 33333.3;
+  static constexpr double csLimitEpsilon    =  cgPi / 1234567.8;
+  static constexpr double csLimitAngleBoost =  1.05;
 
   uint32_t const  mRestrictCpu;
   std::vector<uint8_t>        mBuffer;
@@ -69,20 +84,26 @@ private:
   double   const  mBiasZ;
   double   const  mBiasY;
   double   const  mBiasSub;
+  double   const  mGridColor;
+  double   const  mGridIndent;
+  uint32_t const  mGridSpacing;
   Medium         &mMedium;
+  double          mLimitAngleTop;
+  double          mLimitAngleBottom;
+  double          mLimitAngleDeep;
+  double          mLimitAngleShallow;
+  int             mLimitPixelDeep;
+  int             mLimitPixelShallow;
 
 public:
-  Image(uint32_t const aRestrictCpu, double const aCenterY,
-        double const aTilt, double const aPinholeDist,
-        double const aPixelSize,
-        uint32_t const aResZ, uint32_t const aResY,
-        uint32_t const aSubSample, Medium &aMedium);
+  Image(Parameters const& aPara, Medium &aMedium);
 
-  void dumpLimits() const;
+  void calculateLimits();
   void process(char const * const aName);
 
 private:
   static Vector getDirectionInXy(double const aAngle) { return Vector(std::cos(aAngle), std::sin(aAngle), 0.0); }
+  static Vector getDirectionYz(double const aAngleY, double const aAngleZ) { return Vector(std::cos(aAngleY) * std::cos(aAngleZ), std::sin(aAngleY), std::cos(aAngleY) * std::sin(aAngleZ)); }
 };
 
 #endif

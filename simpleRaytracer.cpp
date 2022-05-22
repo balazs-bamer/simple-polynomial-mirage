@@ -67,32 +67,33 @@ std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) <<
 }
 
 
-Image::Image(uint32_t const aRestrictCpu, double const aCenterY,
-        double const aTilt, double const aPinholeDist,
-        double const aPixelSize,
-        uint32_t const aResZ, uint32_t const aResY,
-        uint32_t const aSubSample, Medium &aMedium)
-  : mRestrictCpu(aRestrictCpu)
-  , mBuffer(aResZ * aResY)
-  , mImage(aResZ, aResY)
-  , mSubSample(aSubSample)
-  , mSsFactor(1.0 / aSubSample)
-  , mPixelSize(aPixelSize)
-  , mCenter(0.0, aCenterY, 0.0)
-  , mNormal(::cos(aTilt * cgPi / 180.0), ::sin(aTilt * cgPi / 180.0), 0.0)
+Image::Image(Parameters const& aPara, Medium &aMedium)
+  : mRestrictCpu(aPara.mRestrictCpu)
+  , mBuffer(aPara.mResolution * aPara.mResolution)
+  , mImage(aPara.mResolution, aPara.mResolution)
+  , mSubSample(aPara.mSubsample)
+  , mSsFactor(1.0 / aPara.mSubsample)
+  , mPixelSize(csFilmSize / aPara.mResolution)
+  , mCenter(0.0, aPara.mCamCenter, 0.0)
+  , mNormal(::cos(aPara.mTilt * cgPi / 180.0), ::sin(aPara.mTilt * cgPi / 180.0), 0.0)
   , mInPlaneZ(0.0, 0.0, 1.0)
   , mInPlaneY(mNormal.cross(mInPlaneZ))
-  , mPinhole(mCenter + aPinholeDist * mNormal)
-  , mBiasZ((aResZ - 1.0) / 2.0)
-  , mBiasY((aResY - 1.0) / 2.0)
-  , mBiasSub((aSubSample - 1.0) / 2.0)
+  , mPinhole(mCenter + aPara.mPinholeDist * mNormal)
+  , mBiasZ((aPara.mResolution - 1.0) / 2.0)
+  , mBiasY((aPara.mResolution - 1.0) / 2.0)
+  , mBiasSub((aPara.mSubsample - 1.0) / 2.0)
+  , mGridColor(static_cast<double>(std::max(0u, std::min(255u, aPara.mGridColor))) * aPara.mSubsample * aPara.mSubsample)
+  , mGridIndent(aPara.mGridIndent)
+  , mGridSpacing(aPara.mGridSpacing)
   , mMedium(aMedium) {}
 
-void Image::dumpLimits() const {
+void Image::calculateLimits() {
   Ray ray;
   ray.mStart = mPinhole;
   ray.mDirection = getDirectionInXy(csLimitLow - csLimitDelta);
   auto lastHit = mMedium.hits(ray);
+  bool was = false;
+  double limitAnglePrev;
   for(auto angle = csLimitLow; angle <= csLimitHigh; angle += csLimitDelta) {
     ray.mDirection = getDirectionInXy(angle);
     auto thisHit = mMedium.hits(ray);
@@ -103,10 +104,41 @@ void Image::dumpLimits() const {
       });
       critical += (thisHit ? csLimitEpsilon : 0.0);
       std::cout << (thisHit ? "enter: " : "leave: ") << std::setprecision(10) << (critical * 180.0 / cgPi) << '\n';
+      limitAnglePrev = mLimitAngleTop;
+      mLimitAngleTop = critical * csLimitAngleBoost;
+      if(!was) {
+        mLimitAngleBottom = critical * csLimitAngleBoost;
+        was = true;
+      }
+      else {} // nothing to do
     }
     else {} // nothing to do
     lastHit = thisHit;
   }
+  auto angleY = (limitAnglePrev + mLimitAngleTop) / 2.0;
+  ray.mDirection = getDirectionYz(angleY, csLimitLow - csLimitDelta);
+  mLimitAngleDeep = binarySearch(csLimitLow, 0.0, csLimitEpsilon, [this, &ray, angleY](auto const search){
+    ray.mDirection = getDirectionYz(angleY, search);
+    return mMedium.hits(ray);
+  });
+  mLimitAngleDeep *= csLimitAngleBoost;
+  mLimitAngleShallow = -mLimitAngleDeep;
+
+  int y = mImage.get_height() / 2;
+  int z;
+  for(z = 0; z < mImage.get_width() / 2; ++z) {
+    Vertex subpixel = mCenter + mPixelSize * (
+      (z - mBiasZ) * mInPlaneZ +
+      (y - mBiasY) * mInPlaneY);
+    ray.mDirection = (mPinhole - subpixel).normalized();
+    auto angleZ = std::atan(ray.mDirection(2) / ray.mDirection(0));
+    if(angleZ > mLimitAngleDeep) {
+      break;
+    }
+    else {} // nothing to do
+  }
+  mLimitPixelDeep = static_cast<int>(z * mGridIndent);
+  mLimitPixelShallow = mImage.get_width() - mLimitPixelDeep;
 }
 
 void Image::process(char const * const aName) {
@@ -129,9 +161,18 @@ void Image::process(char const * const aName) {
                     (z - mBiasZ + mSsFactor * (i - mBiasSub)) * mInPlaneZ +
                     (y - mBiasY + mSsFactor * (j - mBiasSub)) * mInPlaneY);
               ray.mDirection = (mPinhole - subpixel).normalized();
-              sum += localMedium.trace(ray);
+              auto angleY = std::atan(ray.mDirection(1) / ray.mDirection(0));
+              auto angleZ = std::atan(ray.mDirection(2) / ray.mDirection(0));
+              if(angleY > mLimitAngleBottom && angleY < mLimitAngleTop && angleZ > mLimitAngleDeep && angleZ < mLimitAngleShallow) {
+                sum += localMedium.trace(ray);
+              }
+              else {} // nothing to do
             }
           }
+          if(mGridSpacing > 1u && y % mGridSpacing == 0 && (z < mLimitPixelDeep || z > mLimitPixelShallow)) {
+            sum = mGridColor;
+          }
+          else {} // nothing to do
           mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = ::round(sum / static_cast<double>(mSubSample * mSubSample));
         }
       }
