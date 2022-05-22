@@ -68,7 +68,7 @@ private:
   static constexpr double csLimitLow        = -cgPi / 33.3;
   static constexpr double csLimitDelta      =  cgPi / 33333.3;
   static constexpr double csLimitEpsilon    =  cgPi / 1234567.8;
-  static constexpr double csLimitAngleBoost =  1.05;
+  static constexpr double csLimitAngleBoost =  1.001;
 
   uint32_t const  mRestrictCpu;
   std::vector<uint8_t>        mBuffer;
