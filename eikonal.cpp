@@ -9,6 +9,13 @@
 #include <iomanip>
 
 
+// TODO crit curve wants to hit the surface
+// start direction, neg downwards (degrees):         -0.0675213
+// ambient temperature (Celsius):              .  .  13
+// base temperature, only for water (Celsius):       13
+// mirror direction (computed) (degrees):            -180.00000046722016
+
+
 struct MoreParameters {
   Eikonal::EarthForm mEarthForm;
   double             mEarthRadius;

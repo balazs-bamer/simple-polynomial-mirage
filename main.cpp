@@ -35,6 +35,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--nameIn", nameIn, "input filename [monoscopeRca.png]");
   std::string nameOut = "result.png";
   opt.add_option("--nameOut", nameOut, "output filename [result.png]");
+  std::string nameSurf = "";
+  opt.add_option("--nameSurf", nameSurf, "surface filename, no rendering if empty []");
   paraIm.mPinholeDist = 4.0;
   opt.add_option("--pinholeDist", paraIm.mPinholeDist, "pinhole distance from film (m) [4.0]");
   paraIm.mResolution = 1000u;
@@ -137,7 +139,8 @@ int main(int aArgc, char **aArgv) {
     std::cout << "max of cos of direction change to reset big step:  " << std::setprecision(17) << paraRk.mMaxCosDirChange << '\n';
     std::cout << "input filename:                                    " << nameIn << '\n';
     std::cout << "output filename:                                   " << nameOut << '\n';
-    std::cout << "pinhole distance from film (m):            .  .  . " << paraIm.mPinholeDist << '\n';
+    std::cout << "surface filename:              .  .  .  .  .  .  . " << nameSurf << '\n';
+    std::cout << "pinhole distance from film (m):                    " << paraIm.mPinholeDist << '\n';
     std::cout << "film resolution in both directions (pixel):        " << paraIm.mResolution << '\n';
     std::cout << "initial step size (m):                             " << paraRk.mStep1 << '\n';
     std::cout << "minimal step size (m):   .  .  .  .  .  .  .  .  . " << paraRk.mStepMin << '\n';
@@ -161,7 +164,6 @@ int main(int aArgc, char **aArgv) {
   Object object(nameIn.c_str(), dist, bullLift, height, effectiveRadius);
   Medium medium(paraRk, earthForm, earthRadius, base, tempAmb, tempBase, object);
   Image image(paraIm, medium);
-  image.calculateLimits();
-  image.process(nameOut.c_str());
+  image.process(nameSurf.c_str(), nameOut.c_str());
   return 0;
 }

@@ -16,7 +16,17 @@ Object::Object(char const * const aName, double const aDispX, double const aLift
   double shift = (std::isinf(aEarthRadius) ? 0.0 : std::sqrt(aEarthRadius * aEarthRadius - mX * mX) - aEarthRadius);
   mMinY += shift;
   mMaxY += shift;
-  std::cout << mMinZ << ' ' << mMaxZ << ' ' << mMinY << ' ' << mMaxY << '\n';
+}
+
+Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex const& aLowerCorner)
+  : mImage(aName)
+  , mDy((aUpperCorner(1) - aLowerCorner(1)) / mImage.get_height())
+  , mDz((aUpperCorner(2) - aLowerCorner(2)) / mImage.get_width())
+  , mMinY(aLowerCorner(1))
+  , mMaxY(aUpperCorner(1))
+  , mMinZ(aLowerCorner(2))
+  , mMaxZ(aUpperCorner(2))
+  , mX(aLowerCorner(0)) {
 }
 
 bool Object::hasPixel(Vertex const &aHit) const {
@@ -87,6 +97,16 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mGridSpacing(aPara.mGridSpacing)
   , mMedium(aMedium) {}
 
+void Image::process(char const * const aNameSurf, char const * const aNameOut) {
+  calculateLimits();
+  calculateMirage();
+  if(*aNameSurf != 0) {
+    renderSurface(aNameSurf);
+  }
+  else {} // nothing to do
+  mImage.write(aNameOut);
+}
+
 void Image::calculateLimits() {
   Ray ray;
   ray.mStart = mPinhole;
@@ -137,11 +157,25 @@ void Image::calculateLimits() {
     }
     else {} // nothing to do
   }
-  mLimitPixelDeep = static_cast<int>(z * mGridIndent);
-  mLimitPixelShallow = mImage.get_width() - mLimitPixelDeep;
+  mLimitPixelDeep = z;
+  mLimitPixelShallow = mImage.get_width() - z - 1;
+
+  z = mImage.get_width() / 2;
+  for(y = 0; y < mImage.get_height(); ++y) {
+    Vertex subpixel = mCenter + mPixelSize * (
+      (z - mBiasZ) * mInPlaneZ +
+      (y - mBiasY) * mInPlaneY);
+    ray.mDirection = (mPinhole - subpixel).normalized();
+    auto angleY = std::atan(ray.mDirection(1) / ray.mDirection(0));
+    if(angleY > mLimitAngleBottom) {
+      break;
+    }
+    else {} // nothing to do
+  }
+  mLimitPixelBottom = y;  // surface rendering goes from 0 to this
 }
 
-void Image::process(char const * const aName) {
+void Image::calculateMirage() {
   uint32_t nCpus = std::thread::hardware_concurrency();
   nCpus -= (nCpus <= mRestrictCpu ? nCpus - 1u : mRestrictCpu);
   std::vector<std::thread> threads(nCpus);
@@ -169,7 +203,7 @@ void Image::process(char const * const aName) {
               else {} // nothing to do
             }
           }
-          if(mGridSpacing > 1u && y % mGridSpacing == 0 && (z < mLimitPixelDeep || z > mLimitPixelShallow)) {
+          if(mGridSpacing > 1u && y % mGridSpacing == 0 && (z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent)) {
             sum = mGridColor;
           }
           else {} // nothing to do
@@ -186,5 +220,45 @@ void Image::process(char const * const aName) {
       mImage.set_pixel(z, y, mBuffer[y * mImage.get_width() + z]);
     }
   }
-  mImage.write(aName);
+}
+
+void Image::renderSurface(char const * const aNameSurf) {
+  auto ssFactor = 1.0 / csSurfSubsample;
+  Vector normal(1.0, 0.0, 0.0);
+  Vector inPlaneY(mNormal.cross(mInPlaneZ));
+  Vertex pinhole(csSurfPinholeDist * normal);
+  double biasSub = ((csSurfSubsample - 1.0) / 2.0);
+
+  Plane plane = Plane::createFrom2vectors1point(Vector(0.0, 1.0, 0.0), Vector(0.0, 0.0, 1.0), Vertex(csSurfaceDistance, 0.0, 0.0));
+  Ray ray;
+  ray.mStart = pinhole;
+
+  Vertex pixel = mPixelSize * ((mLimitPixelDeep - mBiasZ) * mInPlaneZ + (mLimitPixelBottom - mBiasY) * inPlaneY);
+  ray.mDirection = (pinhole - pixel).normalized();
+  auto intersection = plane.intersect(ray);
+  auto upperCorner = intersection.mPoint;
+
+  pixel = mPixelSize * ((mLimitPixelShallow - mBiasZ) * mInPlaneZ - mBiasY * inPlaneY);
+  ray.mDirection = (pinhole - pixel).normalized();
+  intersection = plane.intersect(ray);
+  auto lowerCorner = intersection.mPoint;
+
+  Object surface(aNameSurf, upperCorner, lowerCorner);
+
+  for(int y = 0; y < mLimitPixelBottom; ++y) {
+    for(int z = mLimitPixelDeep; z < mLimitPixelShallow; ++z) {
+      double sum = 0.0;
+      for(uint32_t i = 0; i < csSurfSubsample; ++i) {
+        for(uint32_t j = 0; j < csSurfSubsample; ++j) {
+          Vertex subpixel = mPixelSize * (
+                (z - mBiasZ + ssFactor * (i - biasSub)) * mInPlaneZ +
+                (y - mBiasY + ssFactor * (j - biasSub)) * inPlaneY);
+          ray.mDirection = (pinhole - subpixel).normalized();
+          auto intersection = plane.intersect(ray);
+          sum += surface.getPixel(intersection.mPoint);
+        }
+      }
+      mImage.set_pixel(mImage.get_width() - z - 1u, mImage.get_height() - y - 1u, ::round(sum / static_cast<double>(csSurfSubsample * csSurfSubsample)));
+    }
+  }
 }

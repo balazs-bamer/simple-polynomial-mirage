@@ -18,6 +18,7 @@ private:
 
 public:
   Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight, double const aEarthRadius);
+  Object(char const * const aName, Vertex const& aUpperCorner, Vertex const& aLowerCorner);
   double  getX() const { return mX; }
   bool    hasPixel(Vertex const &aHit) const;
   uint8_t getPixel(Vertex const &aHit) const;
@@ -63,12 +64,15 @@ public:
   };
 
 private:
-  static constexpr double csFilmSize        =  0.1;  // meters
-  static constexpr double csLimitHigh       =  cgPi / 33.3;
-  static constexpr double csLimitLow        = -cgPi / 33.3;
-  static constexpr double csLimitDelta      =  cgPi / 33333.3;
-  static constexpr double csLimitEpsilon    =  cgPi / 1234567.8;
-  static constexpr double csLimitAngleBoost =  1.001;
+  static constexpr double   csFilmSize        =  0.1;  // meters
+  static constexpr double   csLimitHigh       =  cgPi / 33.3;
+  static constexpr double   csLimitLow        = -cgPi / 33.3;
+  static constexpr double   csLimitDelta      =  cgPi / 33333.3;
+  static constexpr double   csLimitEpsilon    =  cgPi / 1234567.8;
+  static constexpr double   csLimitAngleBoost =  1.001;
+  static constexpr double   csSurfaceDistance =   1000; // meters
+  static constexpr double   csSurfPinholeDist =      1; // meters
+  static constexpr uint32_t csSurfSubsample   =      5u;
 
   uint32_t const  mRestrictCpu;
   std::vector<uint8_t>        mBuffer;
@@ -92,16 +96,20 @@ private:
   double          mLimitAngleBottom;
   double          mLimitAngleDeep;
   double          mLimitAngleShallow;
+  int             mLimitPixelBottom;
   int             mLimitPixelDeep;
   int             mLimitPixelShallow;
 
 public:
   Image(Parameters const& aPara, Medium &aMedium);
 
-  void calculateLimits();
-  void process(char const * const aName);
+  void process(char const * const aNameSurf, char const * const aNameOut);
 
 private:
+  void calculateLimits();
+  void calculateMirage();
+  void renderSurface(char const * const aNameSurf);
+
   static Vector getDirectionInXy(double const aAngle) { return Vector(std::cos(aAngle), std::sin(aAngle), 0.0); }
   static Vector getDirectionYz(double const aAngleY, double const aAngleZ) { return Vector(std::cos(aAngleY) * std::cos(aAngleZ), std::sin(aAngleY), std::cos(aAngleY) * std::sin(aAngleZ)); }
 };
