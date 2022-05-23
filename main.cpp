@@ -125,6 +125,12 @@ int main(int aArgc, char **aArgv) {
   }
   else {} // nothing to do
 
+  if(base == Eikonal::Model::cWater && tempAmb >= tempBase - 0.01) {
+    std::cerr << "Water: tempAmb >= tempBase - 0.01 \n";
+    return 1;
+  }
+  else {} // nothing to do
+
   if(!silent) {
     std::cout << "base type:                                         " << nameBase << ' ' << static_cast<int>(base) << '\n';
     std::cout << "lift of bulletin from ground (m): .  .  .  .  .  . " << bullLift << '\n';

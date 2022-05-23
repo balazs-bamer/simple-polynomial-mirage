@@ -9,13 +9,6 @@
 #include <iomanip>
 
 
-// TODO crit curve wants to hit the surface
-// start direction, neg downwards (degrees):         -0.0675213
-// ambient temperature (Celsius):              .  .  13
-// base temperature, only for water (Celsius):       13
-// mirror direction (computed) (degrees):            -180.00000046722016
-
-
 struct MoreParameters {
   Eikonal::EarthForm mEarthForm;
   double             mEarthRadius;
@@ -183,6 +176,12 @@ std::tuple<CliResult, RungeKuttaRayBending::Parameters, MoreParameters, std::str
     if(std::isnan(more.mTempAmb)) {
       more.mTempAmb = (more.mMode == Eikonal::Model::cConventional ? 20.0 :
               (more.mMode == Eikonal::Model::cPorous ? 38.5 : 10.0));
+    }
+    else {} // nothing to do
+
+    if(more.mMode == Eikonal::Model::cWater && more.mTempAmb >= more.mTempBase - 0.01) {
+      std::cerr << "Water: tempAmb >= tempBase - 0.01\n";
+      result = CliResult::cParamError;
     }
     else {} // nothing to do
   }
