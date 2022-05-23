@@ -46,6 +46,7 @@ public:
 
   uint8_t trace(Ray const& aRay);
   bool hits(Ray const& aRay);
+  RungeKuttaRayBending::Result getHit(Ray const& aRay) { return mSolver.solve4x(aRay.mStart, aRay.mDirection, mObject.getX()); }
 };
 
 
@@ -73,6 +74,8 @@ private:
   static constexpr double   csSurfaceDistance =   1000; // meters
   static constexpr double   csSurfPinholeDist =      1; // meters
   static constexpr uint32_t csSurfSubsample   =      5u;
+  static constexpr uint32_t csColorGrid       =     42u;
+  static constexpr uint32_t csColorMirror     =    216u;
 
   uint32_t const  mRestrictCpu;
   std::vector<uint8_t>        mBuffer;
@@ -88,7 +91,8 @@ private:
   double   const  mBiasZ;
   double   const  mBiasY;
   double   const  mBiasSub;
-  double   const  mGridColor;
+  double   const  mColorGrid;
+  double   const  mColorMirror;
   double   const  mGridIndent;
   uint32_t const  mGridSpacing;
   Medium         &mMedium;
@@ -107,7 +111,8 @@ public:
 
 private:
   void calculateLimits();
-  void calculateMirage();
+  int calculateMirrorHeight();
+  void calculateMirage(int const aMirrorHeight);
   void renderSurface(char const * const aNameSurf);
 
   static Vector getDirectionInXy(double const aAngle) { return Vector(std::cos(aAngle), std::sin(aAngle), 0.0); }

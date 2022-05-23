@@ -239,7 +239,7 @@ double calculateMirrorDirection(RungeKuttaRayBending::Parameters const& aParamet
 
   more.mDir = 0.0;
   bool   downwardsPrev = true;
-  double delta = aMore.mDir;
+  double delta = -0.1;
 
   while(std::abs(delta) > cTolerance) {
     more.mDir += delta;

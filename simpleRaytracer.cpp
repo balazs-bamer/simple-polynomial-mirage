@@ -45,8 +45,6 @@ uint8_t Object::getPixel(Vertex const &aHit) const {
 }
 
 
-bool eq(double a, double b) { return std::abs(a-b)<1e-7; }
-
 uint8_t Medium::trace(Ray const& aRay) {
   try {
     auto hit = mSolver.solve4x(aRay.mStart, aRay.mDirection, mObject.getX());
@@ -92,14 +90,16 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mBiasZ((aPara.mResolution - 1.0) / 2.0)
   , mBiasY((aPara.mResolution - 1.0) / 2.0)
   , mBiasSub((aPara.mSubsample - 1.0) / 2.0)
-  , mGridColor(static_cast<double>(std::max(0u, std::min(255u, aPara.mGridColor))) * aPara.mSubsample * aPara.mSubsample)
+  , mColorGrid(csColorGrid * aPara.mSubsample * aPara.mSubsample)
+  , mColorMirror(csColorMirror * aPara.mSubsample * aPara.mSubsample)
   , mGridIndent(std::max(0.0, std::min(1.0, aPara.mGridIndent)))
   , mGridSpacing(aPara.mGridSpacing)
   , mMedium(aMedium) {}
 
 void Image::process(char const * const aNameSurf, char const * const aNameOut) {
   calculateLimits();
-  calculateMirage();
+  int mirrorHeight = calculateMirrorHeight();
+  calculateMirage(mirrorHeight);
   if(*aNameSurf != 0) {
     renderSurface(aNameSurf);
   }
@@ -175,12 +175,33 @@ void Image::calculateLimits() {
   mLimitPixelBottom = y;  // surface rendering goes from 0 to this
 }
 
-void Image::calculateMirage() {
+int Image::calculateMirrorHeight() {
+  int result = -1;
+  double minHit = std::numeric_limits<double>::max();
+  int z = mImage.get_width() / 2;
+  Ray ray;
+  ray.mStart = mPinhole;
+  for(int y = 0; y < mImage.get_height(); ++y) {
+    Vertex subpixel = mCenter + mPixelSize * (
+      (z - mBiasZ) * mInPlaneZ +
+      (y - mBiasY) * mInPlaneY);
+    ray.mDirection = (mPinhole - subpixel).normalized();
+    auto hit = mMedium.getHit(ray);
+    if(hit.mValid && hit.mValue(1) < minHit) {
+      minHit = hit.mValue(1);
+      result = y;
+    }
+    else {} // nothing to do
+  }
+  return result;
+}
+
+void Image::calculateMirage(int const aMirrorHeight) {
   uint32_t nCpus = std::thread::hardware_concurrency();
   nCpus -= (nCpus <= mRestrictCpu ? nCpus - 1u : mRestrictCpu);
   std::vector<std::thread> threads(nCpus);
   for (uint32_t i = 0u; i < nCpus; ++i) {
-    threads[i] = std::thread([this, nCpus, i] {
+    threads[i] = std::thread([this, aMirrorHeight, nCpus, i] {
       Ray ray;
       ray.mStart = mPinhole;
       Medium localMedium(mMedium);
@@ -203,8 +224,14 @@ void Image::calculateMirage() {
               else {} // nothing to do
             }
           }
-          if(mGridSpacing > 1u && y % mGridSpacing == 0 && (z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent)) {
-            sum = mGridColor;
+          if(z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent) {
+            if(y == aMirrorHeight) {
+               sum = mColorMirror;
+            }
+            else if(mGridSpacing > 1u && y % mGridSpacing == 0) {
+              sum = mColorGrid;
+            }
+            else {} // nothing to do
           }
           else {} // nothing to do
           mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = ::round(sum / static_cast<double>(mSubSample * mSubSample));

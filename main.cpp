@@ -21,8 +21,6 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--earthForm", nameForm, "Earth form (flat / round) [round]");
   double rawRadius = 6371.0;
   opt.add_option("--earthRadius", rawRadius, "Earth radius (km) [6371.0]");
-  paraIm.mGridColor = 42u;
-  opt.add_option("--gridColor", paraIm.mGridColor, "grid color, 0-black, 255-white (natural integer) [42]");
   paraIm.mGridIndent = 0.5;
   opt.add_option("--gridIndent", paraIm.mGridIndent, "grid indent ratio (0-1) from vertical edges compared to the black column (double) [0.5]");
   paraIm.mGridSpacing = 0u;
