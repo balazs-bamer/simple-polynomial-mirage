@@ -94,6 +94,7 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mColorMirror(csColorMirror * aPara.mSubsample * aPara.mSubsample)
   , mGridIndent(std::max(0.0, std::min(1.0, aPara.mGridIndent)))
   , mGridSpacing(aPara.mGridSpacing)
+  , mMirrorAcross(aPara.mMirrorAcross)
   , mMedium(aMedium) {}
 
 void Image::process(char const * const aNameSurf, char const * const aNameOut) {
@@ -224,6 +225,10 @@ void Image::calculateMirage(int const aMirrorHeight) {
               else {} // nothing to do
             }
           }
+          if(y == aMirrorHeight && mMirrorAcross) {
+             sum = mColorMirror;
+          }
+          else {} // nothing to do
           if(z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent) {
             if(y == aMirrorHeight) {
                sum = mColorMirror;

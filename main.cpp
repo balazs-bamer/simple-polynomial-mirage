@@ -29,6 +29,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--height", height, "height of bulletin (m) [9.0]  its width will be calculated");
   paraRk.mMaxCosDirChange = 0.99999999999;
   opt.add_option("--maxCosDirChange", paraRk.mMaxCosDirChange, "Maximum of cos of direction change to reset big step [0.99999999999]");
+  paraIm.mMirrorAcross = false;
+  opt.add_option("--mirrorAcross", paraIm.mMirrorAcross, "draw mirror line across the image (true, false) [false]");
   std::string nameIn = "monoscopeRca.png";
   opt.add_option("--nameIn", nameIn, "input filename [monoscopeRca.png]");
   std::string nameOut = "result.png";
@@ -141,9 +143,10 @@ int main(int aArgc, char **aArgv) {
     std::cout << "grid spacing:                                      " << paraIm.mGridSpacing << '\n';
     std::cout << "height of bulletin (m):                            " << height << '\n';
     std::cout << "max of cos of direction change to reset big step:  " << std::setprecision(17) << paraRk.mMaxCosDirChange << '\n';
+    std::cout << "draw mirror across the image:                      " << paraIm.mMirrorAcross << '\n';
     std::cout << "input filename:                                    " << nameIn << '\n';
-    std::cout << "output filename:                                   " << nameOut << '\n';
-    std::cout << "surface filename:              .  .  .  .  .  .  . " << nameSurf << '\n';
+    std::cout << "output filename:   .  .  .  .  .  .  .  .  .  .  . " << nameOut << '\n';
+    std::cout << "surface filename:                                  " << nameSurf << '\n';
     std::cout << "pinhole distance from film (m):                    " << paraIm.mPinholeDist << '\n';
     std::cout << "film resolution in both directions (pixel):        " << paraIm.mResolution << '\n';
     std::cout << "initial step size (m):                             " << paraRk.mStep1 << '\n';

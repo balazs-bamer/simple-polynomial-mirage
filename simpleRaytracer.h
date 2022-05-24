@@ -62,6 +62,7 @@ public:
     uint32_t mGridColor;
     double   mGridIndent;
     uint32_t mGridSpacing;
+    bool     mMirrorAcross;
   };
 
 private:
@@ -95,6 +96,7 @@ private:
   double   const  mColorMirror;
   double   const  mGridIndent;
   uint32_t const  mGridSpacing;
+  bool     const  mMirrorAcross;
   Medium         &mMedium;
   double          mLimitAngleTop;
   double          mLimitAngleBottom;
