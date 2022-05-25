@@ -53,24 +53,27 @@ void comp(std::string const& aPrefix, RungeKuttaRayBending::Parameters const& aP
       out << std::setprecision(10) << solution.mValue[0] << '\t' << std::setprecision(10) << solution.mValue[1] << '\n';
     }
   }
-  if(aNeedXd) {
-    if(aMore.mEarthForm == Eikonal::EarthForm::cRound) {
-      std::cout << "d=[";
+  if(!aMore.mSilent) {
+    if(aNeedXd) {
+      if(aMore.mEarthForm == Eikonal::EarthForm::cRound) {
+        std::cout << "d=[";
+        for (int i = 0; i < stuff.size(); ++i) {
+          std::cout << std::setprecision(10) << std::sqrt(aMore.mEarthRadius * aMore.mEarthRadius - stuff[i][0] * stuff[i][0]) - aMore.mEarthRadius << (i < stuff.size() - 1 ? ", " : "];\n");
+        }
+      }
+      else {} // nothing to do
+      std::cout << "x=[";
       for (int i = 0; i < stuff.size(); ++i) {
-        std::cout << std::setprecision(10) << std::sqrt(aMore.mEarthRadius * aMore.mEarthRadius - stuff[i][0] * stuff[i][0]) - aMore.mEarthRadius << (i < stuff.size() - 1 ? ", " : "];\n");
+        std::cout << std::setprecision(10) << stuff[i][0] << (i < stuff.size() - 1 ? ", " : "];\n");
       }
     }
     else {} // nothing to do
-    std::cout << "x=[";
+    std::cout << aPrefix + "y=[";
     for (int i = 0; i < stuff.size(); ++i) {
-      std::cout << std::setprecision(10) << stuff[i][0] << (i < stuff.size() - 1 ? ", " : "];\n");
+      std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
     }
   }
   else {} // nothing to do
-  std::cout << aPrefix + "y=[";
-  for (int i = 0; i < stuff.size(); ++i) {
-    std::cout << std::setprecision(10) << stuff[i][1] << (i < stuff.size() - 1 ? ", " : "];\n");
-  }
 }
 
 enum class CliResult : uint8_t {
@@ -102,8 +105,8 @@ std::tuple<CliResult, RungeKuttaRayBending::Parameters, MoreParameters, std::str
   opt.add_option("--maxCosDirChange", parameters.mMaxCosDirChange, "Maximum of cos of direction change to reset big step [0.99999999999]");
   more.mSamples = 100;
   opt.add_option("--samples", more.mSamples, "number of samples on ray [100]");
-  more.mSilent = false;
-  opt.add_option("--silent", more.mSilent, "surpress parameter echo (true, false) [false]");
+  more.mSilent = true;
+  opt.add_option("--silent", more.mSilent, "surpress parameter echo (true, false) [true]");
   parameters.mStep1 = 0.01;
   opt.add_option("--step1", parameters.mStep1, "initial step size (m) [0.01]");
   parameters.mStepMin = 1e-7;
@@ -176,12 +179,6 @@ std::tuple<CliResult, RungeKuttaRayBending::Parameters, MoreParameters, std::str
     if(std::isnan(more.mTempAmb)) {
       more.mTempAmb = (more.mMode == Eikonal::Model::cConventional ? 20.0 :
               (more.mMode == Eikonal::Model::cPorous ? 38.5 : 10.0));
-    }
-    else {} // nothing to do
-
-    if(more.mMode == Eikonal::Model::cWater && more.mTempAmb >= more.mTempBase - 0.01) {
-      std::cerr << "Water: tempAmb >= tempBase - 0.01\n";
-      result = CliResult::cParamError;
     }
     else {} // nothing to do
   }
@@ -273,9 +270,9 @@ void dump(RungeKuttaRayBending::Parameters const& aParameters, MoreParameters co
     std::cout << "base temperature, only for water (Celsius):       " << aMore.mTempBase << '\n';
     std::cout << "absolute tolerance (m):                           " << aParameters.mTolAbs << '\n';
     std::cout << "relative tolerance (m):               .  .  .  .  " << aParameters.mTolRel << '\n';
-    std::cout << "mirror direction (computed) (degrees):            " << aMirrorDirection << '\n';
   }
   else {} // nothing to do
+  std::cout << "mirror direction (computed) (degrees):            " << aMirrorDirection << '\n';
 }
 
 int main(int aArgc, char **aArgv) {
@@ -289,7 +286,6 @@ int main(int aArgc, char **aArgv) {
     comp("crit", parameters, more, true);
     more.mDir = mirrorDirection;
     comp("mirr", parameters, more, false);
-    std::cout << "\n";
   }
   else {
     if(result == CliResult::cOk) {

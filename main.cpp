@@ -43,8 +43,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--resolution", paraIm.mResolution, "film resulution in both directions (pixel) [1000]");
   paraIm.mRestrictCpu = 0u;
   opt.add_option("--saveCpus", paraIm.mRestrictCpu, "amount of CPUs to save to keep the system responsive (natural integer) [0]");
-  bool silent = false;
-  opt.add_option("--silent", silent, "surpress parameter echo (true, false) [false]");
+  bool silent = true;
+  opt.add_option("--silent", silent, "surpress parameter echo (true, false) [true]");
   paraRk.mStep1 = 0.01;
   opt.add_option("--step1", paraRk.mStep1, "initial step size (m) [0.01]");
   paraRk.mStepMin = 1e-4;
@@ -122,12 +122,6 @@ int main(int aArgc, char **aArgv) {
   if(std::isnan(tempAmb)) {
     tempAmb = (base == Eikonal::Model::cConventional ? 20.0 :
               (base == Eikonal::Model::cPorous ? 38.5 : 10.0));
-  }
-  else {} // nothing to do
-
-  if(base == Eikonal::Model::cWater && tempAmb >= tempBase - 0.01) {
-    std::cerr << "Water: tempAmb >= tempBase - 0.01 \n";
-    return 1;
   }
   else {} // nothing to do
 
