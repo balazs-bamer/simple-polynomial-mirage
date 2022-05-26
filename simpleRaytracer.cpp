@@ -35,9 +35,9 @@ bool Object::hasPixel(Vertex const &aHit) const {
 
 uint8_t Object::getPixel(Vertex const &aHit) const {
   uint8_t result = 0u;
-  if(hasPixel(aHit)) {
-    uint32_t x = std::max(0.0, (aHit(2) - mMinZ) / mDz);
-    uint32_t y = mImage.get_height() - (aHit(1) - mMinY) / mDy - 1u;
+  int32_t x = static_cast<int32_t>(::round((aHit(2) - mMinZ) / mDz));
+  int32_t y = static_cast<int32_t>(::round(mImage.get_height() - (aHit(1) - mMinY) / mDy - 1u));
+  if(x >= 0 && y >= 0 && x < mImage.get_width() && y < mImage.get_height()) {
     result = mImage.get_pixel(x, y);
   }
   else {} // Nothing to do
@@ -297,6 +297,8 @@ void Image::renderSurface(char const * const aNameSurf) {
           sum += surface.getPixel(intersection.mPoint);
         }
       }
+      uint8_t color = static_cast<uint8_t>(::round(sum / static_cast<double>(csSurfSubsample * csSurfSubsample)));
+      color = (color == csColorMirror ? csColorBlack : color);
       mImage.set_pixel(mImage.get_width() - z - 1u, mImage.get_height() - y - 1u, ::round(sum / static_cast<double>(csSurfSubsample * csSurfSubsample)));
     }
   }
