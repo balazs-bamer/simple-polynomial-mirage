@@ -75,12 +75,14 @@ private:
   static constexpr double   csSurfaceDistance =   1000; // meters
   static constexpr double   csSurfPinholeDist =      1; // meters
   static constexpr uint32_t csSurfSubsample   =      5u;
-  static constexpr uint32_t csColorGrid       =     42u;
-  static constexpr uint32_t csColorMirror     =    216u;
+  static constexpr uint32_t csColorGrid       =    111u;
+  static constexpr uint32_t csColorMirror     =      0u;
+  static constexpr uint32_t csColorBlack      =      1u;
 
   uint32_t const  mRestrictCpu;
-  std::vector<uint8_t>        mBuffer;
-  png::image<png::gray_pixel> mImage;
+  std::vector<uint8_t>         mBuffer;
+  png::image<png::index_pixel> mImage;
+  png::palette                 mPalette;
   uint32_t const  mSubSample;
   double   const  mSsFactor;
   double   const  mPixelSize;
@@ -92,8 +94,6 @@ private:
   double   const  mBiasZ;
   double   const  mBiasY;
   double   const  mBiasSub;
-  double   const  mColorGrid;
-  double   const  mColorMirror;
   double   const  mGridIndent;
   uint32_t const  mGridSpacing;
   bool     const  mMirrorAcross;

@@ -79,6 +79,7 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   : mRestrictCpu(aPara.mRestrictCpu)
   , mBuffer(aPara.mResolution * aPara.mResolution)
   , mImage(aPara.mResolution, aPara.mResolution)
+  , mPalette(256)
   , mSubSample(aPara.mSubsample)
   , mSsFactor(1.0 / aPara.mSubsample)
   , mPixelSize(csFilmSize / aPara.mResolution)
@@ -90,12 +91,16 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mBiasZ((aPara.mResolution - 1.0) / 2.0)
   , mBiasY((aPara.mResolution - 1.0) / 2.0)
   , mBiasSub((aPara.mSubsample - 1.0) / 2.0)
-  , mColorGrid(csColorGrid * aPara.mSubsample * aPara.mSubsample)
-  , mColorMirror(csColorMirror * aPara.mSubsample * aPara.mSubsample)
   , mGridIndent(std::max(0.0, std::min(1.0, aPara.mGridIndent)))
   , mGridSpacing(aPara.mGridSpacing)
   , mMirrorAcross(aPara.mMirrorAcross)
-  , mMedium(aMedium) {}
+  , mMedium(aMedium) {
+  mPalette[csColorMirror] = png::color(255u, 0u, 0u);
+  for(uint32_t i = csColorBlack; i < mPalette.size(); ++i) {
+    mPalette[i] = png::color(i, i, i);
+  }
+  mImage.set_palette(mPalette);
+}
 
 void Image::process(char const * const aNameSurf, char const * const aNameOut) {
   calculateLimits();
@@ -225,21 +230,23 @@ void Image::calculateMirage(int const aMirrorHeight) {
               else {} // nothing to do
             }
           }
+          uint8_t color = static_cast<uint8_t>(::round(sum / static_cast<double>(mSubSample * mSubSample)));
+          color = (color == csColorMirror ? csColorBlack : color);
           if(y == aMirrorHeight && mMirrorAcross) {
-             sum = mColorMirror;
+            color = csColorMirror;
           }
           else {} // nothing to do
           if(z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent) {
             if(y == aMirrorHeight) {
-               sum = mColorMirror;
+              color = csColorMirror;
             }
             else if(mGridSpacing > 1u && y % mGridSpacing == 0) {
-              sum = mColorGrid;
+              color = csColorGrid;
             }
             else {} // nothing to do
           }
           else {} // nothing to do
-          mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = ::round(sum / static_cast<double>(mSubSample * mSubSample));
+          mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = color;
         }
       }
     });
