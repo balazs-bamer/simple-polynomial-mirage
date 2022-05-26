@@ -15,8 +15,9 @@ shift
 shift
 shift
 while [[ $i -lt $n ]]; do
+  i=$((i+1))
+  echo Iteration $i of $n
   ./main $p $t $*
   mv result.png series$(printf "%03d" $i).png
-  i=$((i+1))
   t=`awk "BEGIN{print $t + $d}" | tr ',' '.'`
 done
