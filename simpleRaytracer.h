@@ -4,6 +4,8 @@
 #include "RungeKuttaRayBending.h"
 #include "3dGeomUtil.h"
 #include "png.hpp"
+#include <optional>
+
 
 class Object final {
 private:
@@ -34,8 +36,8 @@ private:
 public:
   Medium(RungeKuttaRayBending::Parameters const& aParameters,
          Eikonal::EarthForm const aEarthForm, double const aEarthRadius, Eikonal::Model const aModel,
-         double const aTempAmbient, double const aTempBase, Object const& aObject)
-  : mEikonal(aEarthForm, aEarthRadius, aModel, aTempAmbient, aTempBase)
+         double const aTempAmbient, double const tempAmbMin, double const tempAmbMax, double const aTempBase, Object const& aObject)
+  : mEikonal(aEarthForm, aEarthRadius, aModel, aTempAmbient, tempAmbMin, tempAmbMax, aTempBase)
   , mSolver(aParameters, mEikonal)
   , mObject(aObject) {}
 
@@ -44,9 +46,11 @@ public:
   Medium& operator=(Medium const&) = delete;
   Medium& operator=(Medium &&) = delete;
 
+  void setWaterTempAmb(Eikonal::Temperature const aWhich) { mEikonal.setWaterTempAmb(aWhich); }
   uint8_t trace(Ray const& aRay);
   bool hits(Ray const& aRay);
   RungeKuttaRayBending::Result getHit(Ray const& aRay) { return mSolver.solve4x(aRay.mStart, aRay.mDirection, mObject.getX()); }
+  double getRefract(double const aH) const { return mSolver.getRefract(aH); }
 };
 
 
@@ -97,14 +101,15 @@ private:
   double   const  mGridIndent;
   uint32_t const  mGridSpacing;
   bool     const  mMirrorAcross;
-  Medium         &mMedium;
-  double          mLimitAngleTop;
-  double          mLimitAngleBottom;
-  double          mLimitAngleDeep;
-  double          mLimitAngleShallow;
-  int             mLimitPixelBottom;
-  int             mLimitPixelDeep;
-  int             mLimitPixelShallow;
+
+  Medium                &mMedium;
+  std::optional<double>  mLimitAngleTop;
+  std::optional<double>  mLimitAngleBottom;
+  std::optional<double>  mLimitAngleDeep;
+  std::optional<double>  mLimitAngleShallow;
+  int                    mLimitPixelBottom;
+  int                    mLimitPixelDeep;
+  int                    mLimitPixelShallow;
 
 public:
   Image(Parameters const& aPara, Medium &aMedium);
@@ -112,7 +117,7 @@ public:
   void process(char const * const aNameSurf, char const * const aNameOut);
 
 private:
-  void calculateLimits();
+  void calculateLimits(Eikonal::Temperature const aWhich);
   int calculateMirrorHeight();
   void calculateMirage(int const aMirrorHeight);
   void renderSurface(char const * const aNameSurf);

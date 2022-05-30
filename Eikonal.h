@@ -11,6 +11,13 @@
 // These calculations do not take relative humidity in account, since it has less, than 0.5% the effect on air refractive index as temperature and pressure.
 class Eikonal final {
 public:
+  enum class Temperature : uint8_t {
+    cAmbient = 0u,
+    cBase    = 1u,
+    cMinimum = 2u,
+    cMaximum = 3u
+  };
+
   enum class Model : uint8_t {
     cConventional = 0u,
     cPorous       = 1u,
@@ -37,11 +44,14 @@ private:
   static constexpr double   csRelativeHumidityPercent       =  50.0;
   static constexpr double   csAtmosphericPressureKpa        = 101.0;
 
-  EarthForm mEarthForm;
-  double    mEarthRadius;
-  Model     mModel;
-  double    mTempAmbient;      // Celsius
-  double    mTempBase;         // Celsius
+  EarthForm const mEarthForm;
+  double    const mEarthRadius;
+  Model     const mModel;
+  double          mTempAmbient;    // Celsius
+  double    const mTempAmbOrig; // Celsius
+  double    const mTempAmbMin;
+  double    const mTempAmbMax;
+  double    const mTempBase;       // Celsius
 
 public:
   static constexpr uint32_t csNvar = 6u;
@@ -58,19 +68,31 @@ public:
   , mEarthRadius(aEarthRadius)
   , mModel(aModel)
   , mTempAmbient(aTempAmbient)
+  , mTempAmbOrig(aTempAmbient)
+  , mTempAmbMin(aTempAmbient)
+  , mTempAmbMax(aTempAmbient)
   , mTempBase(aTempAmbient) {}
 
-  Eikonal(EarthForm const aEarthForm, double const aEarthRadius, Model const aModel, double const aTempAmbient, double const aTempBase)
+  Eikonal(EarthForm const aEarthForm, double const aEarthRadius, Model const aModel, double const aTempAmbient, double const aTempAmbMin, double const aTempAmbMax, double const aTempBase)
   : mEarthForm(aEarthForm)
   , mEarthRadius(aEarthRadius)
   , mModel(aModel)
   , mTempAmbient(aTempAmbient)
+  , mTempAmbOrig(aTempAmbient)
+  , mTempAmbMin(aTempAmbMin)
+  , mTempAmbMax(aTempAmbMax)
   , mTempBase(aTempBase) {}
 
   Eikonal(Eikonal const&) = default;
   Eikonal(Eikonal &&) = default;
   Eikonal& operator=(Eikonal const&) = delete;
   Eikonal& operator=(Eikonal &&) = delete;
+
+  void setWaterTempAmb(Temperature const aWhich) {
+    mTempAmbient = (aWhich == Temperature::cBase ? mTempBase :
+                   (aWhich == Temperature::cMinimum ? mTempAmbMin :
+                   (aWhich == Temperature::cMaximum ? mTempAmbMax : mTempAmbOrig)));
+  }
 
   EarthForm getEarthForm()   const { return mEarthForm; }
   double    getEarthRadius() const { return mEarthRadius; }

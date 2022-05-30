@@ -57,6 +57,10 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--subsample", paraIm.mSubsample, "subsampling each pixel in both directions (count) [2]");
   double tempAmb = std::nan("");
   opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
+  double tempAmbMin = std::nan("");
+  opt.add_option("--tempAmbMin", tempAmbMin, "minimum ambient temperature for limit calculation (Celsius) [TODO for conventional, TODO for porous, tempBase-10 for water]");
+  double tempAmbMax = std::nan("");
+  opt.add_option("--tempAmbMax", tempAmbMax, "maximum ambient temperature for limit calculation (Celsius) [TODO for conventional, TODO for porous, tempBase+10 for water]");
   double tempBase = 13.0;
   opt.add_option("--tempBase", tempBase, "base temperature, only for water (Celsius) [13]");
   paraIm.mTilt = 0.0;
@@ -125,6 +129,22 @@ int main(int aArgc, char **aArgv) {
   }
   else {} // nothing to do
 
+  if(std::isnan(tempAmbMin)) {
+    tempAmbMin = tempBase - 10.0;
+  }
+  else {} // nothing to do
+
+  if(std::isnan(tempAmbMax)) {
+    tempAmbMax = tempBase + 10.0;
+  }
+  else {} // nothing to do
+
+  if(tempAmb < tempAmbMin || tempAmb > tempAmbMax || tempBase < tempAmbMin || tempBase > tempAmbMax) {
+    std::cerr << "TempAmb and tempBase must be between tempAmbMin and tempAmbMax.\n";
+    return 1;
+  }
+  else {} // nothing to do
+
   if(!silent) {
     std::cout << "base type:                                         " << nameBase << ' ' << static_cast<int>(base) << '\n';
     std::cout << "lift of bulletin from ground (m): .  .  .  .  .  . " << bullLift << '\n';
@@ -149,6 +169,8 @@ int main(int aArgc, char **aArgv) {
     std::cout << "stepper type:                                      " << nameStepper << ' ' << static_cast<int>(paraRk.mStepper) << '\n';
     std::cout << "subsampling each pixel in both directions (count): " << paraIm.mSubsample << '\n';
     std::cout << "ambient temperature (Celsius):                     " << tempAmb << '\n';
+    std::cout << "minimum ambient temperature (Celsius):  .  .  .  . " << tempAmbMin << '\n';
+    std::cout << "maximum ambient temperature (Celsius):             " << tempAmbMax << '\n';
     std::cout << "base temperature, only for water (Celsius):        " << tempBase << '\n';
     std::cout << "camera tilt, neg downwards (degrees):      .  .  . " << paraIm.mTilt << '\n';
     std::cout << "absolute tolerance (m):                            " << paraRk.mTolAbs << '\n';
@@ -163,7 +185,7 @@ int main(int aArgc, char **aArgv) {
   auto effectiveRadius = (earthForm == Eikonal::EarthForm::cFlat ? std::numeric_limits<double>::infinity() : earthRadius);
 
   Object object(nameIn.c_str(), dist, bullLift, height, effectiveRadius);
-  Medium medium(paraRk, earthForm, earthRadius, base, tempAmb, tempBase, object);
+  Medium medium(paraRk, earthForm, earthRadius, base, tempAmb, tempAmbMin, tempAmbMax, tempBase, object);
   Image image(paraIm, medium);
   image.process(nameSurf.c_str(), nameOut.c_str());
   return 0;

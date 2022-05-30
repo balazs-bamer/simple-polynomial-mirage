@@ -103,7 +103,10 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
 }
 
 void Image::process(char const * const aNameSurf, char const * const aNameOut) {
-  calculateLimits();
+  calculateLimits(Eikonal::Temperature::cMinimum);
+  calculateLimits(Eikonal::Temperature::cMaximum);
+//  calculateLimits(Eikonal::Temperature::cBase);   TODO for marks
+  calculateLimits(Eikonal::Temperature::cAmbient);
   int mirrorHeight = calculateMirrorHeight();
   calculateMirage(mirrorHeight);
   if(*aNameSurf != 0) {
@@ -113,7 +116,8 @@ void Image::process(char const * const aNameSurf, char const * const aNameOut) {
   mImage.write(aNameOut);
 }
 
-void Image::calculateLimits() {
+void Image::calculateLimits(Eikonal::Temperature const aWhich) {
+  mMedium.setWaterTempAmb(aWhich);
   Ray ray;
   ray.mStart = mPinhole;
   ray.mDirection = getDirectionInXy(csLimitLow - csLimitDelta);
@@ -130,10 +134,11 @@ void Image::calculateLimits() {
       });
       critical += (thisHit ? csLimitEpsilon : 0.0);
       std::cout << (thisHit ? "enter: " : "leave: ") << std::setprecision(10) << (critical * 180.0 / cgPi) << '\n';
-      limitAnglePrev = mLimitAngleTop;
-      mLimitAngleTop = critical * csLimitAngleBoost;
+      limitAnglePrev = mLimitAngleTop.value_or(0.0);
+      auto tmp = critical * csLimitAngleBoost;
+      mLimitAngleTop = (mLimitAngleTop ? std::max(*mLimitAngleTop, tmp) : tmp);
       if(!was) {
-        mLimitAngleBottom = critical * csLimitAngleBoost;
+        mLimitAngleBottom = (mLimitAngleBottom ? std::min(*mLimitAngleBottom, tmp) : tmp);
         was = true;
       }
       else {} // nothing to do
@@ -141,14 +146,20 @@ void Image::calculateLimits() {
     else {} // nothing to do
     lastHit = thisHit;
   }
-  auto angleY = (limitAnglePrev + mLimitAngleTop) / 2.0;
+  auto angleY = (limitAnglePrev + *mLimitAngleTop) / 2.0;
   ray.mDirection = getDirectionYz(angleY, csLimitLow - csLimitDelta);
-  mLimitAngleDeep = binarySearch(csLimitLow, 0.0, csLimitEpsilon, [this, &ray, angleY](auto const search){
+  auto tmp = binarySearch(csLimitLow, 0.0, csLimitEpsilon, [this, &ray, angleY](auto const search){
     ray.mDirection = getDirectionYz(angleY, search);
     return mMedium.hits(ray);
   });
-  mLimitAngleDeep *= csLimitAngleBoost;
-  mLimitAngleShallow = -mLimitAngleDeep;
+  tmp *= csLimitAngleBoost;
+  mLimitAngleDeep = (mLimitAngleDeep ? std::min(*mLimitAngleDeep, tmp) : tmp);
+  mLimitAngleShallow = -*mLimitAngleDeep;
+std::cout << "mLimitAngleTop: " << *mLimitAngleTop << '\n';
+std::cout << "mLimitAngleBottom: " << *mLimitAngleBottom << '\n';
+std::cout << "mLimitAngleDeep: " << *mLimitAngleDeep << '\n';
+std::cout << "mLimitAngleShallow: " << *mLimitAngleShallow << '\n';
+std::cout << "refract(0.1): " << mMedium.getRefract(0.1) << '\n';
 
   int y = mImage.get_height() / 2;
   int z;

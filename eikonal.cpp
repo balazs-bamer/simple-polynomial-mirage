@@ -24,7 +24,7 @@ struct MoreParameters {
 
 RungeKuttaRayBending::Result comp1(RungeKuttaRayBending::Parameters const& aParameters, MoreParameters const& aMore) {
 
-  Eikonal eikonal(aMore.mEarthForm, aMore.mEarthRadius, aMore.mMode, aMore.mTempAmb, aMore.mTempBase);
+  Eikonal eikonal(aMore.mEarthForm, aMore.mEarthRadius, aMore.mMode, aMore.mTempAmb, aMore.mTempAmb, aMore.mTempAmb, aMore.mTempBase);
   RungeKuttaRayBending rk(aParameters, eikonal);
   Vertex start(0.0, aMore.mCamCenter, 0.0);
   Vector dir(std::cos(aMore.mDir / 180.0 * cgPi), std::sin(aMore.mDir / 180.0 * cgPi), 0.0);

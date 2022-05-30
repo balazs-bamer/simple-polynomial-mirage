@@ -42,6 +42,7 @@ public:
   RungeKuttaRayBending& operator=(RungeKuttaRayBending const&) = delete;
   RungeKuttaRayBending& operator=(RungeKuttaRayBending &&) = delete;
 
+  double getRefract(double const aH) const { return mDiffEq.getRefract(aH); }
 
   Result solve4x(Vertex const &aStart, Vector const &aDir, double const aX) {
     return mDiffEq.getEarthForm() == Eikonal::EarthForm::cFlat ? solve4xFlat(aStart, aDir, aX) : solve4xRound(aStart, aDir, aX);
