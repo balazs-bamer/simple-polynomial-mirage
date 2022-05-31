@@ -60,8 +60,8 @@ public:
     uint32_t mRestrictCpu;
     double   mCamCenter;
     double   mTilt;
-    double   mPinholeDist;
-    double   mResolution;
+    double   mBorderFactor;
+    uint32_t mResolutionX;
     uint32_t mSubsample;
     uint32_t mGridColor;
     double   mGridIndent;
@@ -70,7 +70,6 @@ public:
   };
 
 private:
-  static constexpr double   csFilmSize        =  0.1;  // meters
   static constexpr double   csLimitHigh       =  cgPi / 33.3;
   static constexpr double   csLimitLow        = -cgPi / 33.3;
   static constexpr double   csLimitDelta      =  cgPi / 33333.3;
@@ -88,15 +87,14 @@ private:
   png::image<png::index_pixel> mImage;
   png::palette                 mPalette;
   uint32_t const  mSubSample;
+  uint32_t const  mResolutionX;
+  double   const  mBorderFactor;
   double   const  mSsFactor;
-  double   const  mPixelSize;
   Vertex   const  mCenter;
   Vector   const  mNormal;
   Vector   const  mInPlaneZ;
   Vector   const  mInPlaneY;
   Vertex   const  mPinhole;
-  double   const  mBiasZ;
-  double   const  mBiasY;
   double   const  mBiasSub;
   double   const  mGridIndent;
   uint32_t const  mGridSpacing;
@@ -110,6 +108,9 @@ private:
   int                    mLimitPixelBottom;
   int                    mLimitPixelDeep;
   int                    mLimitPixelShallow;
+  double                 mPixelSize;
+  double                 mBiasZ;
+  double                 mBiasY;
 
 public:
   Image(Parameters const& aPara, Medium &aMedium);
@@ -117,12 +118,15 @@ public:
   void process(char const * const aNameSurf, char const * const aNameOut);
 
 private:
-  void calculateLimits(Eikonal::Temperature const aWhich);
+  void calculateAngleLimits(Eikonal::Temperature const aWhich);
+  void calculateBiases();
+  void calculatePixelLimits();
   int calculateMirrorHeight();
   void calculateMirage(int const aMirrorHeight);
   void renderSurface(char const * const aNameSurf);
 
   static Vector getDirectionInXy(double const aAngle) { return Vector(std::cos(aAngle), std::sin(aAngle), 0.0); }
+  static Vector getDirectionInXz(double const aAngle) { return Vector(std::cos(aAngle), 0.0, std::sin(aAngle)); }
   static Vector getDirectionYz(double const aAngleY, double const aAngleZ) { return Vector(std::cos(aAngleY) * std::cos(aAngleZ), std::sin(aAngleY), std::cos(aAngleY) * std::sin(aAngleZ)); }
 };
 

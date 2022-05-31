@@ -77,19 +77,16 @@ std::cout << aRay.mStart(0) << ' ' << aRay.mStart(1) << ' ' << aRay.mStart(2) <<
 
 Image::Image(Parameters const& aPara, Medium &aMedium)
   : mRestrictCpu(aPara.mRestrictCpu)
-  , mBuffer(aPara.mResolution * aPara.mResolution)
-  , mImage(aPara.mResolution, aPara.mResolution)
   , mPalette(256)
+  , mResolutionX(aPara.mResolutionX)
+  , mBorderFactor(aPara.mBorderFactor)
   , mSubSample(aPara.mSubsample)
   , mSsFactor(1.0 / aPara.mSubsample)
-  , mPixelSize(csFilmSize / aPara.mResolution)
   , mCenter(0.0, aPara.mCamCenter, 0.0)
   , mNormal(::cos(aPara.mTilt * cgPi / 180.0), ::sin(aPara.mTilt * cgPi / 180.0), 0.0)
   , mInPlaneZ(0.0, 0.0, 1.0)
   , mInPlaneY(mNormal.cross(mInPlaneZ))
-  , mPinhole(mCenter + aPara.mPinholeDist * mNormal)
-  , mBiasZ((aPara.mResolution - 1.0) / 2.0)
-  , mBiasY((aPara.mResolution - 1.0) / 2.0)
+  , mPinhole(mCenter + csSurfPinholeDist * mNormal)
   , mBiasSub((aPara.mSubsample - 1.0) / 2.0)
   , mGridIndent(std::max(0.0, std::min(1.0, aPara.mGridIndent)))
   , mGridSpacing(aPara.mGridSpacing)
@@ -103,10 +100,12 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
 }
 
 void Image::process(char const * const aNameSurf, char const * const aNameOut) {
-  calculateLimits(Eikonal::Temperature::cMinimum);
-  calculateLimits(Eikonal::Temperature::cMaximum);
-//  calculateLimits(Eikonal::Temperature::cBase);   TODO for marks
-  calculateLimits(Eikonal::Temperature::cAmbient);
+  calculateAngleLimits(Eikonal::Temperature::cMinimum);
+  calculateAngleLimits(Eikonal::Temperature::cMaximum);
+//  calculateAngleLimits(Eikonal::Temperature::cBase);   TODO for marks
+  calculateAngleLimits(Eikonal::Temperature::cAmbient);
+  calculateBiases();
+  calculatePixelLimits();
   int mirrorHeight = calculateMirrorHeight();
   calculateMirage(mirrorHeight);
   if(*aNameSurf != 0) {
@@ -116,7 +115,7 @@ void Image::process(char const * const aNameSurf, char const * const aNameOut) {
   mImage.write(aNameOut);
 }
 
-void Image::calculateLimits(Eikonal::Temperature const aWhich) {
+void Image::calculateAngleLimits(Eikonal::Temperature const aWhich) {
   mMedium.setWaterTempAmb(aWhich);
   Ray ray;
   ray.mStart = mPinhole;
@@ -160,7 +159,36 @@ std::cout << "mLimitAngleBottom: " << *mLimitAngleBottom << '\n';
 std::cout << "mLimitAngleDeep: " << *mLimitAngleDeep << '\n';
 std::cout << "mLimitAngleShallow: " << *mLimitAngleShallow << '\n';
 std::cout << "refract(0.1): " << mMedium.getRefract(0.1) << '\n';
+}
 
+void Image::calculateBiases() {
+  auto film = Plane::createFrom2vectors1point(mInPlaneY, mInPlaneZ, mCenter);
+  auto angleTop     = mBorderFactor * *mLimitAngleTop;
+  auto angleBottom  = mBorderFactor * *mLimitAngleBottom;
+  auto angleDeep    = mBorderFactor * *mLimitAngleDeep;
+  auto angleShallow = mBorderFactor * *mLimitAngleShallow;
+
+  auto limitTop     = film.intersect(mPinhole, -getDirectionInXy(angleTop)).mPoint;
+  auto limitBottom  = film.intersect(mPinhole, -getDirectionInXy(angleBottom)).mPoint;
+  auto limitDeep    = film.intersect(mPinhole, -getDirectionInXz(angleDeep)).mPoint;
+  auto limitShallow = film.intersect(mPinhole, -getDirectionInXz(angleShallow)).mPoint;
+
+  auto height = (limitTop - limitBottom).norm();
+  auto width  = (limitDeep - limitShallow).norm();
+  auto resolutionY = static_cast<uint32_t>(std::round(height / width * mResolutionX));
+
+  mBiasZ = (mResolutionX - 1.0) * (mCenter - limitDeep).norm() / width;
+  mBiasY = (resolutionY - 1.0) * (mCenter - limitBottom).norm() / height;
+  mPixelSize = (width / mResolutionX + height / resolutionY) / 2.0;
+
+  mBuffer.reserve(mResolutionX * resolutionY);
+  mBuffer.insert(mBuffer.begin(), mResolutionX * resolutionY, csColorBlack);
+  mImage.resize(mResolutionX, resolutionY);
+}
+
+void Image::calculatePixelLimits() {
+  Ray ray;
+  ray.mStart = mPinhole;
   int y = mImage.get_height() / 2;
   int z;
   for(z = 0; z < mImage.get_width() / 2; ++z) {
@@ -176,7 +204,6 @@ std::cout << "refract(0.1): " << mMedium.getRefract(0.1) << '\n';
   }
   mLimitPixelDeep = z;
   mLimitPixelShallow = mImage.get_width() - z - 1;
-
   z = mImage.get_width() / 2;
   for(y = 0; y < mImage.get_height(); ++y) {
     Vertex subpixel = mCenter + mPixelSize * (

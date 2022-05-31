@@ -11,6 +11,8 @@ int main(int aArgc, char **aArgv) {
   CLI::App opt{"Usage"};
   std::string nameBase = "water";
   opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
+  paraIm.mBorderFactor = 1.1;
+  opt.add_option("--borderFactor", paraIm.mBorderFactor, "border enlargement factor >= 1.0, equality means almost no border (-) [1.1]");
   double bullLift = 0.0;
   opt.add_option("--bullLift", bullLift, "lift of bulletin from ground (m) [0.0]");
   paraIm.mCamCenter = 1.1;
@@ -37,10 +39,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--nameOut", nameOut, "output filename [result.png]");
   std::string nameSurf = "";
   opt.add_option("--nameSurf", nameSurf, "surface filename, no rendering if empty []");
-  paraIm.mPinholeDist = 4.0;
-  opt.add_option("--pinholeDist", paraIm.mPinholeDist, "pinhole distance from film (m) [4.0]");
-  paraIm.mResolution = 1000u;
-  opt.add_option("--resolution", paraIm.mResolution, "film resulution in both directions (pixel) [1000]");
+  paraIm.mResolutionX = 1000u;
+  opt.add_option("--resolution", paraIm.mResolutionX, "film resulution in X direction (pixel) [1000]");
   paraIm.mRestrictCpu = 0u;
   opt.add_option("--saveCpus", paraIm.mRestrictCpu, "amount of CPUs to save to keep the system responsive (natural integer) [0]");
   bool silent = true;
@@ -147,6 +147,7 @@ int main(int aArgc, char **aArgv) {
 
   if(!silent) {
     std::cout << "base type:                                         " << nameBase << ' ' << static_cast<int>(base) << '\n';
+    std::cout << "border factor:                                     " << paraIm.mBorderFactor << '\n';
     std::cout << "lift of bulletin from ground (m): .  .  .  .  .  . " << bullLift << '\n';
     std::cout << "height of camera center (m):                       " << paraIm.mCamCenter << '\n';
     std::cout << "distance of bulletin and camera (m):               " << dist << '\n';
@@ -161,8 +162,7 @@ int main(int aArgc, char **aArgv) {
     std::cout << "input filename:                                    " << nameIn << '\n';
     std::cout << "output filename:   .  .  .  .  .  .  .  .  .  .  . " << nameOut << '\n';
     std::cout << "surface filename:                                  " << nameSurf << '\n';
-    std::cout << "pinhole distance from film (m):                    " << paraIm.mPinholeDist << '\n';
-    std::cout << "film resolution in both directions (pixel):        " << paraIm.mResolution << '\n';
+    std::cout << "film resolution in X direction (pixel):            " << paraIm.mResolutionX << '\n';
     std::cout << "initial step size (m):                             " << paraRk.mStep1 << '\n';
     std::cout << "minimal step size (m):   .  .  .  .  .  .  .  .  . " << paraRk.mStepMin << '\n';
     std::cout << "maximal step size (m):                             " << paraRk.mStepMax << '\n';
