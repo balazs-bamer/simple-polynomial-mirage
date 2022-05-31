@@ -163,10 +163,11 @@ std::cout << "refract(0.1): " << mMedium.getRefract(0.1) << '\n';
 
 void Image::calculateBiases() {
   auto film = Plane::createFrom2vectors1point(mInPlaneY, mInPlaneZ, mCenter);
-  auto angleTop     = mBorderFactor * *mLimitAngleTop;
-  auto angleBottom  = mBorderFactor * *mLimitAngleBottom;
-  auto angleDeep    = mBorderFactor * *mLimitAngleDeep;
-  auto angleShallow = mBorderFactor * *mLimitAngleShallow;
+  auto angleDiff   = *mLimitAngleTop + *mLimitAngleShallow - *mLimitAngleBottom - *mLimitAngleDeep;
+  auto angleTop     = *mLimitAngleTop     + angleDiff * mBorderFactor;
+  auto angleBottom  = *mLimitAngleBottom  - angleDiff * mBorderFactor;
+  auto angleDeep    = *mLimitAngleDeep    - angleDiff * mBorderFactor;
+  auto angleShallow = *mLimitAngleShallow + angleDiff * mBorderFactor;
 
   auto limitTop     = film.intersect(mPinhole, -getDirectionInXy(angleTop)).mPoint;
   auto limitBottom  = film.intersect(mPinhole, -getDirectionInXy(angleBottom)).mPoint;

@@ -11,8 +11,8 @@ int main(int aArgc, char **aArgv) {
   CLI::App opt{"Usage"};
   std::string nameBase = "water";
   opt.add_option("--base", nameBase, "base type (conventional / porous / water) [water]");
-  paraIm.mBorderFactor = 1.1;
-  opt.add_option("--borderFactor", paraIm.mBorderFactor, "border enlargement factor >= 1.0, equality means almost no border (-) [1.1]");
+  paraIm.mBorderFactor = 0.05;
+  opt.add_option("--borderFactor", paraIm.mBorderFactor, "border adjust factor, 0 means almost no border (-) [0.05]");
   double bullLift = 0.0;
   opt.add_option("--bullLift", bullLift, "lift of bulletin from ground (m) [0.0]");
   paraIm.mCamCenter = 1.1;
@@ -58,9 +58,9 @@ int main(int aArgc, char **aArgv) {
   double tempAmb = std::nan("");
   opt.add_option("--tempAmb", tempAmb, "ambient temperature (Celsius) [20 for conventional, 38.5 for porous, 10 for water]");
   double tempAmbMin = std::nan("");
-  opt.add_option("--tempAmbMin", tempAmbMin, "minimum ambient temperature for limit calculation (Celsius) [TODO for conventional, TODO for porous, tempBase-10 for water]");
+  opt.add_option("--tempAmbMin", tempAmbMin, "minimum ambient temperature for limit calculation (Celsius) [TODO for conventional, TODO for porous, tempBase-5 for water]");
   double tempAmbMax = std::nan("");
-  opt.add_option("--tempAmbMax", tempAmbMax, "maximum ambient temperature for limit calculation (Celsius) [TODO for conventional, TODO for porous, tempBase+10 for water]");
+  opt.add_option("--tempAmbMax", tempAmbMax, "maximum ambient temperature for limit calculation (Celsius) [TODO for conventional, TODO for porous, tempBase+1 for water]");
   double tempBase = 13.0;
   opt.add_option("--tempBase", tempBase, "base temperature, only for water (Celsius) [13]");
   paraIm.mTilt = 0.0;
@@ -130,12 +130,12 @@ int main(int aArgc, char **aArgv) {
   else {} // nothing to do
 
   if(std::isnan(tempAmbMin)) {
-    tempAmbMin = tempBase - 10.0;
+    tempAmbMin = tempBase - 5.0;
   }
   else {} // nothing to do
 
   if(std::isnan(tempAmbMax)) {
-    tempAmbMax = tempBase + 10.0;
+    tempAmbMax = tempBase + 1.0;
   }
   else {} // nothing to do
 
