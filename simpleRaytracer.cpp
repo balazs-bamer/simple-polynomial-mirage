@@ -93,6 +93,7 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mMirrorAcross(aPara.mMirrorAcross)
   , mMedium(aMedium) {
   mPalette[csColorMirror] = png::color(255u, 0u, 0u);
+  mPalette[csColorBase] = png::color(0u, 255u, 0u);
   for(uint32_t i = csColorBlack; i < mPalette.size(); ++i) {
     mPalette[i] = png::color(i, i, i);
   }
@@ -100,12 +101,24 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
 }
 
 void Image::process(char const * const aNameSurf, char const * const aNameOut) {
+  calculateAngleLimits(Eikonal::Temperature::cAmbient);
+  // TODO save image bottom here
+  calculateAngleLimits(Eikonal::Temperature::cBase);
   calculateAngleLimits(Eikonal::Temperature::cMinimum);
   calculateAngleLimits(Eikonal::Temperature::cMaximum);
-//  calculateAngleLimits(Eikonal::Temperature::cBase);   TODO for marks
-  calculateAngleLimits(Eikonal::Temperature::cAmbient);
   calculateBiases();
-  calculatePixelLimits();
+  mLimitAngleTop.reset();
+  mLimitAngleBottom.reset();
+  mLimitAngleDeep.reset();
+  mLimitAngleShallow.reset();
+  calculateAngleLimits(Eikonal::Temperature::cBase);
+  mLimitPixelBaseTop    = calculatePixelLimitY(*mLimitAngleTop);
+  mLimitPixelBaseBottom = calculatePixelLimitY(*mLimitAngleBottom);
+  calculateAngleLimits(Eikonal::Temperature::cMinimum);
+  calculateAngleLimits(Eikonal::Temperature::cMaximum);
+  calculateAngleLimits(Eikonal::Temperature::cAmbient);
+  mLimitPixelDeep       = calculatePixelLimitY(*mLimitAngleDeep);
+  mLimitPixelShallow    = calculatePixelLimitY(*mLimitAngleShallow);
   int mirrorHeight = calculateMirrorHeight();
   calculateMirage(mirrorHeight);
   if(*aNameSurf != 0) {
@@ -132,7 +145,7 @@ void Image::calculateAngleLimits(Eikonal::Temperature const aWhich) {
         return mMedium.hits(ray);
       });
       critical += (thisHit ? csLimitEpsilon : 0.0);
-      std::cout << (thisHit ? "enter: " : "leave: ") << std::setprecision(10) << (critical * 180.0 / cgPi) << '\n';
+//      std::cout << (thisHit ? "enter: " : "leave: ") << std::setprecision(10) << (critical * 180.0 / cgPi) << '\n';
       limitAnglePrev = mLimitAngleTop.value_or(0.0);
       auto tmp = critical * csLimitAngleBoost;
       mLimitAngleTop = (mLimitAngleTop ? std::max(*mLimitAngleTop, tmp) : tmp);
@@ -154,11 +167,6 @@ void Image::calculateAngleLimits(Eikonal::Temperature const aWhich) {
   tmp *= csLimitAngleBoost;
   mLimitAngleDeep = (mLimitAngleDeep ? std::min(*mLimitAngleDeep, tmp) : tmp);
   mLimitAngleShallow = -*mLimitAngleDeep;
-std::cout << "mLimitAngleTop: " << *mLimitAngleTop << '\n';
-std::cout << "mLimitAngleBottom: " << *mLimitAngleBottom << '\n';
-std::cout << "mLimitAngleDeep: " << *mLimitAngleDeep << '\n';
-std::cout << "mLimitAngleShallow: " << *mLimitAngleShallow << '\n';
-std::cout << "refract(0.1): " << mMedium.getRefract(0.1) << '\n';
 }
 
 void Image::calculateBiases() {
@@ -187,37 +195,48 @@ void Image::calculateBiases() {
   mImage.resize(mResolutionX, resolutionY);
 }
 
-void Image::calculatePixelLimits() {
+int Image::calculatePixelLimitZ(double const aAngle) {
   Ray ray;
   ray.mStart = mPinhole;
   int y = mImage.get_height() / 2;
-  int z;
-  for(z = 0; z < mImage.get_width() / 2; ++z) {
+  int result;
+  double minDist = std::numeric_limits<double>::max();
+  for(int z = 0; z < mImage.get_width() / 2; ++z) {
     Vertex subpixel = mCenter + mPixelSize * (
       (z - mBiasZ) * mInPlaneZ +
       (y - mBiasY) * mInPlaneY);
     ray.mDirection = (mPinhole - subpixel).normalized();
     auto angleZ = -std::atan(ray.mDirection(2) / ray.mDirection(0));
-    if(angleZ > mLimitAngleDeep) {
-      break;
+    auto now = std::abs(angleZ - aAngle);
+    if(now < minDist) {
+      minDist = now;
+      result = z;
     }
     else {} // nothing to do
   }
-  mLimitPixelDeep = z;
-  mLimitPixelShallow = mImage.get_width() - z - 1;
-  z = mImage.get_width() / 2;
-  for(y = 0; y < mImage.get_height(); ++y) {
+  return result;
+}
+
+int Image::calculatePixelLimitY(double const aAngle) {
+  Ray ray;
+  ray.mStart = mPinhole;
+  int z = mImage.get_width() / 2;
+  int result;
+  double minDist = std::numeric_limits<double>::max();
+  for(int y = 0; y < mImage.get_height(); ++y) {
     Vertex subpixel = mCenter + mPixelSize * (
       (z - mBiasZ) * mInPlaneZ +
       (y - mBiasY) * mInPlaneY);
     ray.mDirection = (mPinhole - subpixel).normalized();
     auto angleY = std::atan(ray.mDirection(1) / ray.mDirection(0));
-    if(angleY > mLimitAngleBottom) {
-      break;
+    auto now = std::abs(angleY - aAngle);
+    if(now < minDist) {
+      minDist = now;
+      result = y;
     }
     else {} // nothing to do
   }
-  mLimitPixelBottom = y;  // surface rendering goes from 0 to this
+  return result;
 }
 
 int Image::calculateMirrorHeight() {
@@ -270,13 +289,16 @@ void Image::calculateMirage(int const aMirrorHeight) {
             }
           }
           uint8_t color = static_cast<uint8_t>(::round(sum / static_cast<double>(mSubSample * mSubSample)));
-          color = (color == csColorMirror ? csColorBlack : color);
+          color = (color < csColorBlack ? csColorBlack : color);
           if(y == aMirrorHeight && mMirrorAcross) {
             color = csColorMirror;
           }
           else {} // nothing to do
           if(z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent) {
-            if(y == aMirrorHeight) {
+            if(y == mLimitPixelBaseTop || y == mLimitPixelBaseBottom) {
+              color = csColorBase;
+            }
+            else if(y == aMirrorHeight) {
               color = csColorMirror;
             }
             else if(mGridSpacing > 1u && y % mGridSpacing == 0) {

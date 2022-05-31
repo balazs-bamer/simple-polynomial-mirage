@@ -80,7 +80,8 @@ private:
   static constexpr uint32_t csSurfSubsample   =      5u;
   static constexpr uint32_t csColorGrid       =    111u;
   static constexpr uint32_t csColorMirror     =      0u;
-  static constexpr uint32_t csColorBlack      =      1u;
+  static constexpr uint32_t csColorBase       =      1u;
+  static constexpr uint32_t csColorBlack      =      2u;
 
   uint32_t const  mRestrictCpu;
   std::vector<uint8_t>         mBuffer;
@@ -105,9 +106,11 @@ private:
   std::optional<double>  mLimitAngleBottom;
   std::optional<double>  mLimitAngleDeep;
   std::optional<double>  mLimitAngleShallow;
-  int                    mLimitPixelBottom;
+  int                    mLimitPixelBaseTop;
+  int                    mLimitPixelBaseBottom;
   int                    mLimitPixelDeep;
   int                    mLimitPixelShallow;
+  int                    mLimitPixelBottom;
   double                 mPixelSize;
   double                 mBiasZ;
   double                 mBiasY;
@@ -120,7 +123,8 @@ public:
 private:
   void calculateAngleLimits(Eikonal::Temperature const aWhich);
   void calculateBiases();
-  void calculatePixelLimits();
+  int calculatePixelLimitY(double const aAngle);
+  int calculatePixelLimitZ(double const aAngle);
   int calculateMirrorHeight();
   void calculateMirage(int const aMirrorHeight);
   void renderSurface(char const * const aNameSurf);
