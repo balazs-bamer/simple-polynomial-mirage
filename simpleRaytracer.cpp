@@ -90,7 +90,7 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mBiasSub((aPara.mSubsample - 1.0) / 2.0)
   , mGridIndent(std::max(0.0, std::min(1.0, aPara.mGridIndent)))
   , mGridSpacing(aPara.mGridSpacing)
-  , mMirrorAcross(aPara.mMirrorAcross)
+  , mMarkAcross(aPara.mMarkAcross)
   , mMedium(aMedium) {
   mPalette[csColorMirror] = png::color(255u, 0u, 0u);
   mPalette[csColorBase] = png::color(0u, 255u, 0u);
@@ -271,6 +271,8 @@ void Image::calculateMirage(int const aMirrorHeight) {
       Medium localMedium(mMedium);
       auto yBegin = i * mImage.get_height() / nCpus;
       auto yEnd = (i + 1u) * mImage.get_height() / nCpus;
+      auto dashLength = std::max(static_cast<int>(mImage.get_width() / csDashCount), 2);
+      auto dashLimit  = dashLength / 2;
       for(int y = yBegin; y < yEnd; ++y) {
         for(int z = 0; z < mImage.get_width(); ++z) {
           double sum = 0.0;
@@ -290,18 +292,19 @@ void Image::calculateMirage(int const aMirrorHeight) {
           }
           uint8_t color = static_cast<uint8_t>(::round(sum / static_cast<double>(mSubSample * mSubSample)));
           color = (color < csColorBlack ? csColorBlack : color);
-          if(y == aMirrorHeight && mMirrorAcross) {
-            color = csColorMirror;
+          if(mMarkAcross || z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent) {
+            if(y == aMirrorHeight) {
+              color = ((z % dashLength < dashLimit) ? csColorMirror : color);
+            }
+            else {} // nothing to do
+            if(y == mLimitPixelBaseTop || y == mLimitPixelBaseBottom) {
+              color = ((z % dashLength >= dashLimit) ? csColorBase : color);
+            }
+            else {} // nothing to do
           }
           else {} // nothing to do
           if(z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent) {
-            if(y == mLimitPixelBaseTop || y == mLimitPixelBaseBottom) {
-              color = csColorBase;
-            }
-            else if(y == aMirrorHeight) {
-              color = csColorMirror;
-            }
-            else if(mGridSpacing > 1u && y % mGridSpacing == 0) {
+            if(mGridSpacing > 1u && y % mGridSpacing == 0) {
               color = csColorGrid;
             }
             else {} // nothing to do

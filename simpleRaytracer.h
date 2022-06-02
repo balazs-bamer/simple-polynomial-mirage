@@ -66,7 +66,7 @@ public:
     uint32_t mGridColor;
     double   mGridIndent;
     uint32_t mGridSpacing;
-    bool     mMirrorAcross;
+    bool     mMarkAcross;
   };
 
 private:
@@ -82,6 +82,7 @@ private:
   static constexpr uint32_t csColorMirror     =      0u;
   static constexpr uint32_t csColorBase       =      1u;
   static constexpr uint32_t csColorBlack      =      2u;
+  static constexpr int      csDashCount       =     20;
 
   uint32_t const  mRestrictCpu;
   std::vector<uint8_t>         mBuffer;
@@ -99,7 +100,7 @@ private:
   double   const  mBiasSub;
   double   const  mGridIndent;
   uint32_t const  mGridSpacing;
-  bool     const  mMirrorAcross;
+  bool     const  mMarkAcross;
 
   Medium                &mMedium;
   std::optional<double>  mLimitAngleTop;
