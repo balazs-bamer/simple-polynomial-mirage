@@ -117,8 +117,8 @@ void Image::process(char const * const aNameSurf, char const * const aNameOut) {
   calculateAngleLimits(Eikonal::Temperature::cMinimum);
   calculateAngleLimits(Eikonal::Temperature::cMaximum);
   calculateAngleLimits(Eikonal::Temperature::cAmbient);
-  mLimitPixelDeep       = calculatePixelLimitY(*mLimitAngleDeep);
-  mLimitPixelShallow    = calculatePixelLimitY(*mLimitAngleShallow);
+  mLimitPixelDeep       = calculatePixelLimitZ(*mLimitAngleDeep);
+  mLimitPixelShallow    = calculatePixelLimitZ(*mLimitAngleShallow);
   int mirrorHeight = calculateMirrorHeight();
   calculateMirage(mirrorHeight);
   if(*aNameSurf != 0) {
