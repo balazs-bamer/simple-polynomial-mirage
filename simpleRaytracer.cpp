@@ -16,6 +16,11 @@ Object::Object(char const * const aName, double const aDispX, double const aLift
   double shift = (std::isinf(aEarthRadius) ? 0.0 : std::sqrt(aEarthRadius * aEarthRadius - mX * mX) - aEarthRadius);
   mMinY += shift;
   mMaxY += shift;
+  std::cout << mDy << ' ' << mDz << '\n';
+  std::cout << "minY: " << mMinY << '\n';
+  std::cout << "maxY: " << mMaxY << '\n';
+  std::cout << "minZ: " << mMinZ << '\n';
+  std::cout << "maxZ: " << mMaxZ << '\n';
 }
 
 Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex const& aLowerCorner)
@@ -27,6 +32,11 @@ Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex cons
   , mMinZ(aLowerCorner(2))
   , mMaxZ(aUpperCorner(2))
   , mX(aLowerCorner(0)) {
+  std::cout << mDy << ' ' << mDz << '\n';
+  std::cout << "minY: " << mMinY << '\n';
+  std::cout << "maxY: " << mMaxY << '\n';
+  std::cout << "minZ: " << mMinZ << '\n';
+  std::cout << "maxZ: " << mMaxZ << '\n';
 }
 
 bool Object::hasPixel(Vertex const &aHit) const {
@@ -102,25 +112,48 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
 
 void Image::process(char const * const aNameSurf, char const * const aNameOut) {
   calculateAngleLimits(Eikonal::Temperature::cAmbient);
-  // TODO save image bottom here
   calculateAngleLimits(Eikonal::Temperature::cBase);
   calculateAngleLimits(Eikonal::Temperature::cMinimum);
   calculateAngleLimits(Eikonal::Temperature::cMaximum);
   calculateBiases(*aNameSurf != 0);
+std::cout << "l angleTop:     " <<  *mLimitAngleTop << '\n';
+std::cout << "l angleBottom:  " <<  *mLimitAngleBottom << '\n';
+std::cout << "l angleDeep:     " <<  *mLimitAngleDeep << '\n';
+std::cout << "l angleShallow:  " << *mLimitAngleShallow << '\n';
   mLimitAngleTop.reset();
   mLimitAngleBottom.reset();
-  mLimitAngleDeep.reset();
-  mLimitAngleShallow.reset();
+  calculateAngleLimits(Eikonal::Temperature::cAmbient);
+  mLimitPixelBottom     = calculatePixelLimitY(*mLimitAngleBottom);
+std::cout << "a angleBottom:  " <<  *mLimitAngleBottom << '\n';
+std::cout << "bottom:     " << mLimitPixelBottom << '\n';
+  mLimitAngleTop.reset();
+  mLimitAngleBottom.reset();
   calculateAngleLimits(Eikonal::Temperature::cBase);
+std::cout << "b angleTop:  " <<  *mLimitAngleTop << '\n';
+std::cout << "b angleBottom:  " <<  *mLimitAngleBottom << '\n';
+std::cout << "b angleBottomSurf:  " <<  mLimitAngleBottomSurf << '\n';
   mLimitPixelBaseTop        = calculatePixelLimitY(*mLimitAngleTop);
   mLimitPixelBaseBottom     = calculatePixelLimitY(*mLimitAngleBottom);
   mLimitPixelBaseBottomSurf = calculatePixelLimitY(mLimitAngleBottomSurf);
   calculateAngleLimits(Eikonal::Temperature::cMinimum);
   calculateAngleLimits(Eikonal::Temperature::cMaximum);
   calculateAngleLimits(Eikonal::Temperature::cAmbient);
+std::cout << "l angleTop:     " <<  *mLimitAngleTop << '\n';
+std::cout << "l angleBottom:  " <<  *mLimitAngleBottom << '\n';
+std::cout << "l angleDeep:     " <<  *mLimitAngleDeep << '\n';
+std::cout << "l angleShallow:  " << *mLimitAngleShallow << '\n';
   mLimitPixelDeep       = calculatePixelLimitZ(*mLimitAngleDeep);
   mLimitPixelShallow    = calculatePixelLimitZ(*mLimitAngleShallow);
   int mirrorHeight = calculateMirrorHeight();
+std::cout << "baseTop:        " << mLimitPixelBaseTop << '\n';
+std::cout << "baseBottom:     " << mLimitPixelBaseBottom << '\n';
+std::cout << "baseBottomSurf: " << mLimitPixelBaseBottomSurf << '\n';
+std::cout << "deep:           " << mLimitPixelDeep << '\n';
+std::cout << "shallow:        " << mLimitPixelShallow << '\n';
+std::cout << "resX:           " << mImage.get_width() << '\n';
+std::cout << "resY:           " << mImage.get_height() << '\n';
+std::cout << "biasZ:          " << mBiasZ << '\n';
+std::cout << "biasY:          " << mBiasY << '\n';
   calculateMirage(mirrorHeight);
   if(*aNameSurf != 0) {
     renderSurface(aNameSurf);
@@ -146,7 +179,6 @@ void Image::calculateAngleLimits(Eikonal::Temperature const aWhich) {
         return mMedium.hits(ray);
       });
       critical += (thisHit ? csLimitEpsilon : 0.0);
-//      std::cout << (thisHit ? "enter: " : "leave: ") << std::setprecision(10) << (critical * 180.0 / cgPi) << '\n';
       limitAnglePrev = mLimitAngleTop.value_or(0.0);
       auto tmp = critical * csLimitAngleBoost;
       mLimitAngleTop = (mLimitAngleTop ? std::max(*mLimitAngleTop, tmp) : tmp);
@@ -172,12 +204,13 @@ void Image::calculateAngleLimits(Eikonal::Temperature const aWhich) {
 
 void Image::calculateBiases(bool const aRenderSurface) {
   auto film = Plane::createFrom2vectors1point(mInPlaneY, mInPlaneZ, mCenter);
-  auto angleDiff   = *mLimitAngleTop + *mLimitAngleShallow - *mLimitAngleBottom - *mLimitAngleDeep;
-  auto angleTop     = *mLimitAngleTop     + angleDiff * mBorderFactor;
-  auto angleBottom  = *mLimitAngleBottom  - angleDiff * mBorderFactor * (aRenderSurface ? csRenderSurfaceFactor : 1.0);
-  auto mLimitAngleBottomSurf  = *mLimitAngleBottom  - angleDiff * mBorderFactor * (aRenderSurface - 1.0);
-  auto angleDeep    = *mLimitAngleDeep    - angleDiff * mBorderFactor;
-  auto angleShallow = *mLimitAngleShallow + angleDiff * mBorderFactor;
+  auto angleDiff    = *mLimitAngleTop + *mLimitAngleShallow - *mLimitAngleBottom - *mLimitAngleDeep;
+
+  auto angleTop               = *mLimitAngleTop     + angleDiff * mBorderFactor;
+  auto angleBottom            = *mLimitAngleBottom  - angleDiff * mBorderFactor * (aRenderSurface ? csRenderSurfaceFactor : 1.0);
+       mLimitAngleBottomSurf  = *mLimitAngleBottom  - angleDiff * mBorderFactor * (csRenderSurfaceFactor - 1.0);
+  auto angleDeep              = *mLimitAngleDeep    - angleDiff * mBorderFactor;
+  auto angleShallow           = *mLimitAngleShallow + angleDiff * mBorderFactor;
 
   auto limitTop     = film.intersect(mPinhole, -getDirectionInXy(angleTop)).mPoint;
   auto limitBottom  = film.intersect(mPinhole, -getDirectionInXy(angleBottom)).mPoint;
@@ -187,6 +220,7 @@ void Image::calculateBiases(bool const aRenderSurface) {
   auto height = (limitTop - limitBottom).norm();
   auto width  = (limitDeep - limitShallow).norm();
   auto resolutionY = static_cast<uint32_t>(std::round(height / width * mResolutionX));
+  resolutionY += resolutionY % 2u; // To allow an MPEG converter run on the output.
 
   mBiasZ = (mResolutionX - 1.0) * (mCenter - limitDeep).norm() / width;
   mBiasY = (resolutionY - 1.0) * (mCenter - limitBottom).norm() / height;
@@ -203,7 +237,7 @@ int Image::calculatePixelLimitZ(double const aAngle) {
   int y = mImage.get_height() / 2;
   int result;
   double minDist = std::numeric_limits<double>::max();
-  for(int z = 0; z < mImage.get_width() / 2; ++z) {
+  for(int z = 0; z < mImage.get_width(); ++z) {
     Vertex subpixel = mCenter + mPixelSize * (
       (z - mBiasZ) * mInPlaneZ +
       (y - mBiasY) * mInPlaneY);
@@ -350,7 +384,7 @@ void Image::renderSurface(char const * const aNameSurf) {
 
   Object surface(aNameSurf, upperCorner, lowerCorner);
 
-  for(int y = 0; y < mLimitPixelBottom; ++y) {
+  for(int y = mLimitPixelBaseBottomSurf; y < mLimitPixelBottom; ++y) {
     for(int z = mLimitPixelDeep; z < mLimitPixelShallow; ++z) {
       double sum = 0.0;
       for(uint32_t i = 0; i < csSurfSubsample; ++i) {
