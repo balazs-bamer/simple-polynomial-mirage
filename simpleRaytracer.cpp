@@ -20,7 +20,7 @@ Object::Object(char const * const aName, double const aDispX, double const aLift
   std::cout << "minY: " << mMinY << '\n';
   std::cout << "maxY: " << mMaxY << '\n';
   std::cout << "minZ: " << mMinZ << '\n';
-  std::cout << "maxZ: " << mMaxZ << '\n';
+  std::cout << "maxZ: " <<  mMaxZ << '\n';
 }
 
 Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex const& aLowerCorner)
