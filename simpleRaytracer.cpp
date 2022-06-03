@@ -20,9 +20,9 @@ Object::Object(char const * const aName, double const aDispX, double const aLift
 
 Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex const& aLowerCorner)
   : mImage(aName)
-  , mDy((aUpperCorner(1) - aLowerCorner(1)) / mImage.get_height())
+  , mDy((aUpperCorner(2) - aLowerCorner(2)) / mImage.get_width())
   , mDz((aUpperCorner(2) - aLowerCorner(2)) / mImage.get_width())
-  , mMinY(aLowerCorner(1))
+  , mMinY(aUpperCorner(1) - (aUpperCorner(1) - aLowerCorner(1)) * mImage.get_width() / mImage.get_height())
   , mMaxY(aUpperCorner(1))
   , mMinZ(aLowerCorner(2))
   , mMaxZ(aUpperCorner(2))
@@ -106,14 +106,15 @@ void Image::process(char const * const aNameSurf, char const * const aNameOut) {
   calculateAngleLimits(Eikonal::Temperature::cBase);
   calculateAngleLimits(Eikonal::Temperature::cMinimum);
   calculateAngleLimits(Eikonal::Temperature::cMaximum);
-  calculateBiases();
+  calculateBiases(*aNameSurf != 0);
   mLimitAngleTop.reset();
   mLimitAngleBottom.reset();
   mLimitAngleDeep.reset();
   mLimitAngleShallow.reset();
   calculateAngleLimits(Eikonal::Temperature::cBase);
-  mLimitPixelBaseTop    = calculatePixelLimitY(*mLimitAngleTop);
-  mLimitPixelBaseBottom = calculatePixelLimitY(*mLimitAngleBottom);
+  mLimitPixelBaseTop        = calculatePixelLimitY(*mLimitAngleTop);
+  mLimitPixelBaseBottom     = calculatePixelLimitY(*mLimitAngleBottom);
+  mLimitPixelBaseBottomSurf = calculatePixelLimitY(mLimitAngleBottomSurf);
   calculateAngleLimits(Eikonal::Temperature::cMinimum);
   calculateAngleLimits(Eikonal::Temperature::cMaximum);
   calculateAngleLimits(Eikonal::Temperature::cAmbient);
@@ -169,11 +170,12 @@ void Image::calculateAngleLimits(Eikonal::Temperature const aWhich) {
   mLimitAngleShallow = -*mLimitAngleDeep;
 }
 
-void Image::calculateBiases() {
+void Image::calculateBiases(bool const aRenderSurface) {
   auto film = Plane::createFrom2vectors1point(mInPlaneY, mInPlaneZ, mCenter);
   auto angleDiff   = *mLimitAngleTop + *mLimitAngleShallow - *mLimitAngleBottom - *mLimitAngleDeep;
   auto angleTop     = *mLimitAngleTop     + angleDiff * mBorderFactor;
-  auto angleBottom  = *mLimitAngleBottom  - angleDiff * mBorderFactor;
+  auto angleBottom  = *mLimitAngleBottom  - angleDiff * mBorderFactor * (aRenderSurface ? csRenderSurfaceFactor : 1.0);
+  auto mLimitAngleBottomSurf  = *mLimitAngleBottom  - angleDiff * mBorderFactor * (aRenderSurface - 1.0);
   auto angleDeep    = *mLimitAngleDeep    - angleDiff * mBorderFactor;
   auto angleShallow = *mLimitAngleShallow + angleDiff * mBorderFactor;
 
@@ -336,7 +338,7 @@ void Image::renderSurface(char const * const aNameSurf) {
   Ray ray;
   ray.mStart = pinhole;
 
-  Vertex pixel = mPixelSize * ((mLimitPixelDeep - mBiasZ) * mInPlaneZ + (mLimitPixelBottom - mBiasY) * inPlaneY);
+  Vertex pixel = mPixelSize * ((mLimitPixelDeep - mBiasZ) * mInPlaneZ + (mLimitPixelBaseBottomSurf - mBiasY) * inPlaneY);
   ray.mDirection = (pinhole - pixel).normalized();
   auto intersection = plane.intersect(ray);
   auto upperCorner = intersection.mPoint;

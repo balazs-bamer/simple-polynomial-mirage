@@ -1,6 +1,8 @@
 ﻿#ifndef SIMPLERAYTRACER_H
 #define SIMPLERAYTRACER_H
 
+#define __FreeBSD__ 12 // Hack to let png++ compile under cygwin
+
 #include "RungeKuttaRayBending.h"
 #include "3dGeomUtil.h"
 #include "png.hpp"
@@ -70,19 +72,20 @@ public:
   };
 
 private:
-  static constexpr double   csLimitHigh       =  cgPi / 33.3;
-  static constexpr double   csLimitLow        = -cgPi / 33.3;
-  static constexpr double   csLimitDelta      =  cgPi / 33333.3;
-  static constexpr double   csLimitEpsilon    =  cgPi / 1234567.8;
-  static constexpr double   csLimitAngleBoost =  1.001;
-  static constexpr double   csSurfaceDistance =   1000; // meters
-  static constexpr double   csSurfPinholeDist =      1; // meters
-  static constexpr uint32_t csSurfSubsample   =      5u;
-  static constexpr uint32_t csColorGrid       =    111u;
-  static constexpr uint32_t csColorMirror     =      0u;
-  static constexpr uint32_t csColorBase       =      1u;
-  static constexpr uint32_t csColorBlack      =      2u;
-  static constexpr int      csDashCount       =     20;
+  static constexpr double   csLimitHigh           =  cgPi / 33.3;
+  static constexpr double   csLimitLow            = -cgPi / 33.3;
+  static constexpr double   csLimitDelta          =  cgPi / 33333.3;
+  static constexpr double   csLimitEpsilon        =  cgPi / 1234567.8;
+  static constexpr double   csLimitAngleBoost     =      1.001;
+  static constexpr double   csRenderSurfaceFactor =      2.0;
+  static constexpr double   csSurfaceDistance     =   1000; // meters
+  static constexpr double   csSurfPinholeDist     =      1; // meters
+  static constexpr uint32_t csSurfSubsample       =      5u;
+  static constexpr uint32_t csColorGrid           =    111u;
+  static constexpr uint32_t csColorMirror         =      0u;
+  static constexpr uint32_t csColorBase           =      1u;
+  static constexpr uint32_t csColorBlack          =      2u;
+  static constexpr int      csDashCount           =     20;
 
   uint32_t const  mRestrictCpu;
   std::vector<uint8_t>         mBuffer;
@@ -107,8 +110,10 @@ private:
   std::optional<double>  mLimitAngleBottom;
   std::optional<double>  mLimitAngleDeep;
   std::optional<double>  mLimitAngleShallow;
+  double                 mLimitAngleBottomSurf;
   int                    mLimitPixelBaseTop;
   int                    mLimitPixelBaseBottom;
+  int                    mLimitPixelBaseBottomSurf;
   int                    mLimitPixelDeep;
   int                    mLimitPixelShallow;
   int                    mLimitPixelBottom;
@@ -123,7 +128,7 @@ public:
 
 private:
   void calculateAngleLimits(Eikonal::Temperature const aWhich);
-  void calculateBiases();
+  void calculateBiases(bool const aRenderSurface);
   int calculatePixelLimitY(double const aAngle);
   int calculatePixelLimitZ(double const aAngle);
   int calculateMirrorHeight();
