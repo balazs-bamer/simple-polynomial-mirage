@@ -16,11 +16,6 @@ Object::Object(char const * const aName, double const aDispX, double const aLift
   double shift = (std::isinf(aEarthRadius) ? 0.0 : std::sqrt(aEarthRadius * aEarthRadius - mX * mX) - aEarthRadius);
   mMinY += shift;
   mMaxY += shift;
-  std::cout << mDy << ' ' << mDz << '\n';
-  std::cout << "minY: " << mMinY << '\n';
-  std::cout << "maxY: " << mMaxY << '\n';
-  std::cout << "minZ: " << mMinZ << '\n';
-  std::cout << "maxZ: " <<  mMaxZ << '\n';
 }
 
 Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex const& aLowerCorner)
@@ -32,11 +27,6 @@ Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex cons
   , mMinZ(aLowerCorner(2))
   , mMaxZ(aUpperCorner(2))
   , mX(aLowerCorner(0)) {
-  std::cout << mDy << ' ' << mDz << '\n';
-  std::cout << "minY: " << mMinY << '\n';
-  std::cout << "maxY: " << mMaxY << '\n';
-  std::cout << "minZ: " << mMinZ << '\n';
-  std::cout << "maxZ: " << mMaxZ << '\n';
 }
 
 bool Object::hasPixel(Vertex const &aHit) const {
@@ -116,44 +106,22 @@ void Image::process(char const * const aNameSurf, char const * const aNameOut) {
   calculateAngleLimits(Eikonal::Temperature::cMinimum);
   calculateAngleLimits(Eikonal::Temperature::cMaximum);
   calculateBiases(*aNameSurf != 0);
-std::cout << "l angleTop:     " <<  *mLimitAngleTop << '\n';
-std::cout << "l angleBottom:  " <<  *mLimitAngleBottom << '\n';
-std::cout << "l angleDeep:     " <<  *mLimitAngleDeep << '\n';
-std::cout << "l angleShallow:  " << *mLimitAngleShallow << '\n';
   mLimitAngleTop.reset();
   mLimitAngleBottom.reset();
   calculateAngleLimits(Eikonal::Temperature::cAmbient);
   mLimitPixelBottom     = calculatePixelLimitY(*mLimitAngleBottom);
-std::cout << "a angleBottom:  " <<  *mLimitAngleBottom << '\n';
-std::cout << "bottom:     " << mLimitPixelBottom << '\n';
   mLimitAngleTop.reset();
   mLimitAngleBottom.reset();
   calculateAngleLimits(Eikonal::Temperature::cBase);
-std::cout << "b angleTop:  " <<  *mLimitAngleTop << '\n';
-std::cout << "b angleBottom:  " <<  *mLimitAngleBottom << '\n';
-std::cout << "b angleBottomSurf:  " <<  mLimitAngleBottomSurf << '\n';
   mLimitPixelBaseTop        = calculatePixelLimitY(*mLimitAngleTop);
   mLimitPixelBaseBottom     = calculatePixelLimitY(*mLimitAngleBottom);
   mLimitPixelBaseBottomSurf = calculatePixelLimitY(mLimitAngleBottomSurf);
   calculateAngleLimits(Eikonal::Temperature::cMinimum);
   calculateAngleLimits(Eikonal::Temperature::cMaximum);
   calculateAngleLimits(Eikonal::Temperature::cAmbient);
-std::cout << "l angleTop:     " <<  *mLimitAngleTop << '\n';
-std::cout << "l angleBottom:  " <<  *mLimitAngleBottom << '\n';
-std::cout << "l angleDeep:     " <<  *mLimitAngleDeep << '\n';
-std::cout << "l angleShallow:  " << *mLimitAngleShallow << '\n';
   mLimitPixelDeep       = calculatePixelLimitZ(*mLimitAngleDeep);
   mLimitPixelShallow    = calculatePixelLimitZ(*mLimitAngleShallow);
   int mirrorHeight = calculateMirrorHeight();
-std::cout << "baseTop:        " << mLimitPixelBaseTop << '\n';
-std::cout << "baseBottom:     " << mLimitPixelBaseBottom << '\n';
-std::cout << "baseBottomSurf: " << mLimitPixelBaseBottomSurf << '\n';
-std::cout << "deep:           " << mLimitPixelDeep << '\n';
-std::cout << "shallow:        " << mLimitPixelShallow << '\n';
-std::cout << "resX:           " << mImage.get_width() << '\n';
-std::cout << "resY:           " << mImage.get_height() << '\n';
-std::cout << "biasZ:          " << mBiasZ << '\n';
-std::cout << "biasY:          " << mBiasY << '\n';
   calculateMirage(mirrorHeight);
   if(*aNameSurf != 0) {
     renderSurface(aNameSurf);
