@@ -52,7 +52,7 @@ uint8_t Object::getPixel(Vertex const &aHit) const {
 //std::cout << "h " << aHit(2) << ' ' << aHit(1) << "  /  " << x << ' ' << y << "  -  " << result << '\n';
   }
   else {
-//std::cout << "M " << aHit(2) << ' ' << aHit(1) <<  "  /  " << x << ' ' << y <<'\n';
+// std::cout << "M " << aHit(2) << ' ' << aHit(1) <<  "  /  " << x << ' ' << y <<'\n';
 } // Nothing to do
   return result;
 }
