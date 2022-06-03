@@ -49,8 +49,11 @@ uint8_t Object::getPixel(Vertex const &aHit) const {
   int32_t y = static_cast<int32_t>(::round(mImage.get_height() - (aHit(1) - mMinY) / mDy - 1u));
   if(x >= 0 && y >= 0 && x < mImage.get_width() && y < mImage.get_height()) {
     result = mImage.get_pixel(x, y);
+//std::cout << "h " << aHit(2) << ' ' << aHit(1) << "  /  " << x << ' ' << y << "  -  " << result << '\n';
   }
-  else {} // Nothing to do
+  else {
+//std::cout << "M " << aHit(2) << ' ' << aHit(1) <<  "  /  " << x << ' ' << y <<'\n';
+} // Nothing to do
   return result;
 }
 
@@ -156,6 +159,7 @@ std::cout << "biasY:          " << mBiasY << '\n';
     renderSurface(aNameSurf);
   }
   else {} // nothing to do
+std::cout << "errfdddddddddddddddddddddddddd\n";
   int mirrorHeight = calculateMirrorHeight();
   calculateMirage();
   drawMarks(mirrorHeight);

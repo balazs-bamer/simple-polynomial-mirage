@@ -78,7 +78,7 @@ private:
   static constexpr double   csRenderSurfaceFactor =      2.0;
   static constexpr double   csSurfaceDistance     =   1000; // meters
   static constexpr double   csSurfPinholeDist     =      1; // meters
-  static constexpr uint32_t csSurfSubsample       =      5u;
+  static constexpr uint32_t csSurfSubsample       =      1u; //5u;
   static constexpr uint8_t  csColorVoid           =      0u;
   static constexpr uint8_t  csColorMirror         =      1u;
   static constexpr uint8_t  csColorBase           =      2u;
