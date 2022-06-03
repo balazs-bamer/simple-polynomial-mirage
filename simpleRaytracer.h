@@ -65,9 +65,7 @@ public:
     double   mBorderFactor;
     uint32_t mResolutionX;
     uint32_t mSubsample;
-    uint32_t mGridColor;
-    double   mGridIndent;
-    uint32_t mGridSpacing;
+    double   mMarkIndent;
     bool     mMarkAcross;
   };
 
@@ -81,10 +79,10 @@ private:
   static constexpr double   csSurfaceDistance     =   1000; // meters
   static constexpr double   csSurfPinholeDist     =      1; // meters
   static constexpr uint32_t csSurfSubsample       =      5u;
-  static constexpr uint32_t csColorGrid           =    111u;
-  static constexpr uint32_t csColorMirror         =      0u;
-  static constexpr uint32_t csColorBase           =      1u;
-  static constexpr uint32_t csColorBlack          =      2u;
+  static constexpr uint8_t  csColorVoid           =      0u;
+  static constexpr uint8_t  csColorMirror         =      1u;
+  static constexpr uint8_t  csColorBase           =      2u;
+  static constexpr uint8_t  csColorBlack          =      3u;
   static constexpr int      csDashCount           =     20;
 
   uint32_t const  mRestrictCpu;
@@ -101,8 +99,7 @@ private:
   Vector   const  mInPlaneY;
   Vertex   const  mPinhole;
   double   const  mBiasSub;
-  double   const  mGridIndent;
-  uint32_t const  mGridSpacing;
+  double   const  mMarkIndent;
   bool     const  mMarkAcross;
 
   Medium                &mMedium;
@@ -132,8 +129,9 @@ private:
   int calculatePixelLimitY(double const aAngle);
   int calculatePixelLimitZ(double const aAngle);
   int calculateMirrorHeight();
-  void calculateMirage(int const aMirrorHeight);
   void renderSurface(char const * const aNameSurf);
+  void calculateMirage();
+  void drawMarks(int const aMirrorHeight);
 
   static Vector getDirectionInXy(double const aAngle) { return Vector(std::cos(aAngle), std::sin(aAngle), 0.0); }
   static Vector getDirectionInXz(double const aAngle) { return Vector(std::cos(aAngle), 0.0, std::sin(aAngle)); }

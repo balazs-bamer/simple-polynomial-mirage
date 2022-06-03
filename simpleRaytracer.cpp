@@ -16,7 +16,7 @@ Object::Object(char const * const aName, double const aDispX, double const aLift
   double shift = (std::isinf(aEarthRadius) ? 0.0 : std::sqrt(aEarthRadius * aEarthRadius - mX * mX) - aEarthRadius);
   mMinY += shift;
   mMaxY += shift;
-  std::cout << mDy << ' ' << mDz << '\n';
+std::cout << mDy << ' ' << mDz << '\n';
   std::cout << "minY: " << mMinY << '\n';
   std::cout << "maxY: " << mMaxY << '\n';
   std::cout << "minZ: " << mMinZ << '\n';
@@ -32,7 +32,7 @@ Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex cons
   , mMinZ(aLowerCorner(2))
   , mMaxZ(aUpperCorner(2))
   , mX(aLowerCorner(0)) {
-  std::cout << mDy << ' ' << mDz << '\n';
+std::cout << mDy << ' ' << mDz << '\n';
   std::cout << "minY: " << mMinY << '\n';
   std::cout << "maxY: " << mMaxY << '\n';
   std::cout << "minZ: " << mMinZ << '\n';
@@ -98,8 +98,7 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mInPlaneY(mNormal.cross(mInPlaneZ))
   , mPinhole(mCenter + csSurfPinholeDist * mNormal)
   , mBiasSub((aPara.mSubsample - 1.0) / 2.0)
-  , mGridIndent(std::max(0.0, std::min(1.0, aPara.mGridIndent)))
-  , mGridSpacing(aPara.mGridSpacing)
+  , mMarkIndent(std::max(0.0, std::min(1.0, aPara.mMarkIndent)))
   , mMarkAcross(aPara.mMarkAcross)
   , mMedium(aMedium) {
   mPalette[csColorMirror] = png::color(255u, 0u, 0u);
@@ -144,7 +143,6 @@ std::cout << "l angleDeep:     " <<  *mLimitAngleDeep << '\n';
 std::cout << "l angleShallow:  " << *mLimitAngleShallow << '\n';
   mLimitPixelDeep       = calculatePixelLimitZ(*mLimitAngleDeep);
   mLimitPixelShallow    = calculatePixelLimitZ(*mLimitAngleShallow);
-  int mirrorHeight = calculateMirrorHeight();
 std::cout << "baseTop:        " << mLimitPixelBaseTop << '\n';
 std::cout << "baseBottom:     " << mLimitPixelBaseBottom << '\n';
 std::cout << "baseBottomSurf: " << mLimitPixelBaseBottomSurf << '\n';
@@ -154,11 +152,13 @@ std::cout << "resX:           " << mImage.get_width() << '\n';
 std::cout << "resY:           " << mImage.get_height() << '\n';
 std::cout << "biasZ:          " << mBiasZ << '\n';
 std::cout << "biasY:          " << mBiasY << '\n';
-  calculateMirage(mirrorHeight);
   if(*aNameSurf != 0) {
     renderSurface(aNameSurf);
   }
   else {} // nothing to do
+  int mirrorHeight = calculateMirrorHeight();
+  calculateMirage();
+  drawMarks(mirrorHeight);
   mImage.write(aNameOut);
 }
 
@@ -227,7 +227,7 @@ void Image::calculateBiases(bool const aRenderSurface) {
   mPixelSize = (width / mResolutionX + height / resolutionY) / 2.0;
 
   mBuffer.reserve(mResolutionX * resolutionY);
-  mBuffer.insert(mBuffer.begin(), mResolutionX * resolutionY, csColorBlack);
+  mBuffer.insert(mBuffer.begin(), mResolutionX * resolutionY, csColorVoid);
   mImage.resize(mResolutionX, resolutionY);
 }
 
@@ -296,71 +296,6 @@ int Image::calculateMirrorHeight() {
   return result;
 }
 
-void Image::calculateMirage(int const aMirrorHeight) {
-  uint32_t nCpus = std::thread::hardware_concurrency();
-  nCpus -= (nCpus <= mRestrictCpu ? nCpus - 1u : mRestrictCpu);
-  std::vector<std::thread> threads(nCpus);
-  for (uint32_t i = 0u; i < nCpus; ++i) {
-    threads[i] = std::thread([this, aMirrorHeight, nCpus, i] {
-      Ray ray;
-      ray.mStart = mPinhole;
-      Medium localMedium(mMedium);
-      auto yBegin = i * mImage.get_height() / nCpus;
-      auto yEnd = (i + 1u) * mImage.get_height() / nCpus;
-      auto dashLength = std::max(static_cast<int>(mImage.get_width() / csDashCount), 2);
-      auto dashLimit  = dashLength / 2;
-      for(int y = yBegin; y < yEnd; ++y) {
-        for(int z = 0; z < mImage.get_width(); ++z) {
-          double sum = 0.0;
-          for(uint32_t i = 0; i < mSubSample; ++i) {
-            for(uint32_t j = 0; j < mSubSample; ++j) {
-              Vertex subpixel = mCenter + mPixelSize * (
-                    (z - mBiasZ + mSsFactor * (i - mBiasSub)) * mInPlaneZ +
-                    (y - mBiasY + mSsFactor * (j - mBiasSub)) * mInPlaneY);
-              ray.mDirection = (mPinhole - subpixel).normalized();
-              auto angleY = std::atan(ray.mDirection(1) / ray.mDirection(0));
-              auto angleZ = std::atan(ray.mDirection(2) / ray.mDirection(0));
-              if(angleY > mLimitAngleBottom && angleY < mLimitAngleTop && angleZ > mLimitAngleDeep && angleZ < mLimitAngleShallow) {
-                sum += localMedium.trace(ray);
-              }
-              else {} // nothing to do
-            }
-          }
-          uint8_t color = static_cast<uint8_t>(::round(sum / static_cast<double>(mSubSample * mSubSample)));
-          color = (color < csColorBlack ? csColorBlack : color);
-          if(mMarkAcross || z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent) {
-            if(y == aMirrorHeight) {
-              color = ((z % dashLength < dashLimit) ? csColorMirror : color);
-            }
-            else {} // nothing to do
-            if(y == mLimitPixelBaseTop || y == mLimitPixelBaseBottom) {
-              color = ((z % dashLength >= dashLimit) ? csColorBase : color);
-            }
-            else {} // nothing to do
-          }
-          else {} // nothing to do
-          if(z < mLimitPixelDeep * mGridIndent || z > mImage.get_width() - mLimitPixelDeep * mGridIndent) {
-            if(mGridSpacing > 1u && y % mGridSpacing == 0) {
-              color = csColorGrid;
-            }
-            else {} // nothing to do
-          }
-          else {} // nothing to do
-          mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = color;
-        }
-      }
-    });
-  }
-  for (auto& t : threads) {
-    t.join();
-  }
-  for(int y = 0; y < mImage.get_height(); ++y) {
-    for(int z = 0; z < mImage.get_width(); ++z) {
-      mImage.set_pixel(z, y, mBuffer[y * mImage.get_width() + z]);
-    }
-  }
-}
-
 void Image::renderSurface(char const * const aNameSurf) {
   auto ssFactor = 1.0 / csSurfSubsample;
   Vector normal(1.0, 0.0, 0.0);
@@ -384,7 +319,7 @@ void Image::renderSurface(char const * const aNameSurf) {
 
   Object surface(aNameSurf, upperCorner, lowerCorner);
 
-  for(int y = mLimitPixelBaseBottomSurf; y < mLimitPixelBottom; ++y) {
+  for(int y = mLimitPixelBaseBottomSurf; y <= mLimitPixelBottom; ++y) {
     for(int z = mLimitPixelDeep; z < mLimitPixelShallow; ++z) {
       double sum = 0.0;
       for(uint32_t i = 0; i < csSurfSubsample; ++i) {
@@ -397,9 +332,81 @@ void Image::renderSurface(char const * const aNameSurf) {
           sum += surface.getPixel(intersection.mPoint);
         }
       }
-      uint8_t color = static_cast<uint8_t>(::round(sum / static_cast<double>(csSurfSubsample * csSurfSubsample)));
-      color = (color == csColorMirror ? csColorBlack : color);
+      uint8_t color = std::max(csColorBlack, static_cast<uint8_t>(::round(sum / static_cast<double>(csSurfSubsample * csSurfSubsample))));
       mImage.set_pixel(mImage.get_width() - z - 1u, mImage.get_height() - y - 1u, ::round(sum / static_cast<double>(csSurfSubsample * csSurfSubsample)));
     }
+  }
+}
+
+void Image::calculateMirage() {
+  uint32_t nCpus = std::thread::hardware_concurrency();
+  nCpus -= (nCpus <= mRestrictCpu ? nCpus - 1u : mRestrictCpu);
+  std::vector<std::thread> threads(nCpus);
+  for (uint32_t i = 0u; i < nCpus; ++i) {
+    threads[i] = std::thread([this, nCpus, i] {
+      Ray ray;
+      ray.mStart = mPinhole;
+      Medium localMedium(mMedium);
+      auto yBegin = i * mImage.get_height() / nCpus;
+      auto yEnd = (i + 1u) * mImage.get_height() / nCpus;
+      for(int y = yBegin; y < yEnd; ++y) {
+        for(int z = 0; z < mImage.get_width(); ++z) {
+          double sum = 0.0;
+          bool was = false;
+          for(uint32_t i = 0; i < mSubSample; ++i) {
+            for(uint32_t j = 0; j < mSubSample; ++j) {
+              Vertex subpixel = mCenter + mPixelSize * (
+                    (z - mBiasZ + mSsFactor * (i - mBiasSub)) * mInPlaneZ +
+                    (y - mBiasY + mSsFactor * (j - mBiasSub)) * mInPlaneY);
+              ray.mDirection = (mPinhole - subpixel).normalized();
+              auto angleY = std::atan(ray.mDirection(1) / ray.mDirection(0));
+              auto angleZ = std::atan(ray.mDirection(2) / ray.mDirection(0));
+              if(angleY > mLimitAngleBottom && angleY < mLimitAngleTop && angleZ > mLimitAngleDeep && angleZ < mLimitAngleShallow) {
+                was = true;
+                sum += localMedium.trace(ray);
+              }
+              else {} // nothing to do
+            }
+          }
+          uint8_t color = static_cast<uint8_t>(::round(sum / static_cast<double>(mSubSample * mSubSample)));
+          color = (color < csColorBlack ? csColorBlack : color);
+          mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = (was ? color : csColorVoid);
+        }
+      }
+    });
+  }
+  for (auto& t : threads) {
+    t.join();
+  }
+  for(int y = 0; y < mImage.get_height(); ++y) {
+    for(int z = 0; z < mImage.get_width(); ++z) {
+      auto color = mBuffer[y * mImage.get_width() + z];
+      if(color != csColorVoid) {
+        mImage.set_pixel(z, y, color);
+      }
+      else {} // nothing to do
+    }
+  }
+}
+
+void Image::drawMarks(int const aMirrorHeight) {
+  auto dashLength = std::max(static_cast<int>(mImage.get_width() / csDashCount), 2);
+  auto dashLimit  = dashLength / 2;
+  for(int z = 0; z < mImage.get_width(); ++z) {
+    if(mMarkAcross || z < mLimitPixelDeep * mMarkIndent || z > mImage.get_width() - mLimitPixelDeep * mMarkIndent) {
+      if(aMirrorHeight >= 0 && aMirrorHeight < mImage.get_width() && (z % dashLength < dashLimit)) {
+        mImage.set_pixel(z, mImage.get_height() - 1 - aMirrorHeight, csColorMirror);
+      }
+      else {} // nothing to do
+      if(mLimitPixelBaseTop >= 0 && mLimitPixelBaseTop < mImage.get_width() && (z % dashLength >= dashLimit)) {
+        mImage.set_pixel(z, mImage.get_height() - 1 - mLimitPixelBaseTop, csColorBase);
+      }
+      else {} // nothing to do
+      if(mLimitPixelBaseBottom >= 0 && mLimitPixelBaseBottom < mImage.get_width() && (z % dashLength >= dashLimit)) {
+        mImage.set_pixel(z, mImage.get_height() - 1 - mLimitPixelBaseBottom, csColorBase);
+      }
+      else {} // nothing to do
+    }
+    else {} // nothing to do
   }
 }
