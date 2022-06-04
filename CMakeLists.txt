@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 set(CMAKE_CXX_COMPILER "/usr/bin/g++")
 project(RungeKuttaRayBending)
 
-add_compile_options(-ggdb -D_GLIBCXX_DEBUG -std=c++17)
-#add_compile_options(-O2 -std=c++17)
+#add_compile_options(-ggdb -D_GLIBCXX_DEBUG -std=c++17)
+add_compile_options(-O2 -std=c++17)
 
 add_definitions(-DEIGEN_MATRIX_PLUGIN="Matrix_initializer_list.h" -DEIGEN_ARRAY_PLUGIN="Array_initializer_list.h")
 
