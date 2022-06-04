@@ -27,11 +27,16 @@ Object::Object(char const * const aName, Vertex const& aUpperCorner, Vertex cons
   : mImage(aName)
   , mDy((aUpperCorner(2) - aLowerCorner(2)) / mImage.get_width())
   , mDz((aUpperCorner(2) - aLowerCorner(2)) / mImage.get_width())
-  , mMinY(aUpperCorner(1) - (aUpperCorner(1) - aLowerCorner(1)) * mImage.get_width() / mImage.get_height())
-  , mMaxY(aUpperCorner(1))
+  , mMinY(aUpperCorner(1))
+  , mMaxY(aUpperCorner(1) + ((aUpperCorner(2) - aLowerCorner(2)) * mImage.get_height()) / mImage.get_width())
   , mMinZ(aLowerCorner(2))
   , mMaxZ(aUpperCorner(2))
   , mX(aLowerCorner(0)) {
+std::cout << aUpperCorner(1) << '\n';
+std::cout << aUpperCorner(2) << '\n';
+std::cout << aLowerCorner(2) << '\n';
+std::cout << mImage.get_height() << '\n';
+std::cout << mImage.get_width() << '\n';
 std::cout << mDy << ' ' << mDz << '\n';
   std::cout << "minY: " << mMinY << '\n';
   std::cout << "maxY: " << mMaxY << '\n';
@@ -302,22 +307,21 @@ int Image::calculateMirrorHeight() {
 
 void Image::renderSurface(char const * const aNameSurf) {
   auto ssFactor = 1.0 / csSurfSubsample;
-  Vector normal(1.0, 0.0, 0.0);
-  Vector inPlaneY(mNormal.cross(mInPlaneZ));
-  Vertex pinhole(csSurfPinholeDist * normal);
   double biasSub = ((csSurfSubsample - 1.0) / 2.0);
 
   Plane plane = Plane::createFrom2vectors1point(Vector(0.0, 1.0, 0.0), Vector(0.0, 0.0, 1.0), Vertex(csSurfaceDistance, 0.0, 0.0));
   Ray ray;
-  ray.mStart = pinhole;
+  ray.mStart = mPinhole;
 
-  Vertex pixel = mPixelSize * ((mLimitPixelDeep - mBiasZ) * mInPlaneZ + (mLimitPixelBaseBottomSurf - mBiasY) * inPlaneY);
-  ray.mDirection = (pinhole - pixel).normalized();
+std::cout << "bottom:     " << mLimitPixelBottom << '\n';
+std::cout << "baseBottomSurf: " << mLimitPixelBaseBottomSurf << '\n';
+  Vertex pixel = mCenter + mPixelSize * ((mLimitPixelDeep - mBiasZ) * mInPlaneZ + (mLimitPixelBaseBottomSurf - mBiasY) * mInPlaneY);
+  ray.mDirection = (mPinhole - pixel).normalized();
   auto intersection = plane.intersect(ray);
   auto upperCorner = intersection.mPoint;
 
-  pixel = mPixelSize * ((mLimitPixelShallow - mBiasZ) * mInPlaneZ - mBiasY * inPlaneY);
-  ray.mDirection = (pinhole - pixel).normalized();
+  pixel = mCenter + mPixelSize * ((mLimitPixelShallow - mBiasZ) * mInPlaneZ - mBiasY * mInPlaneY);
+  ray.mDirection = (mPinhole - pixel).normalized();
   intersection = plane.intersect(ray);
   auto lowerCorner = intersection.mPoint;
 
@@ -328,16 +332,16 @@ void Image::renderSurface(char const * const aNameSurf) {
       double sum = 0.0;
       for(uint32_t i = 0; i < csSurfSubsample; ++i) {
         for(uint32_t j = 0; j < csSurfSubsample; ++j) {
-          Vertex subpixel = mPixelSize * (
+          Vertex subpixel = mCenter + mPixelSize * (
                 (z - mBiasZ + ssFactor * (i - biasSub)) * mInPlaneZ +
-                (y - mBiasY + ssFactor * (j - biasSub)) * inPlaneY);
-          ray.mDirection = (pinhole - subpixel).normalized();
+                (y - mBiasY + ssFactor * (j - biasSub)) * mInPlaneY);
+          ray.mDirection = (mPinhole - subpixel).normalized();
           auto intersection = plane.intersect(ray);
           sum += surface.getPixel(intersection.mPoint);
         }
       }
       uint8_t color = std::max(csColorBlack, static_cast<uint8_t>(::round(sum / static_cast<double>(csSurfSubsample * csSurfSubsample))));
-      mImage.set_pixel(mImage.get_width() - z - 1u, mImage.get_height() - y - 1u, ::round(sum / static_cast<double>(csSurfSubsample * csSurfSubsample)));
+      mImage.set_pixel(mImage.get_width() - z - 1u, mImage.get_height() - y - 1u, color);
     }
   }
 }
@@ -372,9 +376,14 @@ void Image::calculateMirage() {
               else {} // nothing to do
             }
           }
-          uint8_t color = static_cast<uint8_t>(::round(sum / static_cast<double>(mSubSample * mSubSample)));
-          color = (color < csColorBlack ? csColorBlack : color);
-          mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = (was ? color : csColorVoid);
+          uint8_t color;
+          if(was) {
+            color = std::max(csColorBlack, static_cast<uint8_t>(::round(sum / static_cast<double>(mSubSample * mSubSample))));
+          }
+          else {
+            color = csColorVoid;
+          }
+          mBuffer[(mImage.get_width() - z - 1u) + mImage.get_width() * (mImage.get_height() - y - 1u)] = color;
         }
       }
     });
