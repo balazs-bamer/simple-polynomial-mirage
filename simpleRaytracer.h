@@ -1,7 +1,7 @@
 ﻿#ifndef SIMPLERAYTRACER_H
 #define SIMPLERAYTRACER_H
 
-#define __FreeBSD__ 12 // Hack to let png++ compile under cygwin
+//#define __FreeBSD__ 12 // Hack to let png++ compile under cygwin
 
 #include "RungeKuttaRayBending.h"
 #include "3dGeomUtil.h"
@@ -22,7 +22,6 @@ private:
 
 public:
   Object(char const * const aName, double const aDispX, double const aLiftY, double const aHeight, double const aEarthRadius);
-  Object(char const * const aName, Vertex const& aUpperCorner, Vertex const& aLowerCorner);
   double  getX() const { return mX; }
   bool    hasPixel(Vertex const &aHit) const;
   uint8_t getPixel(Vertex const &aHit) const;
@@ -78,7 +77,7 @@ private:
   static constexpr double   csRenderSurfaceFactor =      2.0;
   static constexpr double   csSurfaceDistance     =   1000; // meters
   static constexpr double   csSurfPinholeDist     =      1; // meters
-  static constexpr uint32_t csSurfSubsample       =      1u; //5u;
+  static constexpr int      csSurfSubsample       =      7;
   static constexpr uint8_t  csColorVoid           =      0u;
   static constexpr uint8_t  csColorMirror         =      1u;
   static constexpr uint8_t  csColorBase           =      2u;
@@ -113,6 +112,7 @@ private:
   int                    mLimitPixelBaseBottomSurf;
   int                    mLimitPixelDeep;
   int                    mLimitPixelShallow;
+  int                    mLimitPixelTop;
   int                    mLimitPixelBottom;
   double                 mPixelSize;
   double                 mBiasZ;
