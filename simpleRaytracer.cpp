@@ -82,6 +82,7 @@ Image::Image(Parameters const& aPara, Medium &aMedium)
   , mBiasSub((aPara.mSubsample - 1.0) / 2.0)
   , mMarkIndent(std::max(0.0, std::min(1.0, aPara.mMarkIndent)))
   , mMarkAcross(aPara.mMarkAcross)
+  , mMarkTriple(aPara.mMarkTriple)
   , mMedium(aMedium) {
   mPalette[csColorMirror] = png::color(255u, 0u, 0u);
   mPalette[csColorBase] = png::color(0u, 255u, 0u);
@@ -329,18 +330,22 @@ void Image::calculateMirage() {
 void Image::drawMarks(int const aMirrorHeight) {
   auto dashLength = std::max(static_cast<int>(mImage.get_width() / csDashCount), 2);
   auto dashLimit  = dashLength / 2;
+  for(int y = (mMarkTriple ? -1 : 0); y < (mMarkTriple ? 2 : 1); ++y)
   for(int z = 0; z < mImage.get_width(); ++z) {
     if(mMarkAcross || z < mLimitPixelDeep * mMarkIndent || z > mImage.get_width() - mLimitPixelDeep * mMarkIndent) {
-      if(aMirrorHeight >= 0 && aMirrorHeight < mImage.get_width() && (z % dashLength < dashLimit)) {
-        mImage.set_pixel(z, mImage.get_height() - 1 - aMirrorHeight, csColorMirror);
+      auto height = aMirrorHeight + y;
+      if(height >= 0 && height < mImage.get_width() && (z % dashLength < dashLimit)) {
+        mImage.set_pixel(z, mImage.get_height() - 1 - height, csColorMirror);
       }
       else {} // nothing to do
-      if(mLimitPixelBaseTop >= 0 && mLimitPixelBaseTop < mImage.get_width() && (z % dashLength >= dashLimit)) {
-        mImage.set_pixel(z, mImage.get_height() - 1 - mLimitPixelBaseTop, csColorBase);
+      height = mLimitPixelBaseTop + y;
+      if(height >= 0 && height < mImage.get_width() && (z % dashLength >= dashLimit)) {
+        mImage.set_pixel(z, mImage.get_height() - 1 - height, csColorBase);
       }
       else {} // nothing to do
-      if(mLimitPixelBaseBottom >= 0 && mLimitPixelBaseBottom < mImage.get_width() && (z % dashLength >= dashLimit)) {
-        mImage.set_pixel(z, mImage.get_height() - 1 - mLimitPixelBaseBottom, csColorBase);
+      height = mLimitPixelBaseBottom + y;
+      if(height >= 0 && height < mImage.get_width() && (z % dashLength >= dashLimit)) {
+        mImage.set_pixel(z, mImage.get_height() - 1 - height, csColorBase);
       }
       else {} // nothing to do
     }

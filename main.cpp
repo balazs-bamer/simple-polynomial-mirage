@@ -29,6 +29,8 @@ int main(int aArgc, char **aArgv) {
   opt.add_option("--markAcross", paraIm.mMarkAcross, "draw mark line across the image (true, false) [false]");
   paraIm.mMarkIndent = 0.9;
   opt.add_option("--markIndent", paraIm.mMarkIndent, "mark indent ratio (0-1) from vertical edges compared to the black column (double) [0.5]");
+  paraIm.mMarkTriple = false;
+  opt.add_option("--markTriple", paraIm.mMarkTriple, "draw mark lines in triple width (true, false) [false]");
   paraRk.mMaxCosDirChange = 0.99999999999;
   opt.add_option("--maxCosDirChange", paraRk.mMaxCosDirChange, "Maximum of cos of direction change to reset big step [0.99999999999]");
   std::string nameIn = "monoscopeRca.png";
@@ -149,11 +151,12 @@ int main(int aArgc, char **aArgv) {
     std::cout << "lift of bulletin from ground (m): .  .  .  .  .  . " << bullLift << '\n';
     std::cout << "height of camera center (m):                       " << paraIm.mCamCenter << '\n';
     std::cout << "distance of bulletin and camera (m):               " << dist << '\n';
-    std::cout << "Earth form:                                        " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
-    std::cout << "Earth radius (km): .  .  .  .  .  .  .  .  .  .  . " << earthRadius / 1000.0 << '\n';
+    std::cout << "Earth form:                          .  .  .  .  . " << nameForm << ' ' << static_cast<int>(earthForm) << '\n';
+    std::cout << "Earth radius (km):                                 " << earthRadius / 1000.0 << '\n';
     std::cout << "height of bulletin (m):                            " << height << '\n';
-    std::cout << "draw mark across the image:                        " << paraIm.mMarkAcross << '\n';
+    std::cout << "draw mark across the image: .  .  .  .  .  .  .  . " << paraIm.mMarkAcross << '\n';
     std::cout << "mark indent:                                       " << paraIm.mMarkIndent << '\n';
+    std::cout << "draw mark lines in triple width:                   " << paraIm.mMarkTriple << '\n';
     std::cout << "max of cos of direction change to reset big step:  " << std::setprecision(17) << paraRk.mMaxCosDirChange << '\n';
     std::cout << "input filename:                                    " << nameIn << '\n';
     std::cout << "output filename:   .  .  .  .  .  .  .  .  .  .  . " << nameOut << '\n';

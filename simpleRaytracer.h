@@ -66,6 +66,7 @@ public:
     uint32_t mSubsample;
     double   mMarkIndent;
     bool     mMarkAcross;
+    bool     mMarkTriple;
   };
 
 private:
@@ -100,6 +101,7 @@ private:
   double   const  mBiasSub;
   double   const  mMarkIndent;
   bool     const  mMarkAcross;
+  bool     const  mMarkTriple;
 
   Medium                &mMedium;
   std::optional<double>  mLimitAngleTop;
